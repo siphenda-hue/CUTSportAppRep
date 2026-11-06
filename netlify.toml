@@ -1,5 +1,5 @@
 [build]
-  command = "npm run build"
+  command = "npm run preflight:deploy && npm run build"
   publish = "dist"
 
 [[redirects]]
@@ -29,3 +29,6 @@
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
     Permissions-Policy = "camera=(self), microphone=(), geolocation=()"
+
+[build.environment]
+  NODE_VERSION = "22"
