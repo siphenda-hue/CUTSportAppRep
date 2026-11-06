@@ -64,11 +64,11 @@ Last updated: 2026-11-06
 ## Yoco checkout and ticketing rollout — 2026-11-06
 
 - Selected Yoco Checkout API as the payment provider.
-- Applied Supabase migrations: `20261106005938_yoco_checkout_orders_and_ticket_inventory`, `20261106010014_yoco_checkout_request_idempotency`, and `20261106010233_add_service_role_policy_for_yoco_webhook_events`.
+- Applied Supabase migrations: `20261106005938_yoco_checkout_orders_and_ticket_inventory`, `20261106010014_yoco_checkout_request_idempotency`, and `20261106010233_add_service_role_policy_for_yoco_webhook_events`, and `20261106010527_tighten_client_grants_for_checkout_tables`.
 - Added server-authoritative order creation with product/ticket price lookup, stock reservation, checkout request idempotency, payment status reconciliation and ticket issuance after verified payment.
 - Revoked direct anon/authenticated INSERT/UPDATE/DELETE privileges on orders, order_items and tickets. Public ticket-type reads are limited to active ticket types on published ticketed events; management is RLS-scoped.
 - Deployed Edge Functions: `yoco-checkout` (JWT required), `yoco-webhook` (Yoco HMAC signature and 3-minute replay window; JWT disabled), `my-tickets` (JWT required), and `redeem-ticket` (JWT required; staff scope checked server-side).
 - Added checkout, event ticket purchase, personal signed ticket display and staff ticket gate routes. Event administrators can create a General Admission ticket type when creating a ticketed event.
-- Security regression SQL checks passed. Supabase security advisor returned no findings after adding a service-role-only policy for webhook receipts.
+- Security regression SQL checks passed, including checks that anonymous users cannot read orders or modify product prices/stock, and that client roles cannot create orders, order items or tickets. Supabase security advisor returned no findings.
 - Yoco API key, webhook signing secret, ticket signing secret and public app URL have not been configured. No sandbox or live payment was attempted. The app is not deployed to a public domain yet.
 - Outstanding before production: configure Edge Function secrets, register Yoco webhook, run end-to-end sandbox tests, schedule abandoned reservation cleanup, and add camera-based QR scanning.
