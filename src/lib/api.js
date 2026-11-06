@@ -31,7 +31,7 @@ export const api = {
   },
   notifications: async (userId) => {
     if (!supabase) return empty([]);
-    return supabase.from('notifications').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(30);
+    return supabase.from('notifications').select('id,title,body,read_at,created_at').eq('user_id', userId).order('created_at', { ascending: false }).limit(30);
   },
   tickets: async () => {
     if (!supabase) return empty([]);
