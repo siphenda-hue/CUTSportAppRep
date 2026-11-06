@@ -12,7 +12,9 @@ The custom domain can be connected later without changing the Supabase project o
 
 - Repository: `siphenda-hue/CUTSportAppRep`
 - Branch: `App`
-- Build command: `npm run build`
+- Build command: `npm run preflight:deploy && npm run build` (enforced by `netlify.toml`)
+- Node runtime: 22
+- Deployment preflight: verifies the CUT Sport Supabase URL, modern browser-safe publishable key, and blocks server-side secrets from `VITE_` variables
 - Publish directory: `dist`
 - SPA routing: configured in `netlify.toml`
 - Build environment variables:
@@ -26,8 +28,8 @@ Only the publishable key belongs in the frontend. Never add the Supabase service
 1. Sign in to Netlify and choose **Add new site → Import an existing project**.
 2. Connect the GitHub account and select `siphenda-hue/CUTSportAppRep`.
 3. Choose branch `App`.
-4. Confirm build command `npm run build` and publish directory `dist`.
-5. Add the two `VITE_...` variables above under Site configuration → Environment variables.
+4. Confirm Netlify has detected the repository build command `npm run preflight:deploy && npm run build` and publish directory `dist`.
+5. Add the two `VITE_...` variables above under Site configuration → Environment variables. The deployment preflight will stop the build if they are missing or if a secret key is used.
 6. Deploy. Netlify will assign a temporary HTTPS subdomain.
 7. Open the deployed URL on a phone and test navigation, sign-in, sports, news and the admin routes with authorised accounts.
 8. Keep the temporary address private to the intended reviewers until institutional approval for public launch.
