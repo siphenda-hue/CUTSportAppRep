@@ -3,7 +3,20 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "scripts": {"dev": "vite --host 0.0.0.0", "build": "vite build", "preview": "vite preview --host 0.0.0.0"},
-  "dependencies": {"@supabase/supabase-js": "2.119.0", "lucide-react": "0.468.0", "react": "18.3.1", "react-dom": "18.3.1", "react-router-dom": "6.28.0"},
-  "devDependencies": {"vite": "6.4.1"}
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "vite build",
+    "preview": "vite preview --host 0.0.0.0",
+    "preflight:deploy": "node scripts/deploy-preflight.mjs"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "2.119.0",
+    "lucide-react": "0.468.0",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "react-router-dom": "6.28.0"
+  },
+  "devDependencies": {
+    "vite": "6.4.1"
+  }
 }
