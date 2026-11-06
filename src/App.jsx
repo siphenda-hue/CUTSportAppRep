@@ -19,7 +19,7 @@ function App() {
  const add=p=>{setCart(old=>{const found=old.find(x=>x.id===p.id);return found?old.map(x=>x.id===p.id?{...x,qty:x.qty+1}:x):[...old,{id:p.id,name:p.name,price_cents:p.price_cents,image_url:p.image_url,qty:1}]});setToast('Added to your bag');setTimeout(()=>setToast(''),2200)};
  const common={sports,teams,competitions,products,fixtures,articles,events,ticketTypes,sponsors,athletes,user,profile,roles,cart,setCart,add};
  return <div className="app-shell"><div className="app-frame"><Routes>
- <Route path="/" element={<Home {...common}/>}/><Route path="/shop" element={<Shop {...common}/>}/><Route path="/shop/:slug" element={<Product {...common}/>}/><Route path="/cart" element={<Cart {...common}/>}/><Route path="/checkout" element={<Checkout cart={cart} setCart={setCart} user={user}/>}/><Route path="/payment/:result" element={<PaymentReturn user={user} result="success" cart={cart} setCart={setCart}/>}/><Route path="/events/:id" element={<EventTickets events={events} ticketTypes={ticketTypes} user={user}/>}/><Route path="/sport" element={<Sport {...common}/>}/><Route path="/sport/:slug" element={<Hub {...common}/>}/><Route path="/news" element={<News {...common}/>}/><Route path="/news/:slug" element={<Story {...common}/>}/><Route path="/sponsors" element={<Sponsors {...common}/>}/><Route path="/profile" element={<Profile {...common}/>}/><Route path="/admin" element={<AdminDashboard {...common}/>}/><Route path="/admin/sponsors" element={<AdminSponsors user={user} roles={roles}/>}/><Route path="/admin/athletes" element={<AdminAthletes roles={roles}/>}/><Route path="/admin/operations" element={<AdminOperations roles={roles} user={user}/>}/><Route path="/admin/approvals" element={<AdminApprovals roles={roles} user={user}/>}/><Route path="/admin/ticket-gate" element={<AdminTicketGate roles={roles}/>}/><Route path="/admin/editorial" element={<AdminEditorial roles={roles} user={user} sports={sports}/>}/><Route path="/notifications" element={<Personal title="Notifications" user={user} kind="notifications"/>}/><Route path="/tickets" element={<Personal title="My tickets" user={user} kind="tickets"/>}/><Route path="/orders" element={<Personal title="My orders" user={user} kind="orders"/>}/><Route path="*" element={<Home {...common}/>}/>
+ <Route path="/" element={<Home {...common}/>}/><Route path="/shop" element={<Shop {...common}/>}/><Route path="/shop/:slug" element={<Product {...common}/>}/><Route path="/cart" element={<Cart {...common}/>}/><Route path="/checkout" element={<Checkout cart={cart} setCart={setCart} user={user}/>}/><Route path="/payment/:result" element={<PaymentReturn user={user} result="success" cart={cart} setCart={setCart}/>}/><Route path="/events/:id" element={<EventTickets events={events} ticketTypes={ticketTypes} user={user}/>}/><Route path="/sport" element={<Sport {...common}/>}/><Route path="/sport/:slug" element={<Hub {...common}/>}/><Route path="/news" element={<News {...common}/>}/><Route path="/news/:slug" element={<Story {...common}/>}/><Route path="/sponsors" element={<Sponsors {...common}/>}/><Route path="/profile" element={<Profile {...common}/>}/><Route path="/admin" element={<AdminDashboard {...common}/>}/><Route path="/admin/sponsors" element={<AdminSponsors user={user} roles={roles}/>}/><Route path="/admin/products" element={<AdminProducts roles={roles} products={products} setProducts={setProducts}/>}/><Route path="/admin/athletes" element={<AdminAthletes roles={roles}/>}/><Route path="/admin/operations" element={<AdminOperations roles={roles} user={user}/>}/><Route path="/admin/approvals" element={<AdminApprovals roles={roles} user={user}/>}/><Route path="/admin/ticket-gate" element={<AdminTicketGate roles={roles}/>}/><Route path="/admin/editorial" element={<AdminEditorial roles={roles} user={user} sports={sports}/>}/><Route path="/notifications" element={<Personal title="Notifications" user={user} kind="notifications"/>}/><Route path="/tickets" element={<Personal title="My tickets" user={user} kind="tickets"/>}/><Route path="/orders" element={<Personal title="My orders" user={user} kind="orders"/>}/><Route path="*" element={<Home {...common}/>}/>
  </Routes><BottomNav/><Link className="cart-fab" to="/cart"><ShoppingBag size={18}/>{cart.reduce((n,x)=>n+x.qty,0)>0&&<span>{cart.reduce((n,x)=>n+x.qty,0)}</span>}</Link>{toast&&<div className="toast">{toast}</div>}</div></div>;
 }
 function Home({sports,products,fixtures,articles,events,sponsors}) {
@@ -85,7 +85,7 @@ function AdminDashboard({sports,teams,competitions,fixtures,articles,events,spon
   ...(sportAdmin?[{title:"Sponsor directory",description:"Create, update and archive official partner profiles.",to:"/admin/sponsors",icon:Handshake,state:"Available"},{title:"Sport operations",description:"Team, competition and fixture publishing tools.",to:"/admin/operations",icon:CalendarClock,state:"Available"},{title:"News & events",description:"Editorial publishing and event management.",to:"/admin/editorial",icon:FileText,state:"Available"}]:[]),
   ...((sportAdmin||coach)?[{title:"Athlete profiles",description:"Register and update profiles within your assigned sport or team scope.",to:"/admin/athletes",icon:Users,state:"Available"}]:[]),
   ...(sportAdmin?[{title:"Athlete approvals",description:"Review athlete profiles before publication.",to:"/admin/approvals",icon:ShieldCheck,state:"Available"},{title:"Event ticket gate",description:"Validate and redeem paid event tickets at entry.",to:"/admin/ticket-gate",icon:Ticket,state:"Available"}]:[]),
-  ...(shopAdmin?[{title:"Shop operations",description:"Product catalogue and order administration.",to:null,icon:ShoppingBag,state:"Permission setup required"}]:[])
+  ...((shopAdmin||roles.includes("super_admin"))?[{title:"Shop catalogue",description:"Create, update and archive products and manage published stock.",to:"/admin/products",icon:ShoppingBag,state:"Available"}]:[])
  ];
  if(!allowed)return <><Header title="Admin access required" back/><main className="page"><Empty title="Restricted area" body="A CUT Sport administrator, coach or shop administrator role is required."/></main></>;
  return <><Header title="Admin dashboard" back/><main className="page"><div className="page-intro"><span className="eyebrow">CUT SPORT · MANAGEMENT</span><h1>Admin dashboard</h1><p>Manage the information published in the CUT Sport app. Access to each record is still enforced by Supabase policies.</p></div><div className="admin-stats"><div><b>{sports.length}</b><small>Sport codes</small></div><div><b>{teams.length}</b><small>Teams</small></div><div><b>{competitions.length}</b><small>Competitions</small></div><div><b>{fixtures.length}</b><small>Fixtures</small></div><div><b>{articles.length}</b><small>Published stories</small></div><div><b>{events.length}</b><small>Events</small></div><div><b>{athletes.length}</b><small>Public athletes</small></div><div><b>{sponsors.length}</b><small>Active sponsors</small></div></div><Section title="Management tools"><div className="admin-module-grid">{modules.map(m=><article className="admin-module" key={m.title}><div className="admin-module-icon"><m.icon size={20}/></div><div className="admin-module-copy"><b>{m.title}</b><p>{m.description}</p><small>{m.state}</small></div>{m.to?<Link to={m.to} aria-label={"Open "+m.title}><ChevronRight/></Link>:<ShieldCheck size={18} className="muted-icon"/>}</article>)}</div></Section><div className="admin-notice"><ShieldCheck size={18}/><div><b>Security-first publishing</b><p>Planned management tools remain read-only or unavailable until their role scopes, Row Level Security policies and server-side workflows are reviewed and tested. This dashboard does not grant new permissions.</p></div></div></main></> ;
@@ -210,6 +210,67 @@ function AdminSponsors({user,roles}) {
  <label className="check-label"><input type="checkbox" checked={Boolean(form.is_active)} onChange={e=>setForm({...form,is_active:e.target.checked})}/> Published / active</label>
  <button className="btn primary" disabled={busy}>{busy?"Saving…":editing?"Save changes":"Create sponsor"}</button>{editing&&<button type="button" onClick={reset}>Cancel edit</button>}{error&&<p className="form-error">{error}</p>}</form>
  <Section title="Existing sponsors">{items.length?items.map(item=><div className="sponsor-card admin-sponsor" key={item.id}><div><b>{item.name}</b><small>{item.is_active?"Active":"Archived"} · {item.sponsorship_tier||"No tier"}</small></div><button onClick={()=>edit(item)}>Edit</button>{item.is_active&&<button onClick={()=>archive(item.id)}>Archive</button>}</div>):<Empty title="No sponsor records" body="Add an approved sponsor profile when the details are available."/>}</Section>
+ </main></>;
+}
+
+
+function AdminProducts({roles,products,setProducts}) {
+ const allowed=roles.some(r=>["shop_admin","super_admin"].includes(r));
+ const blank={name:"",slug:"",description:"",category:"",price:"",stock_quantity:"0",image_url:"",is_active:true};
+ const [items,setItems]=useState([]),[form,setForm]=useState(blank),[editing,setEditing]=useState(null),[busy,setBusy]=useState(false),[error,setError]=useState("");
+ async function load(){
+  if(!supabase||!allowed)return;
+  const {data,error}=await supabase.from("products").select("id,name,slug,description,category,price_cents,image_url,stock_quantity,is_active,created_at").order("created_at",{ascending:false});
+  if(error){setError(error.message);return}
+  setItems(data||[]);
+  setProducts((data||[]).filter(p=>p.is_active));
+ }
+ useEffect(()=>{load()},[allowed]);
+ function edit(item){
+  setEditing(item.id);
+  setForm({...blank,...item,price:(Number(item.price_cents||0)/100).toFixed(2),stock_quantity:String(item.stock_quantity??0)});
+  setError("");
+ }
+ function reset(){setEditing(null);setForm(blank);setError("")}
+ async function save(e){
+  e.preventDefault();
+  if(!allowed||!supabase)return;
+  const price=Number(form.price),stock=Number(form.stock_quantity);
+  if(!Number.isFinite(price)||price<0||!Number.isInteger(stock)||stock<0){setError("Enter a valid non-negative price and whole-number stock quantity.");return}
+  const slug=(form.slug||form.name).trim().toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/(^-|-$)/g,"");
+  if(!slug){setError("A product name is required to create its URL slug.");return}
+  setBusy(true);setError("");
+  const payload={name:form.name.trim(),slug,description:form.description.trim()||null,category:form.category.trim()||null,price_cents:Math.round(price*100),stock_quantity:stock,image_url:form.image_url.trim()||null,is_active:Boolean(form.is_active)};
+  const result=editing?await supabase.from("products").update(payload).eq("id",editing):await supabase.from("products").insert(payload);
+  if(result.error)setError(result.error.message);
+  else{reset();await load()}
+  setBusy(false);
+ }
+ async function archive(id){
+  if(!allowed||!supabase)return;
+  setBusy(true);setError("");
+  const {error}=await supabase.from("products").update({is_active:false}).eq("id",id);
+  if(error)setError(error.message);else await load();
+  setBusy(false);
+ }
+ if(!allowed)return <><Header title="Shop admin access required" back/><main className="page"><Empty title="Restricted area" body="A shop administrator or super administrator role is required."/></main></>;
+ return <><Header title="Shop catalogue" back/><main className="page">
+  <div className="page-intro"><span className="eyebrow">SHOP MANAGEMENT</span><h1>Heritage Collection</h1><p>Create and maintain official CUT Sport products. Prices and stock are stored in Supabase and revalidated by the checkout backend.</p></div>
+  <form className="form-card" onSubmit={save}>
+   <h3>{editing?"Edit product":"Add product"}</h3>
+   <label>Product name<input required maxLength="120" value={form.name} onChange={e=>setForm({...form,name:e.target.value})}/></label>
+   <label>URL slug<input maxLength="140" value={form.slug} onChange={e=>setForm({...form,slug:e.target.value})} placeholder="generated-from-name"/></label>
+   <label>Category<input value={form.category||""} onChange={e=>setForm({...form,category:e.target.value})} placeholder="Apparel, accessories, equipment…"/></label>
+   <label>Description<textarea value={form.description||""} onChange={e=>setForm({...form,description:e.target.value})}/></label>
+   <label>Price (R)<input type="number" min="0" step="0.01" required value={form.price} onChange={e=>setForm({...form,price:e.target.value})}/></label>
+   <label>Available stock<input type="number" min="0" step="1" required value={form.stock_quantity} onChange={e=>setForm({...form,stock_quantity:e.target.value})}/></label>
+   <label>Product image URL<input type="url" value={form.image_url||""} onChange={e=>setForm({...form,image_url:e.target.value})}/></label>
+   <label className="check-label"><input type="checkbox" checked={Boolean(form.is_active)} onChange={e=>setForm({...form,is_active:e.target.checked})}/> Publish in the public shop</label>
+   <button className="btn primary" disabled={busy}>{busy?"Saving…":editing?"Save product":"Create product"}</button>
+   {editing&&<button type="button" onClick={reset}>Cancel edit</button>}
+   {error&&<p className="form-error">{error}</p>}
+  </form>
+  <Section title="Catalogue records">{items.length?items.map(item=><div className="sponsor-card admin-sponsor admin-product-row" key={item.id}><div>{item.image_url&&<img src={item.image_url} alt=""/>}<section><b>{item.name}</b><small>{money(item.price_cents)} · Stock {item.stock_quantity} · {item.is_active?"Published":"Archived"}</small></section></div><button disabled={busy} onClick={()=>edit(item)}>Edit</button>{item.is_active&&<button disabled={busy} onClick={()=>archive(item.id)}>Archive</button>}</div>):<Empty title="No products in the catalogue" body="Create a product when the official item, price and stock quantity are approved."/>}</Section>
  </main></>;
 }
 
