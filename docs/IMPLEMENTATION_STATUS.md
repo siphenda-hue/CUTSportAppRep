@@ -38,3 +38,13 @@ Last updated: 2026-11-06
 - Never bypass or disable RLS.
 - Never insert invented athlete, team, fixture, competition, article, event, sponsor or product records.
 - Keep server-authoritative actions on trusted backend functions.
+
+
+## Admin publishing dashboard — 2026-11-06
+
+- Added a role-aware admin landing page at `/admin`.
+- Existing sponsor management is now at `/admin/sponsors`; athlete management remains at `/admin/athletes`.
+- Dashboard modules are shown by the signed-in user's database role. Coach access is limited to athlete profiles; sport admins and super admins see sponsor and planned sport-operations modules; shop admins see a planned shop module.
+- Dashboard counts are sourced from records already loaded through the app's public/read-scoped API. They are not an authorization mechanism.
+- Planned team, competition, fixture, editorial, event, shop, payment and ticket administration remains unavailable until the corresponding database write permissions and server-side rules have been designed, reviewed and tested.
+- No Supabase schema, grants, RLS policies, Edge Functions, roles or data were changed for this dashboard.
