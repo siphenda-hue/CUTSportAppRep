@@ -429,7 +429,7 @@ function AdminEventReports({roles}) {
 
 function AdminShopOrders({roles}) {
  const allowed=roles.some(r=>["shop_admin","super_admin"].includes(r));
- const [items,setItems]=useState([]),[filter,setFilter]=useState("all"),[busy,setBusy]=useState(false),[error,setError]=useState("");
+ const [items,setItems]=useState([]),[filter,setFilter]=useState("all"),[busy,setBusy]=useState(false),[busyOrder,setBusyOrder]=useState(""),[error,setError]=useState(""),[notes,setNotes]=useState({});
  async function load(){
   if(!supabase||!allowed)return;
   setBusy(true);setError("");
@@ -440,21 +440,34 @@ function AdminShopOrders({roles}) {
   setBusy(false);
  }
  useEffect(()=>{load()},[allowed]);
+ async function transition(order,newStatus){
+  if(!allowed||!supabase||busyOrder)return;
+  setBusyOrder(order.id);setError("");
+  const {data,error}=await supabase.functions.invoke("manage-shop-order",{body:{orderId:order.id,newStatus,note:notes[order.id]||null}});
+  if(error||data?.error){setError(data?.error||error?.message||"Unable to update this order.");setBusyOrder("");return}
+  setNotes(old=>({...old,[order.id]:""}));
+  await load();
+  setBusyOrder("");
+ }
  const visible=items.filter(x=>filter==="all"||x.status===filter);
  const paid=items.filter(x=>x.payment_status==="succeeded");
  const paidTotal=paid.reduce((sum,x)=>sum+Number(x.total_cents||0),0);
  if(!allowed)return <><Header title="Shop admin access required" back/><main className="page"><Empty title="Restricted area" body="A shop administrator or super administrator role is required."/></main></>;
  return <><Header title="Shop orders" back/><main className="page">
-  <div className="page-intro"><span className="eyebrow">SHOP MANAGEMENT</span><h1>Orders & fulfilment.</h1><p>Review shop orders and their line items. Customer contact details and payment credentials are not displayed here. Payment confirmation remains controlled by the verified Yoco webhook.</p></div>
+  <div className="page-intro"><span className="eyebrow">SHOP MANAGEMENT</span><h1>Orders & fulfilment.</h1><p>Review paid shop orders and progress them through fulfilment. Payment confirmation remains controlled by the verified Yoco webhook; customer contact details and payment credentials are not displayed here.</p></div>
   <div className="admin-stats"><div><b>{items.length}</b><small>Orders loaded</small></div><div><b>{paid.length}</b><small>Paid orders</small></div><div><b>{money(paidTotal)}</b><small>Verified paid value</small></div><div><b>{items.filter(x=>x.status==="processing").length}</b><small>Processing</small></div></div>
-  <div className="orders-toolbar"><label>Filter orders<select value={filter} onChange={e=>setFilter(e.target.value)}><option value="all">All statuses</option>{["pending","paid","processing","fulfilled","cancelled","refunded"].map(s=><option key={s} value={s}>{s}</option>)}</select></label><button type="button" onClick={load} disabled={busy}>{busy?"Refreshing…":"Refresh orders"}</button></div>
+  <div className="orders-toolbar"><label>Filter orders<select value={filter} onChange={e=>setFilter(e.target.value)}><option value="all">All statuses</option>{["pending","paid","processing","fulfilled","cancelled","refunded"].map(s=><option key={s} value={s}>{s}</option>)}</select></label><button type="button" onClick={load} disabled={busy||Boolean(busyOrder)}>{busy?"Refreshing…":"Refresh orders"}</button></div>
   {error&&<p className="form-error">{error}</p>}
   {visible.length?visible.map(order=><article className="order-admin-card" key={order.id}>
    <div className="order-admin-head"><div><b>Order {order.order_number}</b><small>{dateLabel(order.created_at)}</small></div><span className={"order-status "+(order.payment_status==="succeeded"?"is-paid":"")}>{order.status}</span></div>
    <div className="order-admin-lines">{(order.order_items||[]).filter(line=>line.item_type==="product").map(line=><div key={line.id}><span>{line.product_name} × {line.quantity}</span><b>{money(Number(line.unit_price_cents||0)*Number(line.quantity||0))}</b></div>)}</div>
    <div className="order-admin-foot"><span>Payment: {order.payment_status}</span><b>{money(order.total_cents)} {order.currency||"ZAR"}</b></div>
+   {order.payment_status==="succeeded"&&(order.status==="paid"||order.status==="processing")&&<div className="order-fulfilment-controls">
+    <label>Internal fulfilment note (optional)<textarea maxLength="500" rows="2" value={notes[order.id]||""} onChange={e=>setNotes(old=>({...old,[order.id]:e.target.value}))} placeholder="e.g. Packed and ready for collection"/></label>
+    <button type="button" disabled={busy||Boolean(busyOrder)} onClick={()=>transition(order,order.status==="paid"?"processing":"fulfilled")}>{busyOrder===order.id?"Updating…":order.status==="paid"?"Start processing":"Mark as fulfilled"}</button>
+   </div>}
   </article>):<Empty title={busy?"Loading orders":"No orders found"} body={busy?"Shop order records are being retrieved.":filter==="all"?"Paid and pending shop orders will appear here after customers check out.":"No shop orders match this status filter."}/>}
-  <p className="muted">This first release is intentionally read-only. Fulfilment updates will be added only after a dedicated status-transition policy is tested.</p>
+  <p className="muted">Only verified paid orders can enter fulfilment. Permitted transitions are Paid → Processing → Fulfilled. Cancellation and refunds remain outside this workflow and must be handled through the payment provider's authorised process.</p>
  </main></>;
 }
 
