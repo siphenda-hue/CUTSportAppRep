@@ -97,6 +97,9 @@ Deno.serve(async (req: Request) => {
   const checkout = await yocoResponse.json().catch(() => null);
   let redirect: URL;
   try {
+    if (typeof checkout?.id !== "string" || checkout.amount !== order.amount || checkout.currency !== "ZAR") {
+      throw new Error("Yoco checkout amount or currency did not match");
+    }
     redirect = new URL(checkout?.redirectUrl);
     if (redirect.protocol !== "https:" || redirect.hostname !== "c.yoco.com") throw new Error("Unexpected checkout host");
   } catch {
