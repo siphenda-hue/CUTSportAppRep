@@ -25,7 +25,8 @@ Last verified: 2026-11-06
 - Student/staff discount eligibility remains unconfigured pending institutional verification rules.
 
 ## Validation and blockers
-- `npm install --no-audit --no-fund` was attempted again but timed out in this environment. A GitHub Actions workflow now runs dependency installation and `npm run build` on pushes/PRs to `App`. The first run failed before install because the npm cache expected a lockfile; the workflow was corrected to remove that cache dependency and is awaiting a fresh run.
-- A Vite production build and browser test therefore remain unverified.
+- Local `npm install` still times out in this workspace, but GitHub Actions successfully completed `npm install` and `npm run build` (run `42136191310`, conclusion `success`).
+- The CI run generated and committed `package-lock.json` in commit `124cfab5697cbe445b0380ff79327a6ccee665b6`.
+- A live browser walkthrough and real signed-in administrator CRUD test remain outstanding.
 - No service-role key or secret was placed in frontend source. The browser uses only `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`.
 - No database schema, RLS policies or production data were changed.
