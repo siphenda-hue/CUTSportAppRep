@@ -108,3 +108,8 @@ The staff gate at `/admin/ticket-gate` now supports camera scanning and QR decod
 ## Shop order administration
 
 Shop administrators can read shop orders and their product line items through dedicated SELECT-only RLS policies. This access is limited to `order_kind = 'shop'` and does not include event-ticket orders or ticket-holder records. The admin interface intentionally omits customer contact details and payment credentials. Payment status is read-only and continues to be set by the verified Yoco webhook. Fulfilment state changes are not enabled until a separate audited transition workflow is implemented.
+
+
+## Event sales and attendee reporting
+
+The authenticated `event-report` Edge Function provides the event-management dashboard with ticket-type sales, verified paid revenue, remaining ticket inventory, issued-ticket counts, check-in totals and an attendee register. It verifies the signed-in user's `sport_admin` or `super_admin` role and checks active full-sport assignments for each event request. The register returns attendee name, ticket type, issue date and check-in state only; it does not return contact details, student numbers, payment references or ticket-code hashes. Sales figures are based only on orders with `payment_status = 'succeeded'`.
