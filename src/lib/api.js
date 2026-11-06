@@ -33,13 +33,15 @@ export const api = {
     if (!supabase) return empty([]);
     return supabase.from('notifications').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(30);
   },
-  tickets: async (userId) => {
+  tickets: async () => {
     if (!supabase) return empty([]);
-    return supabase.from('tickets').select('id,ticket_code_hash,redeemed_at,created_at,events(title,venue,starts_at)').eq('user_id', userId).order('created_at', { ascending: false });
+    const { data, error } = await supabase.functions.invoke('my-tickets', { body: {} });
+    return { data: data?.tickets || [], error };
   },
+  ticketTypes: () => query('event_ticket_types', 'id,event_id,name,description,price_cents,quantity_available,max_per_order,events!inner(published,ticketed)', { eq: { is_active: true, 'events.published': true, 'events.ticketed': true }, order: 'price_cents', ascending: true, limit: 100 }),
   orders: async (userId) => {
     if (!supabase) return empty([]);
-    return supabase.from('orders').select('id,order_number,status,total_cents,currency,created_at').eq('user_id', userId).order('created_at', { ascending: false });
+    return supabase.from('orders').select('id,order_number,status,payment_status,total_cents,currency,created_at').eq('user_id', userId).order('created_at', { ascending: false });
   }
 };
 export const money = (cents = 0) => new Intl.NumberFormat('en-ZA', { style: 'currency', currency: 'ZAR', maximumFractionDigits: 2 }).format(Number(cents) / 100);
