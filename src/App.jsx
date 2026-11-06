@@ -65,8 +65,41 @@ function News({articles}) {return <><Header title="Articles & news"/><main class
 function Story({articles}) {const {slug}=useParams();const a=articles.find(x=>x.slug===slug);return <><Header title="Article" back/><main className="page">{a?<article><small>{dateLabel(a.published_at)}</small><h1>{a.title}</h1>{a.cover_image_url&&<img className="article-cover" src={a.cover_image_url} alt=""/>}<p>{a.excerpt}</p><div className="article-body">{a.body}</div></article>:<Empty title="Story not found" body="This story is no longer available."/>}</main></>}
 function Sponsors({sponsors}) {return <><Header title="Our sponsors" back/><main className="page"><h1>Stronger together.</h1>{sponsors.length?sponsors.map(s=><div className="sponsor-card" key={s.id}><b>{s.name}</b><p>{s.description}</p>{s.website_url&&<a href={s.website_url} target="_blank" rel="noreferrer">Visit partner</a>}</div>):<Empty title="Partner directory coming soon" body="Official sponsor profiles will be published here."/>}</main></>}
 function Profile({user,profile,roles}) {const [mode,setMode]=useState('login'),[email,setEmail]=useState(''),[password,setPassword]=useState(''),[name,setName]=useState(profile?.full_name||''),[message,setMessage]=useState('');useEffect(()=>setName(profile?.full_name||''),[profile]);async function submit(e){e.preventDefault();if(!supabase){setMessage('Connect Supabase environment variables first.');return}const r=mode==='login'?await supabase.auth.signInWithPassword({email,password}):await supabase.auth.signUp({email,password,options:{data:{full_name:name}}});setMessage(r.error?.message||'Request submitted. Check your email if confirmation is required.')}async function save(e){e.preventDefault();const {error}=await supabase.from('profiles').upsert({id:user.id,full_name:name,email:user.email},{onConflict:'id'});setMessage(error?.message||'Profile updated.')}return <><Header title="Profile"/><main className="page">{user?<><h1>{profile?.full_name||user.email}</h1><form className="form-card" onSubmit={save}><label>Full name<input value={name} onChange={e=>setName(e.target.value)}/></label><label>Email<input value={user.email||''} disabled/></label><button className="btn primary">Save profile</button></form><div className="account-links"><Link to="/orders"><Package/> My orders</Link><Link to="/tickets"><Ticket/> My tickets</Link><Link to="/notifications"><Bell/> Notifications</Link>{roles.some(r=>["sport_admin","super_admin","coach","shop_admin"].includes(r))&&<Link to="/admin">CUT Sport admin dashboard</Link>}{roles.some(r=>["sport_admin","super_admin","coach"].includes(r))&&<Link to="/admin/athletes">Athlete profiles</Link>}<p>Roles: {roles.join(', ')||'Member'}</p><button onClick={()=>supabase.auth.signOut()}><LogOut/> Sign out</button></div></>:<><h1>Join the Blues.</h1><div className="tabs"><button onClick={()=>setMode('login')}>Log in</button><button onClick={()=>setMode('signup')}>Create account</button></div><form className="form-card" onSubmit={submit}>{mode==='signup'&&<label>Full name<input required value={name} onChange={e=>setName(e.target.value)}/></label>}<label>Email<input type="email" required value={email} onChange={e=>setEmail(e.target.value)}/></label><label>Password<input type="password" minLength="8" required value={password} onChange={e=>setPassword(e.target.value)}/></label><button className="btn primary">Continue</button>{message&&<p>{message}</p>}</form><p className="muted">Student and staff discounts require verified institutional eligibility.</p></>}</main></>}
-function Personal({title,user,kind}) {const [items,setItems]=useState([]);useEffect(()=>{if(!user){setItems([]);return}const fn=kind==='notifications'?api.notifications:kind==='tickets'?api.tickets:api.orders;fn(user.id).then(r=>setItems(r.data||[]))},[user,kind]);return <><Header title={title} back/><main className="page"><h1>{title}</h1>{!user?<Empty title="Sign in to continue" body="Your personal information will appear here after you sign in."/>:items.length?items.map(x=><div className="personal-card" key={x.id}><b>{x.title||x.event?.title||x.order_number||'CUT Sport update'}</b><p>{x.body||x.payment_status||x.status||dateLabel(x.created_at)}</p>{x.ticket_code&&<><small>Present this secure ticket code at the event entrance</small><code className="ticket-code">{x.ticket_code}</code>{x.redeemed_at&&<small>Redeemed · {dateLabel(x.redeemed_at)}</small>}</>}</div>):<Empty title="Nothing here yet" body="Your updates will appear here when available."/>}</main></>}
-
+function Personal({title,user,kind}) {
+ const [items,setItems]=useState([]),[busy,setBusy]=useState(false),[error,setError]=useState("");
+ const isNotifications=kind==="notifications";
+ async function load(){
+  if(!user){setItems([]);return}
+  setBusy(true);setError("");
+  const fn=isNotifications?api.notifications:kind==="tickets"?api.tickets:api.orders;
+  const result=await fn(user.id);
+  if(result.error)setError(result.error.message||"Unable to load your records.");
+  setItems(result.data||[]);setBusy(false);
+ }
+ useEffect(()=>{load()},[user,kind]);
+ const unread=items.filter(x=>!x.read_at);
+ async function markRead(id){
+  if(!supabase||!user)return;
+  const now=new Date().toISOString();
+  const {error}=await supabase.from("notifications").update({read_at:now}).eq("id",id).eq("user_id",user.id).is("read_at",null);
+  if(error)setError(error.message);else setItems(old=>old.map(x=>x.id===id?{...x,read_at:now}:x));
+ }
+ async function markAllRead(){
+  if(!supabase||!user||!unread.length)return;
+  setBusy(true);setError("");const now=new Date().toISOString();
+  const {error}=await supabase.from("notifications").update({read_at:now}).eq("user_id",user.id).is("read_at",null);
+  if(error)setError(error.message);else setItems(old=>old.map(x=>({...x,read_at:x.read_at||now})));
+  setBusy(false);
+ }
+ return <><Header title={title} back/><main className="page">
+  {isNotifications?<div className="notifications-heading"><div><span className="eyebrow">CUT SPORT · YOUR UPDATES</span><h1>Notifications</h1><p>{unread.length} unread update(s)</p></div><div><button type="button" onClick={load} disabled={busy}>Refresh</button>{unread.length>0&&<button type="button" onClick={markAllRead} disabled={busy}>Mark all read</button>}</div></div>:<h1>{title}</h1>}
+  {!user?<Empty title="Sign in to continue" body="Your personal information will appear here after you sign in."/>:null}
+  {error&&<p className="form-error">{error}</p>}
+  {user&&items.length?items.map(x=>isNotifications?<article className={"personal-card notification-card "+(x.read_at?"is-read":"is-unread")} key={x.id}><div className="notification-card-head"><b>{x.title||"CUT Sport update"}</b><small>{dateLabel(x.created_at)}</small></div><p>{x.body}</p><div className="notification-card-foot"><span>{x.read_at?"Read":"Unread"}</span>{!x.read_at&&<button type="button" onClick={()=>markRead(x.id)}>Mark as read</button>}</div></article>:<div className="personal-card" key={x.id}><b>{x.title||x.event?.title||x.order_number||"CUT Sport update"}</b><p>{x.body||x.payment_status||x.status||dateLabel(x.created_at)}</p>{x.ticket_code&&<><small>Present this secure ticket code at the event entrance</small><code className="ticket-code">{x.ticket_code}</code>{x.redeemed_at&&<small>Redeemed · {dateLabel(x.redeemed_at)}</small>}</>}</div>):null}
+  {user&&!items.length&&!busy&&<Empty title={isNotifications?"No notifications yet":"Nothing here yet"} body={isNotifications?"Payment confirmations and important CUT Sport updates will appear here.":"Your updates will appear here when available."}/>}
+  {busy&&!items.length&&<p className="muted">Loading…</p>}
+ </main></>;
+}
 
 function AdminTicketGate({roles}) {
  const allowed=roles.some(r=>["sport_admin","super_admin"].includes(r));
