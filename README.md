@@ -19,19 +19,20 @@ Mobile-first React + Vite application for Central University of Technology Sport
 - Home and sport-code directory / hubs
 - Fixtures and results
 - News and article detail
-- Product catalogue, product detail, local cart and checkout readiness
+- Product catalogue, product detail, local cart and Yoco hosted checkout
 - Sponsor directory
 - Account sign-in, sign-up and profile
-- Personal notifications, tickets and order history
+- Personal notifications, signed event tickets and order history
+- Role-secured sport operations, athlete approvals, editorial publishing and staff ticket redemption
 
 ## Supabase integration
 Project ref: `tnkykdfxzwaqzbichxcl`. Existing tables and RLS are reused. No sample fixture, athlete, sponsor, product, event or news records are inserted.
 
-## Not yet live
-- Admin management screens: require final mapping of scoped write permissions and CRUD workflows.
-- Payments/order placement: require a real gateway, server-side verification and atomic order creation.
-- Ticket QR issuance/redemption: require trusted server-side issue and verify endpoints.
-- Student/staff discounts: require approved institutional eligibility rules.
-- Production build/browser test: pending because dependency installation timed out in the current build environment.
+## Yoco checkout and ticketing
+- Yoco Checkout is the selected provider. The authenticated checkout, signed webhook, ticket pass and staff redemption Edge Functions are deployed to Supabase.
+- Database order creation is server-authoritative, idempotent and uses product/ticket prices from Supabase. Ticket issuance follows verified payment only.
+- Before any sandbox payment, configure the required Supabase Edge Function secrets and register the Yoco webhook. Follow `docs/YOCO_INTEGRATION.md`.
+- Live payments require Yoco domain verification and live merchant credentials. The app is not yet deployed to its final public domain.
+- Camera-based QR scanning, scheduled release of abandoned checkout stock reservations, student/staff discounts and refunds remain future work.
 
-Do not expose service-role or secret keys in Vite environment variables.
+Do not expose service-role, Yoco secret or ticket-signing keys in Vite environment variables.
