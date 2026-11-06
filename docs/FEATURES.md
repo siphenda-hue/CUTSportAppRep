@@ -8,7 +8,7 @@
 | Cart | `/cart` | Browser-local cart with quantity controls and subtotal |
 | Checkout | `/checkout` | Readiness notice only; no payment or order creation |
 | Sport updates | `/sport` | Sport-code directory and fixtures/results |
-| Sport hubs | `/sport/:slug` | Active team directory, approved public athlete cards, fixtures and published stories |
+| Sport hubs | `/sport/:slug` | Public competition directory, active team directory, approved public athlete cards, fixtures and published stories |
 | News | `/news`, `/news/:slug` | Published article feed and detail |
 | Sponsors | `/sponsors` | Active sponsor directory and partner links |
 | Profile | `/profile` | Supabase email/password sign-in, sign-up and profile update |
