@@ -130,3 +130,12 @@ Last updated: 2026-11-06
 - Added sport, season and athlete filters, generic numeric-metric averages and trend bars, and a record-by-record metric summary. It adapts to metric keys stored in the existing JSONB `metrics` field rather than assuming one sport's stat model.
 - Pending or rejected statistics are not included. The approval queue remains the only route for authorised reviewers to approve submitted statistics.
 - No performance data was fabricated or seeded. The dashboard will populate as approved records are entered.
+
+
+## In-app notifications — 2026-11-06
+
+- Added unread/read notification states, individual **Mark as read**, **Mark all read**, and refresh controls to `/notifications`. These actions use the existing user-owned notification RLS policies.
+- Added an idempotency key to notifications and a unique partial index so payment confirmations do not create duplicate messages when Yoco retries a webhook.
+- Updated the verified Yoco webhook to queue an in-app notification after payment reconciliation and ticket signing. Shop orders and event-ticket orders receive distinct confirmation wording.
+- The client fetches only notification display fields; the internal source key is not returned to the app.
+- This is an in-app notification centre, not browser push or SMS. No external notification provider or device-token permissions have been configured.
