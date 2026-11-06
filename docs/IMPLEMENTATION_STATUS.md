@@ -21,13 +21,13 @@ Last updated: 2026-11-06
 - 11 sport codes exist. At last count, teams, athletes, fixtures, articles, products, events and sponsors had zero records.
 - Athlete insert/update/delete policies call `private.can_manage_athlete(sport_id, team_id)`, which checks active sport/team assignments and super-admin role.
 - Sponsor management policy allows `sport_admin` and `super_admin`.
-- No Edge Functions currently exist in the project.
+- No Edge Functions currently exist in the project. A separate result-submission workflow table has been created; payment/ticket server-side functions remain unbuilt.
 - Latest security advisor returned no findings. Performance advisor reports existing notices: 19 unindexed foreign keys, 11 RLS auth initplan notices, 18 unused-index notices, and one multiple-permissive-policy notice on sponsors. These were not changed because they require a separate reviewed database-performance pass.
-- No schema, RLS or production data changes were made in this development pass.
+- Admin operations, athlete approval and editorial RLS policies have now been applied through three tracked Supabase migrations. No production records were seeded or altered.
 
 ## Not yet implemented / gated
-- Team, competition, fixture, article, event, product and sport-code CRUD: no suitable write policies were verified for these tables.
-- Athlete approval/verification, statistics, achievements and media moderation: require a reviewed workflow and corresponding scoped policies.
+- Product and sport-code CRUD remains outstanding. Team, competition, fixture, article and event policy foundations plus initial management screens are implemented.
+- Athlete approval and statistics review controls are implemented; achievement and media review screens remain outstanding. Database triggers enforce approver-only changes to verification fields.
 - Payment and atomic order creation: no payment gateway configured.
 - Secure ticket issuance, QR generation and redemption: requires server-side signed tokens and validation.
 - Student/staff discounts: requires approved institutional eligibility rules.
@@ -48,3 +48,14 @@ Last updated: 2026-11-06
 - Dashboard counts are sourced from records already loaded through the app's public/read-scoped API. They are not an authorization mechanism.
 - Planned team, competition, fixture, editorial, event, shop, payment and ticket administration remains unavailable until the corresponding database write permissions and server-side rules have been designed, reviewed and tested.
 - No Supabase schema, grants, RLS policies, Edge Functions, roles or data were changed for this dashboard.
+
+
+## Admin permission rollout — 2026-11-06
+
+- Supabase migrations applied: `20261106004403_scoped_operations_athlete_approval_and_publishing`, `20261106004631_protect_athlete_visibility_and_index_result_submissions`, `20261106004647_allow_private_athlete_edits_without_approval`.
+- Added scoped RLS for team, competition, fixture, article and event administration. Added fixture sport-link validation and coach/team-manager result submissions with sport-admin review.
+- Added database trigger guards to keep athlete/statistics/achievement/media approval fields under sport-admin/super-admin authority. Anonymous write grants were revoked from affected tables; RLS remains enabled.
+- Added `/admin/operations`, `/admin/approvals` and `/admin/editorial` screens. Current frontend provides create flows and selected approval/publish actions; full edit/archive coverage remains in progress.
+- Supabase security advisor: no findings. Performance advisor still reports unindexed foreign keys, 11 RLS auth initplan notices, unused-index notices and multiple permissive SELECT policy notices; new result-submission and event sport foreign keys have indexes.
+- GitHub Actions production build passed after the JSX formatting correction. No authenticated CRUD/browser test has been run because no admin role or sport-assignment records are provisioned in the project.
+- Data inventory remains empty for teams, competitions, fixtures, articles, events and result submissions. No invented CUT Sport data has been added.
