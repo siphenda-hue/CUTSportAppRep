@@ -35,5 +35,11 @@ begin
     and not tgisinternal) then
     raise exception 'Fixture sport-link validation trigger is missing';
   end if;
+  if not has_function_privilege('authenticated','public.publish_fixture_result_submission(uuid,text)','execute') then
+    raise exception 'Authenticated role cannot execute the reviewed result publisher';
+  end if;
+  if has_function_privilege('anon','public.publish_fixture_result_submission(uuid,text)','execute') then
+    raise exception 'Anonymous role can execute the reviewed result publisher';
+  end if;
 end;
 $$;
