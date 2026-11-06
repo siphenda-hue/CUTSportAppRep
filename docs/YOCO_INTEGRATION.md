@@ -87,7 +87,7 @@ Yoco Checkout currently supports ZAR. The current checkout flow enforces a minim
 - The React app is not yet deployed to a verified public domain, so APP_BASE_URL is not yet known.
 - Yoco merchant credentials and webhook signing secret have not been configured.
 - No real or sandbox checkout has been completed in this project yet.
-- Ticket codes are securely signed and displayed in the user's ticket area. The staff gate accepts a code pasted or typed by a QR scanner; a camera-based QR scanner UI is a future enhancement.
+- Ticket codes are securely signed and displayed in the user's ticket area. The staff gate accepts manual entry, keyboard-wedge scanners, camera QR scanning, and local image/screenshot QR decoding.
 - Stock is reserved transactionally when an order is created. Automated expiry/release of abandoned checkout reservations still needs a scheduled cleanup job before high-volume production sales.
 - Student/staff discounts, refunds, delivery fulfilment and inventory reporting need separately approved business rules and workflows.
 
@@ -103,3 +103,8 @@ The scheduled job can be inspected in Supabase Dashboard → Integrations → Cr
 ## Event ticket QR scanning
 
 The staff gate at `/admin/ticket-gate` now supports camera scanning and QR decoding from a locally selected image or screenshot using `html5-qrcode@2.3.8` (Apache-2.0). The browser loads the pinned scanner bundle only when the scanner is used. QR decoding occurs on-device; image files are not uploaded. Staff must still confirm the scanned code and invoke the protected redemption endpoint. Camera access requires HTTPS and user permission. Manual paste/keyboard-scanner entry remains available.
+
+
+## Shop order administration
+
+Shop administrators can read shop orders and their product line items through dedicated SELECT-only RLS policies. This access is limited to `order_kind = 'shop'` and does not include event-ticket orders or ticket-holder records. The admin interface intentionally omits customer contact details and payment credentials. Payment status is read-only and continues to be set by the verified Yoco webhook. Fulfilment state changes are not enabled until a separate audited transition workflow is implemented.
