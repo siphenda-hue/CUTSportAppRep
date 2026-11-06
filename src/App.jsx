@@ -76,13 +76,13 @@ function AdminTicketGate({roles}) {
  async function stopScanner(){
   const scanner=scannerRef.current;
   if(scanner){
-   try{if(scanner.isScanning)await scanner.stop()}catch{}
+   try{await scanner.stop()}catch{}
    try{await scanner.clear()}catch{}
    scannerRef.current=null;
   }
   setScannerActive(false);startingRef.current=false;
  }
- useEffect(()=>()=>{const scanner=scannerRef.current;if(scanner){try{scanner.stop().then(()=>scanner.clear()).catch(()=>{})}catch{}}},[]);
+ useEffect(()=>()=>{const scanner=scannerRef.current;if(scanner){try{scanner.stop().catch(()=>{}).finally(()=>scanner.clear().catch(()=>{}))}catch{}}},[]);
  async function startScanner(){
   if(!allowed||startingRef.current||scannerRef.current)return;
   startingRef.current=true;setScannerBusy(true);setError("");
@@ -115,6 +115,25 @@ function AdminTicketGate({roles}) {
    setError(e?.message||"Unable to start the camera. Check browser camera permissions.");
   }finally{startingRef.current=false;setScannerBusy(false)}
  }
+ async function scanImage(event){
+  const file=event.target.files?.[0];if(!file)return;
+  if(scannerActive)await stopScanner();
+  setScannerBusy(true);setError("");
+  try{
+   if(!window.Html5Qrcode){
+    await new Promise((resolve,reject)=>{
+     const existing=document.querySelector('script[data-cut-qr-scanner="true"]');
+     if(existing){existing.addEventListener("load",resolve,{once:true});existing.addEventListener("error",()=>reject(new Error("The QR scanner could not be loaded.")),{once:true});return}
+     const script=document.createElement("script");script.src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js";script.async=true;script.crossOrigin="anonymous";script.dataset.cutQrScanner="true";script.onload=resolve;script.onerror=()=>reject(new Error("The QR scanner library could not be loaded."));document.head.appendChild(script);
+    });
+   }
+   const scanner=new window.Html5Qrcode("cut-ticket-reader",{verbose:false});scannerRef.current=scanner;
+   const decoded=await scanner.scanFile(file,true);
+   setTicketCode(String(decoded||"").trim());setResult(null);setError("QR code decoded locally. Review the code, then select Validate and admit.");
+   await scanner.clear();scannerRef.current=null;
+  }catch(e){await stopScanner();setError(e?.message||"No readable QR code was found in that image.")}
+  finally{setScannerBusy(false);event.target.value=""}
+ }
  async function redeem(e){
   e.preventDefault();if(!supabase||!ticketCode.trim())return;
   setBusy(true);setError("");setResult(null);
@@ -129,6 +148,7 @@ function AdminTicketGate({roles}) {
   <div className="scanner-card">
    <div className="scanner-head"><b>QR ticket scanner</b><span>{scannerActive?"Camera active":"Camera stopped"}</span></div>
    <div id="cut-ticket-reader" className="qr-reader" aria-label="Camera QR code scanner"/>
+   <label className="scanner-file">Scan from a photo or screenshot<input type="file" accept="image/*" onChange={scanImage} disabled={scannerBusy}/></label>
    <div className="scanner-actions">
     {!scannerActive?<button className="btn primary" type="button" disabled={scannerBusy} onClick={startScanner}>{scannerBusy?"Starting camera…":"Open camera scanner"}</button>:<button className="btn primary" type="button" onClick={stopScanner}>Stop camera</button>}
    </div>
