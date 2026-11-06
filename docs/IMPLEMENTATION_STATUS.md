@@ -121,3 +121,12 @@ Last updated: 2026-11-06
 - The attendee register returns attendee full name, ticket type, issue date and redemption status only. It deliberately excludes email, phone, student number, payment references and ticket-code hashes.
 - Sales revenue is derived from order items whose linked order has `payment_status = 'succeeded'`; ticket redemption status comes from the ticket records created after verified payment.
 - No attendee or sales data was seeded. End-to-end use requires an authenticated assigned sport-admin account and real event/ticket transactions.
+
+
+## Athlete performance dashboards — 2026-11-06
+
+- Added `/admin/performance` for coaches, assigned sport administrators and super administrators.
+- The dashboard reads only `approval_status = 'approved'` athlete-statistics records and relies on the existing `athlete_statistics` and `athletes` RLS policies to enforce athlete/team/sport scope.
+- Added sport, season and athlete filters, generic numeric-metric averages and trend bars, and a record-by-record metric summary. It adapts to metric keys stored in the existing JSONB `metrics` field rather than assuming one sport's stat model.
+- Pending or rejected statistics are not included. The approval queue remains the only route for authorised reviewers to approve submitted statistics.
+- No performance data was fabricated or seeded. The dashboard will populate as approved records are entered.
