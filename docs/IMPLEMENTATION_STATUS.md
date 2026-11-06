@@ -20,7 +20,8 @@ Last updated: 2026-11-06
 - Athlete insert/update/delete policies call `private.can_manage_athlete(sport_id, team_id)`, which checks active sport/team assignments and super-admin role.
 - Sponsor management policy allows `sport_admin` and `super_admin`.
 - No Edge Functions currently exist in the project.
-- Latest security advisor returned no findings. No schema, RLS or production data changes were made in this development pass.
+- Latest security advisor returned no findings. Performance advisor reports existing notices: 19 unindexed foreign keys, 11 RLS auth initplan notices, 18 unused-index notices, and one multiple-permissive-policy notice on sponsors. These were not changed because they require a separate reviewed database-performance pass.
+- No schema, RLS or production data changes were made in this development pass.
 
 ## Not yet implemented / gated
 - Team, competition, fixture, article, event, product and sport-code CRUD: no suitable write policies were verified for these tables.
