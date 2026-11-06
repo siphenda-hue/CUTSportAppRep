@@ -14,6 +14,7 @@ async function query(table, select = '*', options = {}) {
 export const api = {
   sports: () => query('sports', 'id,name,slug,description,image_url,display_order', { eq: { is_active: true }, order: 'display_order' }),
   teams: (sportId) => query('teams', 'id,name,category,season,coach_name,image_url,sport_id', { eq: { is_active: true, ...(sportId ? { sport_id: sportId } : {}) }, order: 'name' }),
+  athletes: (sportId) => query('athletes', 'id,full_name,preferred_name,position,squad_number,bio,photo_url,is_featured,sport_id,team_id,sports(name),teams(name)', { eq: { approval_status: 'approved', profile_visibility: 'public', ...(sportId ? { sport_id: sportId } : {}) }, order: 'full_name', limit: 100 }),
   fixtures: (sportId) => query('fixtures', 'id,opponent,venue,starts_at,status,home_score,away_score,result_summary,sport_id,team_id,competition_id,teams(name),sports(name)', { eq: sportId ? { sport_id: sportId } : {}, order: 'starts_at', ascending: true, limit: 30 }),
   articles: () => query('articles', 'id,title,slug,excerpt,body,cover_image_url,published_at,sport_id,sports(name)', { eq: { status: 'published' }, order: 'published_at', ascending: false, limit: 12 }),
   products: () => query('products', 'id,name,slug,description,category,price_cents,image_url,stock_quantity', { eq: { is_active: true }, order: 'created_at', ascending: false, limit: 30 }),
