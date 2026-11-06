@@ -90,3 +90,16 @@ Yoco Checkout currently supports ZAR. The current checkout flow enforces a minim
 - Ticket codes are securely signed and displayed in the user's ticket area. The staff gate accepts a code pasted or typed by a QR scanner; a camera-based QR scanner UI is a future enhancement.
 - Stock is reserved transactionally when an order is created. Automated expiry/release of abandoned checkout reservations still needs a scheduled cleanup job before high-volume production sales.
 - Student/staff discounts, refunds, delivery fulfilment and inventory reporting need separately approved business rules and workflows.
+
+
+## Checkout reservation cleanup policy
+
+Supabase Cron runs `private.release_unlinked_stale_yoco_orders()` every five minutes. It returns reserved stock only for Yoco orders that are older than 20 minutes and have **no persisted Yoco checkout ID**. These represent abandoned/incomplete server-side checkout creation, not a customer-facing hosted payment session. The function is private and not executable by client roles.
+
+Orders with a persisted Yoco checkout ID are deliberately excluded from automatic cancellation. The application's current 30-minute `checkout_expires_at` value is an internal reservation timestamp, not authoritative proof that Yoco has expired the hosted checkout. Do not release those reservations automatically until Yoco's remote expiry and payment lookup behavior is verified using merchant test credentials. This avoids releasing stock while a customer may still be able to complete payment.
+
+The scheduled job can be inspected in Supabase Dashboard → Integrations → Cron. Its name is `cut-sport-release-unlinked-yoco-orders` and it runs every five minutes.
+
+## Event ticket QR scanning
+
+The staff gate at `/admin/ticket-gate` now supports camera scanning and QR decoding from a locally selected image or screenshot using `html5-qrcode@2.3.8` (Apache-2.0). The browser loads the pinned scanner bundle only when the scanner is used. QR decoding occurs on-device; image files are not uploaded. Staff must still confirm the scanned code and invoke the protected redemption endpoint. Camera access requires HTTPS and user permission. Manual paste/keyboard-scanner entry remains available.
