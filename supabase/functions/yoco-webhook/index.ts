@@ -69,10 +69,11 @@ Deno.serve(async (req: Request) => {
   }
 
   const checkoutId = event?.payload?.metadata?.checkoutId;
-  const paymentId = event?.payload?.id;
+  const paymentId = event?.payload?.paymentId || event?.payload?.id;
   const amount = Number(event?.payload?.amount);
   const currency = event?.payload?.currency;
-  if (!checkoutId || !paymentId || !Number.isInteger(amount) || currency !== "ZAR" || !event?.id) {
+  if (event?.payload?.status !== "succeeded" || event?.payload?.type !== "payment" ||
+      !checkoutId || !paymentId || !Number.isInteger(amount) || currency !== "ZAR" || !event?.id) {
     return json({ error: "Payment event is missing required reconciliation fields" }, 400);
   }
 
