@@ -1,6 +1,6 @@
 # CUT Sport administration permission model
 
-**Status:** Design baseline only — no database changes have been applied  
+**Status:** Backend permissions and first admin screens implemented; authenticated CRUD verification still pending  
 **Reviewed against:** Supabase project `tnkykdfxzwaqzbichxcl`, current schema and RLS policies, 6 November 2026
 
 ## Security principles
@@ -51,7 +51,7 @@
 
 ## Priority 2 — Fixture and sport operations management
 
-**Backend gap:** teams, competitions and fixtures have public-read policies only.
+**Implemented backend foundation (6 November 2026):** scoped CRUD policies for teams, competitions and fixtures; fixture team/competition sport-consistency trigger; separate `fixture_result_submissions` table; coaches/team managers may submit scores within assigned team scope; only assigned sport administrators may review submissions. A reviewed submission does not automatically overwrite the official fixture result; an administrator publishes the official score separately. Admin screen added at `/admin/operations`.
 
 Proposed implementation sequence:
 1. Agree whether sport administrators can create teams/competitions/fixtures only inside assigned sports.
@@ -63,7 +63,7 @@ Proposed implementation sequence:
 
 ## Priority 3 — Athlete verification and performance records
 
-**Backend gap:** assigned staff can currently update athlete records through `can_manage_athlete`; that policy does not by itself distinguish an editor from an approver.
+**Implemented backend foundation (6 November 2026):** database trigger guards now separate ordinary athlete editing from approval of athlete profiles, statistics, achievements and media. Only a super administrator or sport administrator assigned to the athlete's sport can change verification fields. Coaches/team managers can still edit assigned profile details and submit pending records. The admin review screen is at `/admin/approvals`; profile and statistics approval controls are available, while achievement/media review controls remain to be completed.
 
 Before building approval controls:
 1. Define who may approve/reject an athlete profile and whether approval is limited to the sport assignment.
@@ -74,7 +74,7 @@ Before building approval controls:
 
 ## Priority 4 — News and event publishing
 
-**Backend gap:** articles are public-readable only when published; events are public-readable only when published. No editor CRUD policies were verified.
+**Implemented backend foundation (6 November 2026):** scoped sport-admin/super-admin create, read, update and delete policies for articles and events. Events now have a nullable `sport_id` so sport administrators can manage events within their assigned sport; institution-wide content is restricted to super administrators. Public reads remain limited to published articles/events. Admin screen added at `/admin/editorial`.
 
 Proposed workflow:
 - Draft → review → published → archived for articles.
@@ -109,3 +109,14 @@ Required architecture:
 ## Change log
 
 - 2026-11-06: Initial permission model documented from live schema/policy inspection. No SQL changes applied.
+
+
+## Implementation and verification notes — 6 November 2026
+
+- Applied Supabase migrations: `20261106004403_scoped_operations_athlete_approval_and_publishing`, `20261106004631_protect_athlete_visibility_and_index_result_submissions`, and `20261106004647_allow_private_athlete_edits_without_approval`.
+- Revoked anonymous write grants on the affected public tables and removed `TRUNCATE`, `REFERENCES` and `TRIGGER` privileges from API roles; RLS remains enabled.
+- Supabase security advisor returned no findings after the changes. Performance advisor still reports unindexed foreign keys and existing RLS initplan/multiple-policy notices; these are not security failures and need a separate tuning pass.
+- No CUT teams, competitions, fixtures, articles, events, result submissions, athletes or user roles were seeded or modified.
+- No admin account was provisioned. The live project inventory still contains no `user_roles` or sport assignment rows, so the new admin routes will deny access until an authorised CUT administrator is provisioned through an approved process.
+- CI production build passed on branch `App` after the UI fix. Authenticated CRUD tests and real admin-account browser tests remain outstanding.
+- Payment provider selection and merchant onboarding remain outstanding; no payment or ticket issuance is enabled.
