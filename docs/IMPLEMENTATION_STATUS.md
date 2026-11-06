@@ -11,6 +11,7 @@ Last updated: 2026-11-06
 - Sponsor management screen guarded in the UI and protected by the existing database sponsor RLS policy.
 - Athlete profile registration/edit screen that relies on the existing assigned-staff RLS policies. Newly inserted athlete profiles are explicitly set to `pending`.
 - Public athlete directory cards only query records where `approval_status='approved'` and `profile_visibility='public'`.
+- Public team directory on each sport hub, using active teams only and showing team category, season, coach name and approved public athlete-profile counts where supplied.
 - GitHub Actions workflow runs npm install and Vite production build on branch `App`.
 
 ## Backend facts verified
