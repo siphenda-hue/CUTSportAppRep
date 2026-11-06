@@ -24,5 +24,14 @@ begin
   if not has_table_privilege('service_role', 'private.shop_order_status_events', 'insert') then
     raise exception 'service_role must be able to write fulfilment audit records';
   end if;
+  if not exists (select 1 from pg_policies where schemaname = 'private' and tablename = 'shop_order_status_events' and policyname = 'shop_order_status_events_deny_client_access') then
+    raise exception 'explicit client-deny audit policy is missing';
+  end if;
+  if not exists (select 1 from pg_indexes where schemaname = 'private' and tablename = 'shop_order_status_events' and indexname = 'shop_order_status_events_order_id_idx') then
+    raise exception 'audit order index is missing';
+  end if;
+  if position('for update' in lower(pg_get_functiondef('public.transition_shop_order(uuid,text,text,uuid,text)'::regprocedure))) = 0 then
+    raise exception 'order transition must lock the row';
+  end if;
 end;
 $$;
