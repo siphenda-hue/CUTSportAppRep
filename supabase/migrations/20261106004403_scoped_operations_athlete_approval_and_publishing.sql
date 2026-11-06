@@ -153,8 +153,7 @@ begin
       protected_changed := row_data->>'approval_status' is distinct from old_data->>'approval_status'
         or row_data->>'verified_by' is distinct from old_data->>'verified_by'
         or row_data->>'verified_at' is distinct from old_data->>'verified_at'
-        or (row_data->>'profile_visibility' = 'public'
-            and old_data->>'profile_visibility' is distinct from 'public');
+;
     end if;
   else
     select a.sport_id, a.team_id into target_sport_id, target_team_id
