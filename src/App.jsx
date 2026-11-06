@@ -19,7 +19,7 @@ function App() {
  const add=p=>{setCart(old=>{const found=old.find(x=>x.id===p.id);return found?old.map(x=>x.id===p.id?{...x,qty:x.qty+1}:x):[...old,{id:p.id,name:p.name,price_cents:p.price_cents,image_url:p.image_url,qty:1}]});setToast('Added to your bag');setTimeout(()=>setToast(''),2200)};
  const common={sports,teams,competitions,products,fixtures,articles,events,ticketTypes,sponsors,athletes,user,profile,roles,cart,setCart,add};
  return <div className="app-shell"><div className="app-frame"><Routes>
- <Route path="/" element={<Home {...common}/>}/><Route path="/shop" element={<Shop {...common}/>}/><Route path="/shop/:slug" element={<Product {...common}/>}/><Route path="/cart" element={<Cart {...common}/>}/><Route path="/checkout" element={<Checkout cart={cart} setCart={setCart} user={user}/>}/><Route path="/payment/:result" element={<PaymentReturn user={user} result="success" cart={cart} setCart={setCart}/>}/><Route path="/events/:id" element={<EventTickets events={events} ticketTypes={ticketTypes} user={user}/>}/><Route path="/sport" element={<Sport {...common}/>}/><Route path="/sport/:slug" element={<Hub {...common}/>}/><Route path="/news" element={<News {...common}/>}/><Route path="/news/:slug" element={<Story {...common}/>}/><Route path="/sponsors" element={<Sponsors {...common}/>}/><Route path="/profile" element={<Profile {...common}/>}/><Route path="/admin" element={<AdminDashboard {...common}/>}/><Route path="/admin/sponsors" element={<AdminSponsors user={user} roles={roles}/>}/><Route path="/admin/products" element={<AdminProducts roles={roles} products={products} setProducts={setProducts}/>}/><Route path="/admin/shop-orders" element={<AdminShopOrders roles={roles}/>}/><Route path="/admin/athletes" element={<AdminAthletes roles={roles}/>}/><Route path="/admin/operations" element={<AdminOperations roles={roles} user={user}/>}/><Route path="/admin/approvals" element={<AdminApprovals roles={roles} user={user}/>}/><Route path="/admin/ticket-gate" element={<AdminTicketGate roles={roles}/>}/><Route path="/admin/editorial" element={<AdminEditorial roles={roles} user={user} sports={sports}/>}/><Route path="/notifications" element={<Personal title="Notifications" user={user} kind="notifications"/>}/><Route path="/tickets" element={<Personal title="My tickets" user={user} kind="tickets"/>}/><Route path="/orders" element={<Personal title="My orders" user={user} kind="orders"/>}/><Route path="*" element={<Home {...common}/>}/>
+ <Route path="/" element={<Home {...common}/>}/><Route path="/shop" element={<Shop {...common}/>}/><Route path="/shop/:slug" element={<Product {...common}/>}/><Route path="/cart" element={<Cart {...common}/>}/><Route path="/checkout" element={<Checkout cart={cart} setCart={setCart} user={user}/>}/><Route path="/payment/:result" element={<PaymentReturn user={user} result="success" cart={cart} setCart={setCart}/>}/><Route path="/events/:id" element={<EventTickets events={events} ticketTypes={ticketTypes} user={user}/>}/><Route path="/sport" element={<Sport {...common}/>}/><Route path="/sport/:slug" element={<Hub {...common}/>}/><Route path="/news" element={<News {...common}/>}/><Route path="/news/:slug" element={<Story {...common}/>}/><Route path="/sponsors" element={<Sponsors {...common}/>}/><Route path="/profile" element={<Profile {...common}/>}/><Route path="/admin" element={<AdminDashboard {...common}/>}/><Route path="/admin/sponsors" element={<AdminSponsors user={user} roles={roles}/>}/><Route path="/admin/products" element={<AdminProducts roles={roles} products={products} setProducts={setProducts}/>}/><Route path="/admin/shop-orders" element={<AdminShopOrders roles={roles}/>}/><Route path="/admin/athletes" element={<AdminAthletes roles={roles}/>}/><Route path="/admin/operations" element={<AdminOperations roles={roles} user={user}/>}/><Route path="/admin/approvals" element={<AdminApprovals roles={roles} user={user}/>}/><Route path="/admin/ticket-gate" element={<AdminTicketGate roles={roles}/>}/><Route path="/admin/event-reports" element={<AdminEventReports roles={roles}/>}/><Route path="/admin/editorial" element={<AdminEditorial roles={roles} user={user} sports={sports}/>}/><Route path="/notifications" element={<Personal title="Notifications" user={user} kind="notifications"/>}/><Route path="/tickets" element={<Personal title="My tickets" user={user} kind="tickets"/>}/><Route path="/orders" element={<Personal title="My orders" user={user} kind="orders"/>}/><Route path="*" element={<Home {...common}/>}/>
  </Routes><BottomNav/><Link className="cart-fab" to="/cart"><ShoppingBag size={18}/>{cart.reduce((n,x)=>n+x.qty,0)>0&&<span>{cart.reduce((n,x)=>n+x.qty,0)}</span>}</Link>{toast&&<div className="toast">{toast}</div>}</div></div>;
 }
 function Home({sports,products,fixtures,articles,events,sponsors}) {
@@ -171,7 +171,7 @@ function AdminDashboard({sports,teams,competitions,fixtures,articles,events,spon
  const modules=[
   ...(sportAdmin?[{title:"Sponsor directory",description:"Create, update and archive official partner profiles.",to:"/admin/sponsors",icon:Handshake,state:"Available"},{title:"Sport operations",description:"Team, competition and fixture publishing tools.",to:"/admin/operations",icon:CalendarClock,state:"Available"},{title:"News & events",description:"Editorial publishing and event management.",to:"/admin/editorial",icon:FileText,state:"Available"}]:[]),
   ...((sportAdmin||coach)?[{title:"Athlete profiles",description:"Register and update profiles within your assigned sport or team scope.",to:"/admin/athletes",icon:Users,state:"Available"}]:[]),
-  ...(sportAdmin?[{title:"Athlete approvals",description:"Review athlete profiles before publication.",to:"/admin/approvals",icon:ShieldCheck,state:"Available"},{title:"Event ticket gate",description:"Validate and redeem paid event tickets at entry.",to:"/admin/ticket-gate",icon:Ticket,state:"Available"}]:[]),
+  ...(sportAdmin?[{title:"Athlete approvals",description:"Review athlete profiles before publication.",to:"/admin/approvals",icon:ShieldCheck,state:"Available"},{title:"Event ticket gate",description:"Validate and redeem paid event tickets at entry.",to:"/admin/ticket-gate",icon:Ticket,state:"Available"},{title:"Event sales & attendees",description:"Review ticket sales, revenue, attendee registers and check-ins.",to:"/admin/event-reports",icon:ClipboardList,state:"Available"}]:[]),
   ...((shopAdmin||roles.includes("super_admin"))?[{title:"Shop catalogue",description:"Create, update and archive products and manage published stock.",to:"/admin/products",icon:ShoppingBag,state:"Available"},{title:"Shop orders",description:"Review paid shop orders, line items and fulfilment status.",to:"/admin/shop-orders",icon:Package,state:"Available"}]:[])
  ];
  if(!allowed)return <><Header title="Admin access required" back/><main className="page"><Empty title="Restricted area" body="A CUT Sport administrator, coach or shop administrator role is required."/></main></>;
@@ -301,6 +301,57 @@ function AdminSponsors({user,roles}) {
 }
 
 
+
+
+function AdminEventReports({roles}) {
+ const allowed=roles.some(r=>["sport_admin","super_admin"].includes(r));
+ const [events,setEvents]=useState([]),[eventId,setEventId]=useState(""),[report,setReport]=useState(null);
+ const [busy,setBusy]=useState(false),[error,setError]=useState("");
+ useEffect(()=>{
+  let active=true;
+  if(!allowed||!supabase)return;
+  supabase.functions.invoke("event-report",{body:{}}).then(({data,error})=>{
+   if(!active)return;
+   if(error||data?.error){setError(data?.error||error?.message||"Unable to load events.");return}
+   const rows=data?.events||[];setEvents(rows);if(rows.length)setEventId(rows[0].id);
+  });
+  return()=>{active=false};
+ },[allowed]);
+ useEffect(()=>{
+  let active=true;
+  if(!allowed||!eventId||!supabase){setReport(null);return}
+  setBusy(true);setError("");
+  supabase.functions.invoke("event-report",{body:{eventId}}).then(({data,error})=>{
+   if(!active)return;
+   if(error||data?.error){setError(data?.error||error?.message||"Unable to load the event report.");setReport(null)}
+   else setReport(data);
+   setBusy(false);
+  });
+  return()=>{active=false};
+ },[allowed,eventId]);
+ function exportAttendees(){
+  if(!report?.attendees?.length)return;
+  const rows=[["Attendee","Ticket type","Issued at","Check-in status","Checked in at"],...report.attendees.map(a=>[a.attendee_name,a.ticket_type,a.issued_at,a.redeemed_at?"Checked in":"Not checked in",a.redeemed_at||""])];
+  const csv=rows.map(row=>row.map(value=>'"'+String(value??"").replaceAll('"','""')+'"').join(",")).join("\r\n");
+  const url=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));
+  const link=document.createElement("a");link.href=url;link.download="cut-sport-attendees.csv";link.click();URL.revokeObjectURL(url);
+ }
+ if(!allowed)return <><Header title="Event reports access required" back/><main className="page"><Empty title="Restricted area" body="An assigned sport administrator or super administrator role is required."/></main></>;
+ const summary=report?.summary;
+ return <><Header title="Event reports" back/><main className="page">
+  <div className="page-intro"><span className="eyebrow">CUT SPORT · EVENT MANAGEMENT</span><h1>Sales & attendance.</h1><p>Ticket sales are counted only from verified successful payments. Attendee names are returned by the protected reporting service only for events within your assigned sport scope.</p></div>
+  <div className="form-card"><label>Select event<select value={eventId} onChange={e=>setEventId(e.target.value)}><option value="">Choose event</option>{events.map(e=><option key={e.id} value={e.id}>{e.title} · {dateLabel(e.starts_at)}</option>)}</select></label>{!events.length&&!error&&<p className="muted">No events are available within your assigned scope.</p>}</div>
+  {error&&<p className="form-error">{error}</p>}
+  {busy&&<div className="admin-notice"><ClipboardList/><div><b>Building event report…</b><p>Retrieving verified ticket sales and the attendee register.</p></div></div>}
+  {report&&<>
+   <div className="event-report-title"><div><h2>{report.event.title}</h2><p>{dateLabel(report.event.starts_at)} · {report.event.venue||"Venue TBC"} · {report.event.published?"Published":"Unpublished"}</p></div><span>{report.event.ticketed?"Ticketed event":"Non-ticketed event"}</span></div>
+   <div className="admin-stats"><div><b>{summary.tickets_sold}</b><small>Paid tickets sold</small></div><div><b>{summary.checked_in}/{summary.tickets_issued}</b><small>Checked in</small></div><div><b>{money(summary.paid_revenue_cents)}</b><small>Verified revenue</small></div><div><b>{summary.remaining_capacity}</b><small>Remaining capacity</small></div></div>
+   <Section title="Ticket type performance">{report.ticketTypes.length?<div className="event-report-list">{report.ticketTypes.map(t=><article key={t.id}><div><b>{t.name}</b><small>{t.is_active?"On sale":"Inactive"} · {money(t.price_cents)} each</small></div><div><b>{t.sold} sold</b><small>{money(t.revenue_cents)} · {t.quantity_available} remaining</small></div></article>)}</div>:<Empty title="No ticket types" body="Ticket categories and inventory will appear when configured for this event."/>}</Section>
+   <Section title="Attendee register"><div className="attendee-toolbar"><span>{report.attendees.length} ticket(s) issued</span><button type="button" onClick={exportAttendees} disabled={!report.attendees.length}>Export CSV</button></div>{report.attendees.length?<div className="event-report-list">{report.attendees.map(a=><article key={a.id}><div><b>{a.attendee_name}</b><small>{a.ticket_type} · Issued {dateLabel(a.issued_at)}</small></div><span className={"checkin-status "+(a.redeemed_at?"checked-in":"not-checked")}>{a.redeemed_at?"Checked in":"Not checked in"}</span></article>)}</div>:<Empty title="No tickets issued yet" body="Attendee records will appear after successful payments have been confirmed."/>}</Section>
+   <p className="muted">This register contains attendee names and ticket/check-in status only. Email addresses, phone numbers, student numbers and payment credentials are not included.</p>
+  </>}
+ </main></>;
+}
 
 function AdminShopOrders({roles}) {
  const allowed=roles.some(r=>["shop_admin","super_admin"].includes(r));
