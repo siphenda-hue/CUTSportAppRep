@@ -82,3 +82,13 @@ Last updated: 2026-11-06
 - Added `docs/DOMAINLESS_DEPLOYMENT.md` with temporary HTTPS hosting, frontend environment variables, Supabase Auth redirect setup and later custom-domain migration steps.
 - These changes are independent of purchasing a custom domain. No hosting provider has been connected or deployed because the user's hosting account and approval of a temporary public site are not yet available.
 - PWA offline support preserves the app shell only; it does not provide offline account data, payments, ticket validation or live fixtures.
+
+
+## Shop catalogue administration — 2026-11-06
+
+- Added a reviewed database migration `20261106011716_shop_admin_product_catalog_management`.
+- The `shop_admin` and `super_admin` roles can now read all catalogue rows and create, update and archive products through an explicit RLS policy. Public users retain read access only to active products.
+- Added the `/admin/products` workspace with create/edit/archive controls for product name, slug, category, description, price, stock, image URL and publication status.
+- Product amounts are converted to integer cents; checkout still re-reads prices and reserves stock server-side. The frontend does not become the authority for payment totals or inventory.
+- Supabase security advisor returned no findings after the policy change.
+- No products or shop-admin assignments were seeded. Product management is ready for an authorised account once a shop-admin role is assigned through the approved administrative process.
