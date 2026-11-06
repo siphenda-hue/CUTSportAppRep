@@ -79,7 +79,7 @@ Deno.serve(async (req: Request) => {
 
   const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
   const { data: order, error: findError } = await admin.from("orders")
-    .select("id,order_kind,payment_status,total_cents,currency")
+    .select("id,user_id,order_number,order_kind,payment_status,total_cents,currency")
     .eq("yoco_checkout_id", checkoutId).maybeSingle();
   if (findError) return json({ error: "Unable to reconcile payment order" }, 500);
   if (!order) return json({ received: true, ignored: "checkout not owned by CUT Sport" });
@@ -111,6 +111,16 @@ Deno.serve(async (req: Request) => {
     checkout_id: checkoutId,
   }, { onConflict: "id", ignoreDuplicates: true });
   if (eventError) return json({ error: "Payment was confirmed but webhook receipt could not be recorded" }, 500);
+
+  const notificationTitle = order.order_kind === "event" ? "Your CUT Sport event tickets are confirmed" : "Your CUT Sport shop payment is confirmed";
+  const notificationBody = `Payment for order ${order.order_number} has been confirmed. Open CUT Sport to view your order${order.order_kind === "event" ? " and tickets" : ""}.`;
+  const { error: notificationError } = await admin.from("notifications").upsert({
+    user_id: order.user_id,
+    title: notificationTitle,
+    body: notificationBody,
+    source_key: "yoco-order:" + order.id + ":paid",
+  }, { onConflict: "source_key", ignoreDuplicates: true });
+  if (notificationError) return json({ error: "Payment was confirmed but its notification could not be queued" }, 500);
 
   return json({ received: true, orderId: order.id, paymentStatus: "succeeded" });
 });
