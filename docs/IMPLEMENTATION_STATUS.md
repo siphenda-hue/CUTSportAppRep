@@ -102,3 +102,13 @@ Last updated: 2026-11-06
 - Enabled Supabase `pg_cron` and scheduled `cut-sport-release-unlinked-yoco-orders` every five minutes. It releases stock only for Yoco orders older than 20 minutes that never received a persisted Yoco checkout ID. The function runs in the private schema and is not executable by anon, authenticated or service_role.
 - Runtime verification returned zero orphan reservations released (none were eligible) and confirmed the cleanup function is not executable by client roles. Supabase security advisor returned no findings.
 - Important safety boundary: orders with a persisted Yoco checkout ID are intentionally not auto-cancelled. The app's local 30-minute checkout timestamp is not proof that Yoco has expired the remote payment session. Those reservations remain until Yoco's expiry/reconciliation semantics can be verified with merchant credentials; releasing them prematurely could permit a late successful payment after stock has been returned.
+
+
+## Shop order administration — 2026-11-06
+
+- Added migration `20261106013459_shop_admin_read_shop_orders` and applied it to the CUT Sport Supabase project.
+- Added explicit SELECT-only RLS policies allowing `shop_admin` and `super_admin` to read orders where `order_kind = 'shop'`, plus their product line items. Existing customer-own-order policies remain in place.
+- Added `/admin/shop-orders` to the admin dashboard. It shows order number, created date, order/payment status, product line items, order total, and aggregate verified paid value.
+- The view intentionally excludes customer names, email addresses, phone numbers, student numbers, ticket records, and payment credentials. It does not change order or payment status.
+- Fulfilment transitions remain read-only until a dedicated status-transition policy and audit workflow are designed and tested.
+- RLS policies were verified in the database. Supabase security advisor returned no findings after this change.
