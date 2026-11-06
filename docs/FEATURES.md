@@ -16,7 +16,8 @@
 | My tickets | `/tickets` | Signed-in user's ticket records; no client-generated QR |
 | Orders | `/orders` | Signed-in user's order history |
 | Sponsor administration | `/admin` | Role-gated sponsor create, edit and archive; database RLS enforces access |
-| Athlete administration | `/admin/athletes` | Assigned staff can register/edit athlete profile details; new profiles start pending |\n| Admin dashboard | `/admin` | Role-aware management landing page |\n| Sport operations | `/admin/operations` | Scoped team/competition/fixture creation; coach result submissions; admin review queue |\n| Athlete approvals | `/admin/approvals` | Sport admins approve athlete profiles and performance statistics |\n| News & events administration | `/admin/editorial` | Scoped article and event creation/publication |
+| Athlete administration | `/admin/athletes` | Assigned staff can register/edit athlete profile details; new profiles start pending |
+| Admin dashboard | `/admin` | Role-aware management landing page |\n| Sport operations | `/admin/operations` | Scoped team/competition/fixture creation; coach result submissions; admin review queue |\n| Athlete approvals | `/admin/approvals` | Sport admins approve athlete profiles and performance statistics |\n| News & events administration | `/admin/editorial` | Scoped article and event creation/publication |
 
 ## Important boundaries
 - Public athlete cards query only approved, public profiles. RLS is the final access control.
