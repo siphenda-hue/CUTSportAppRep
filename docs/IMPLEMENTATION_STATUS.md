@@ -1,26 +1,37 @@
-# Implementation status
+# CUT Sport implementation status
 
-## Existing Supabase backend verified
-- Project: `CUT Sport` (`tnkykdfxzwaqzbichxcl`), active and healthy, region `sa-east-1`.
-- Existing schema includes profiles, user_roles, sports, teams, athletes, competitions, fixtures, articles, article_comments, products, orders, order_items, events, event_rsvps, tickets, notifications, sponsors, sport-admin profiles/assignments/activity logs, athlete competitions/statistics/achievements/media.
-- All listed public tables have RLS enabled.
-- Public read policies exist for active sports/teams/products/sponsors, published articles/events, fixtures and selected public athlete data. Personal records are scoped to authenticated users.
-- 11 active sporting codes already exist in `public.sports`.
-- No production product, team, fixture, article, event, sponsor, ticket or order content is populated yet (sports is populated).
-- Seven migrations already exist, including team-scoped staff permissions and profile RLS hardening.
+Last updated: 2026-11-06
 
-## This frontend release
-Implemented the React/Vite application shell and mobile-first UI for Home, Shop, Product Detail, Cart, Checkout readiness, Sport Updates, Sport Hubs, News, Article Detail, Sponsors, Profile, Notifications, Tickets and Orders. Public pages query Supabase. Personal pages query the signed-in user's records. The cart persists locally between visits.
+## Delivered
+- React 18 + Vite frontend with responsive CUT Sport interface.
+- Existing Supabase project client integration using browser-safe publishable key variables.
+- Public routes for home, sports, athlete cards, fixtures, news, shop, sponsors and account pages.
+- Profile sign-in/sign-up and profile update.
+- Browser-local shopping cart.
+- Sponsor management screen guarded in the UI and protected by the existing database sponsor RLS policy.
+- Athlete profile registration/edit screen that relies on the existing assigned-staff RLS policies. Newly inserted athlete profiles are explicitly set to `pending`.
+- Public athlete directory cards only query records where `approval_status='approved'` and `profile_visibility='public'`.
+- GitHub Actions workflow runs npm install and Vite production build on branch `App`.
 
-## Deliberately not enabled yet
-- Payment collection, card storage, order placement and courier tracking: need a payment gateway, verified server-side webhook and atomic order creation. The UI does not collect card data or create fake paid orders.
-- Ticket QR issuance/redemption: must be generated and verified server-side; the client never treats a raw database hash as a scannable pass.
-- Athlete squad and performance-statistics public screens: schema exists but no approved roster/statistics content is loaded yet.
-- CUT student/staff discounts: institutional email verification and pricing rules need confirmation.
-- Admin CRUD: database has scoped admin roles, but the current frontend release does not expose broad management forms before each table's write policy and workflow are validated.
+## Backend facts verified
+- Supabase project: `tnkykdfxzwaqzbichxcl`.
+- Existing public tables have RLS enabled.
+- 11 sport codes exist. At last count, teams, athletes, fixtures, articles, products, events and sponsors had zero records.
+- Athlete insert/update/delete policies call `private.can_manage_athlete(sport_id, team_id)`, which checks active sport/team assignments and super-admin role.
+- Sponsor management policy allows `sport_admin` and `super_admin`.
+- No Edge Functions currently exist in the project.
+- Latest security advisor returned no findings. No schema, RLS or production data changes were made in this development pass.
 
-## Validation
-- JSX/JavaScript syntax transpilation checks passed for all source modules.
-- Supabase security advisor returned no findings.
-- Supabase performance advisor reported 19 unindexed foreign keys, 11 auth RLS initplan notices and one multiple-permissive-policy notice. These are recorded for a separate reviewed performance migration.
-- `npm install` timed out in this execution environment, so a full Vite production build and live browser test could not be completed here.
+## Not yet implemented / gated
+- Team, competition, fixture, article, event, product and sport-code CRUD: no suitable write policies were verified for these tables.
+- Athlete approval/verification, statistics, achievements and media moderation: require a reviewed workflow and corresponding scoped policies.
+- Payment and atomic order creation: no payment gateway configured.
+- Secure ticket issuance, QR generation and redemption: requires server-side signed tokens and validation.
+- Student/staff discounts: requires approved institutional eligibility rules.
+- Live browser walkthrough and real administrator-account CRUD test remain outstanding.
+
+## Security constraints
+- Never expose service-role or secret keys in Vite.
+- Never bypass or disable RLS.
+- Never insert invented athlete, team, fixture, competition, article, event, sponsor or product records.
+- Keep server-authoritative actions on trusted backend functions.
