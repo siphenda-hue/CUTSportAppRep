@@ -17,7 +17,13 @@
 | Orders | `/orders` | Signed-in user's order history including payment status |
 | Sponsor administration | `/admin/sponsors` | Role-gated sponsor create, edit and archive; database RLS enforces access |
 | Athlete administration | `/admin/athletes` | Assigned staff can register/edit athlete profile details; new profiles start pending |
-| Admin dashboard | `/admin` | Role-aware management landing page |\n| Sport operations | `/admin/operations` | Scoped team/competition/fixture creation; coach result submissions; admin review queue |\n| Athlete approvals | `/admin/approvals` | Sport admins approve athlete profiles and performance statistics |\n| News & events administration | `/admin/editorial` | Scoped article and event creation/publication |
+| Admin dashboard | `/admin` | Role-aware management landing page |
+| Sport operations | `/admin/operations` | Scoped team/competition/fixture creation; coach result submissions; admin review and official score publication |
+| Athlete approvals | `/admin/approvals` | Sport admins approve athlete profiles, statistics, achievements and media |
+| News & events administration | `/admin/editorial` | Scoped article and event publishing; ticketed events can create a General Admission ticket type |
+| Event ticket purchase | `/events/:id` | Ticket-type selection and authenticated Yoco checkout |
+| Staff ticket gate | `/admin/ticket-gate` | Staff-authorised one-time ticket redemption |
+| Payment return | `/payment/:result` | Displays order status; does not trust the redirect as payment proof |
 
 ## Important boundaries
 - Public athlete cards query only approved, public profiles. RLS is the final access control.
