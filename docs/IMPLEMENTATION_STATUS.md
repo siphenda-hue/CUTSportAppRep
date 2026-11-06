@@ -21,16 +21,16 @@ Last updated: 2026-11-06
 - 11 sport codes exist. At last count, teams, athletes, fixtures, articles, products, events and sponsors had zero records.
 - Athlete insert/update/delete policies call `private.can_manage_athlete(sport_id, team_id)`, which checks active sport/team assignments and super-admin role.
 - Sponsor management policy allows `sport_admin` and `super_admin`.
-- No Edge Functions currently exist in the project. A separate result-submission workflow table has been created; payment/ticket server-side functions remain unbuilt.
+- Four Supabase Edge Functions are deployed: yoco-checkout, yoco-webhook, my-tickets and redeem-ticket. Yoco credentials and webhook secrets are not configured yet.
 - Latest security advisor returned no findings. Performance advisor reports existing notices: 19 unindexed foreign keys, 11 RLS auth initplan notices, 18 unused-index notices, and one multiple-permissive-policy notice on sponsors. These were not changed because they require a separate reviewed database-performance pass.
 - Admin operations, athlete approval and editorial RLS policies have now been applied through three tracked Supabase migrations. No production records were seeded or altered.
 
 ## Not yet implemented / gated
 - Product and sport-code CRUD remains outstanding. Team, competition, fixture, article and event policy foundations plus initial management screens are implemented.
-- Athlete approval and statistics review controls are implemented; achievement and media review screens remain outstanding. Database triggers enforce approver-only changes to verification fields.
-- Payment and atomic order creation: no payment gateway configured.
-- Secure ticket issuance, QR generation and redemption: requires server-side signed tokens and validation.
-- Student/staff discounts: requires approved institutional eligibility rules.
+- Athlete profile, statistics, achievement and media approval controls are implemented. Database triggers enforce approver-only changes to verification fields.
+- Yoco Checkout, server-priced order creation, stock reservation, signed webhook verification, signed ticket pass retrieval and one-time staff redemption are implemented. Real/sandbox transactions are gated on merchant credentials and webhook configuration.
+- Camera-based QR scanning and automated expiry/release of abandoned checkout reservations remain outstanding.
+- Student/staff discounts, refunds and delivery fulfilment: require approved institutional/business rules.
 - Live browser walkthrough and real administrator-account CRUD test remain outstanding.
 
 ## Security constraints
@@ -47,7 +47,7 @@ Last updated: 2026-11-06
 - Dashboard modules are shown by the signed-in user's database role. Coach access is limited to athlete profiles; sport admins and super admins see sponsor and planned sport-operations modules; shop admins see a planned shop module.
 - Dashboard counts are sourced from records already loaded through the app's public/read-scoped API. They are not an authorization mechanism.
 - Planned team, competition, fixture, editorial, event, shop, payment and ticket administration remains unavailable until the corresponding database write permissions and server-side rules have been designed, reviewed and tested.
-- No Supabase schema, grants, RLS policies, Edge Functions, roles or data were changed for this dashboard.
+- Dashboard UI was initially delivered without schema changes; the subsequent permission rollout applied reviewed RLS, grants, triggers and migrations.
 
 
 ## Admin permission rollout — 2026-11-06
@@ -59,3 +59,16 @@ Last updated: 2026-11-06
 - Supabase security advisor: no findings. Performance advisor still reports unindexed foreign keys, 11 RLS auth initplan notices, unused-index notices and multiple permissive SELECT policy notices; new result-submission and event sport foreign keys have indexes.
 - GitHub Actions production build passed after the JSX formatting correction. No authenticated CRUD/browser test has been run because no admin role or sport-assignment records are provisioned in the project.
 - Data inventory remains empty for teams, competitions, fixtures, articles, events and result submissions. No invented CUT Sport data has been added.
+
+
+## Yoco checkout and ticketing rollout — 2026-11-06
+
+- Selected Yoco Checkout API as the payment provider.
+- Applied Supabase migrations: `20261106005938_yoco_checkout_orders_and_ticket_inventory`, `20261106010014_yoco_checkout_request_idempotency`, and `20261106010233_add_service_role_policy_for_yoco_webhook_events`.
+- Added server-authoritative order creation with product/ticket price lookup, stock reservation, checkout request idempotency, payment status reconciliation and ticket issuance after verified payment.
+- Revoked direct anon/authenticated INSERT/UPDATE/DELETE privileges on orders, order_items and tickets. Public ticket-type reads are limited to active ticket types on published ticketed events; management is RLS-scoped.
+- Deployed Edge Functions: `yoco-checkout` (JWT required), `yoco-webhook` (Yoco HMAC signature and 3-minute replay window; JWT disabled), `my-tickets` (JWT required), and `redeem-ticket` (JWT required; staff scope checked server-side).
+- Added checkout, event ticket purchase, personal signed ticket display and staff ticket gate routes. Event administrators can create a General Admission ticket type when creating a ticketed event.
+- Security regression SQL checks passed. Supabase security advisor returned no findings after adding a service-role-only policy for webhook receipts.
+- Yoco API key, webhook signing secret, ticket signing secret and public app URL have not been configured. No sandbox or live payment was attempted. The app is not deployed to a public domain yet.
+- Outstanding before production: configure Edge Function secrets, register Yoco webhook, run end-to-end sandbox tests, schedule abandoned reservation cleanup, and add camera-based QR scanning.
