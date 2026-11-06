@@ -52,8 +52,8 @@ Last updated: 2026-11-06
 
 ## Admin permission rollout — 2026-11-06
 
-- Supabase migrations applied: `20261106004403_scoped_operations_athlete_approval_and_publishing`, `20261106004631_protect_athlete_visibility_and_index_result_submissions`, `20261106004647_allow_private_athlete_edits_without_approval`.
-- Added scoped RLS for team, competition, fixture, article and event administration. Added fixture sport-link validation and coach/team-manager result submissions with sport-admin review.
+- Supabase migrations applied: `20261106004403_scoped_operations_athlete_approval_and_publishing`, `20261106004631_protect_athlete_visibility_and_index_result_submissions`, `20261106004647_allow_private_athlete_edits_without_approval`, `20261106004922_publish_reviewed_fixture_results_atomically`.
+- Added scoped RLS for team, competition, fixture, article and event administration. Added fixture sport-link validation and coach/team-manager result submissions with sport-admin review and atomic publication of accepted official scores.
 - Added database trigger guards to keep athlete/statistics/achievement/media approval fields under sport-admin/super-admin authority. Anonymous write grants were revoked from affected tables; RLS remains enabled.
 - Added `/admin/operations`, `/admin/approvals` and `/admin/editorial` screens. Current frontend provides create flows and selected approval/publish actions; full edit/archive coverage remains in progress.
 - Supabase security advisor: no findings. Performance advisor still reports unindexed foreign keys, 11 RLS auth initplan notices, unused-index notices and multiple permissive SELECT policy notices; new result-submission and event sport foreign keys have indexes.
