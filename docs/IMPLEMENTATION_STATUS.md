@@ -139,3 +139,14 @@ Last updated: 2026-11-06
 - Updated the verified Yoco webhook to queue an in-app notification after payment reconciliation and ticket signing. Shop orders and event-ticket orders receive distinct confirmation wording.
 - The client fetches only notification display fields; the internal source key is not returned to the app.
 - This is an in-app notification centre, not browser push or SMS. No external notification provider or device-token permissions have been configured.
+
+
+## Shop order fulfilment — 2026-11-06
+
+- Added an authenticated `manage-shop-order` Edge Function. Every request validates the Supabase Auth user and checks their live `shop_admin` or `super_admin` role; browser-supplied role claims are not trusted.
+- Shop administrators can move a successfully paid shop order from `paid` to `processing`, then from `processing` to `fulfilled`. The server rejects unpaid orders, event-ticket orders, unsupported transitions and stale status updates.
+- Added an atomic Postgres transition function. It updates the order and writes the matching audit record in the same transaction, preventing a status change without its audit entry.
+- Audit records are held in the non-exposed `private.shop_order_status_events` table. The table has RLS enabled, and direct access is denied to `anon` and `authenticated`. Only the service role can execute the transition RPC.
+- The shop order dashboard now exposes optional internal fulfilment notes and the two allowed status actions. It does not expose customer contact details or payment secrets.
+- Cancellation and refunds are intentionally not part of this workflow. They must be handled through the payment provider's authorised refund/cancellation process; a fulfilment status change must never imply a card refund.
+- No order records were created or modified during implementation. A real authorised shop-admin account and a successfully paid order are required to exercise the workflow end to end.
