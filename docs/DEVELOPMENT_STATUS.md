@@ -19,12 +19,13 @@ Last verified: 2026-11-06
 
 ## Current frontend scope
 - Home, sport-code directory and hubs, fixtures, news, sponsors, product catalogue/detail, local cart, checkout readiness, profile/auth, notifications, tickets and orders.
-- Admin CRUD is not yet exposed in the client. Existing scoped admin schema must be mapped to precise write policies before enabling management screens.
+- A role-gated sponsor administration screen is now implemented. Its insert/update/archive operations rely on the existing `Sport admins manage sponsors` RLS policy; the database remains the authority.
+- Other admin CRUD screens are not yet exposed: current public tables such as sports, teams, fixtures, articles, products and events have read-only client policies. These require a reviewed, role-scoped permission design before management forms are added.
 - Payment and ticket issuance/redemption remain gated pending trusted server-side provider and validation workflows.
 - Student/staff discount eligibility remains unconfigured pending institutional verification rules.
 
 ## Validation and blockers
-- `npm install --no-audit --no-fund` was attempted again but timed out in this environment.
+- `npm install --no-audit --no-fund` was attempted again but timed out in this environment. A GitHub Actions workflow now runs dependency installation and `npm run build` on pushes/PRs to `App`; its first run must be checked.
 - A Vite production build and browser test therefore remain unverified.
 - No service-role key or secret was placed in frontend source. The browser uses only `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`.
 - No database schema, RLS policies or production data were changed.
