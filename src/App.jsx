@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, Route, Routes, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Bell, CalendarDays, ChevronRight, ClipboardList, FileText, Handshake, LogOut, MapPin, Newspaper, Package, ShieldCheck, ShoppingBag, Ticket, Trophy, Users, CalendarClock, Settings2 } from 'lucide-react';
 import BottomNav from './components/BottomNav';
@@ -71,9 +71,76 @@ function Personal({title,user,kind}) {const [items,setItems]=useState([]);useEff
 function AdminTicketGate({roles}) {
  const allowed=roles.some(r=>["sport_admin","super_admin"].includes(r));
  const [ticketCode,setTicketCode]=useState(""),[busy,setBusy]=useState(false),[result,setResult]=useState(null),[error,setError]=useState("");
- async function redeem(e){e.preventDefault();if(!supabase||!ticketCode.trim())return;setBusy(true);setError("");setResult(null);const {data,error:invokeError}=await supabase.functions.invoke("redeem-ticket",{body:{ticketCode:ticketCode.trim()}});if(invokeError||data?.error)setError(data?.error||invokeError?.message||"Ticket could not be redeemed.");else{setResult(data);setTicketCode("");}setBusy(false);}
+ const [scannerActive,setScannerActive]=useState(false),[scannerBusy,setScannerBusy]=useState(false);
+ const scannerRef=useRef(null),startingRef=useRef(false);
+ async function stopScanner(){
+  const scanner=scannerRef.current;
+  if(scanner){
+   try{if(scanner.isScanning)await scanner.stop()}catch{}
+   try{await scanner.clear()}catch{}
+   scannerRef.current=null;
+  }
+  setScannerActive(false);startingRef.current=false;
+ }
+ useEffect(()=>()=>{const scanner=scannerRef.current;if(scanner){try{scanner.stop().then(()=>scanner.clear()).catch(()=>{})}catch{}}},[]);
+ async function startScanner(){
+  if(!allowed||startingRef.current||scannerRef.current)return;
+  startingRef.current=true;setScannerBusy(true);setError("");
+  try{
+   if(!window.isSecureContext){throw new Error("Camera scanning requires a secure HTTPS address.")}
+   if(!navigator.mediaDevices?.getUserMedia){throw new Error("This browser does not provide camera access. Use the ticket-code field instead.")}
+   if(!window.Html5Qrcode){
+    await new Promise((resolve,reject)=>{
+     const existing=document.querySelector('script[data-cut-qr-scanner="true"]');
+     if(existing){existing.addEventListener("load",resolve,{once:true});existing.addEventListener("error",()=>reject(new Error("The QR scanner could not be loaded.")),{once:true});return}
+     const script=document.createElement("script");
+     script.src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js";
+     script.async=true;script.crossOrigin="anonymous";script.dataset.cutQrScanner="true";
+     script.onload=resolve;script.onerror=()=>reject(new Error("The QR scanner library could not be loaded. Check your internet connection."));
+     document.head.appendChild(script);
+    });
+   }
+   if(!window.Html5Qrcode)throw new Error("QR scanner is unavailable in this browser.");
+   const scanner=new window.Html5Qrcode("cut-ticket-reader",{verbose:false});
+   scannerRef.current=scanner;
+   await scanner.start({facingMode:"environment"},{fps:10,qrbox:{width:240,height:240},aspectRatio:1},async(decodedText)=>{
+    const value=String(decodedText||"").trim();
+    if(!value)return;
+    setTicketCode(value);setResult(null);setError("Ticket code scanned. Review it, then select Validate and admit.");
+    await stopScanner();
+   },()=>{});
+   setScannerActive(true);
+  }catch(e){
+   await stopScanner();
+   setError(e?.message||"Unable to start the camera. Check browser camera permissions.");
+  }finally{startingRef.current=false;setScannerBusy(false)}
+ }
+ async function redeem(e){
+  e.preventDefault();if(!supabase||!ticketCode.trim())return;
+  setBusy(true);setError("");setResult(null);
+  const {data,error:invokeError}=await supabase.functions.invoke("redeem-ticket",{body:{ticketCode:ticketCode.trim()}});
+  if(invokeError||data?.error)setError(data?.error||invokeError?.message||"Ticket could not be redeemed.");
+  else{setResult(data);setTicketCode("");}
+  setBusy(false);
+ }
  if(!allowed)return <><Header title="Staff access required" back/><main className="page"><Empty title="Restricted area" body="Only authorised sport administrators can redeem tickets."/></main></>;
- return <><Header title="Event entry" back/><main className="page"><div className="page-intro"><span className="eyebrow">CUT SPORT · GATE CHECK-IN</span><h1>Validate a ticket.</h1><p>Scan a ticket QR with a compatible scanner that types into this field, or paste the ticket code. Each valid ticket can only be redeemed once.</p></div><form className="form-card" onSubmit={redeem}><label>Ticket code<input autoFocus required value={ticketCode} onChange={e=>setTicketCode(e.target.value)} placeholder="Paste or scan ticket code"/></label><button className="btn primary" disabled={busy||!ticketCode.trim()}>{busy?"Checking ticket…":"Validate and admit"}</button>{error&&<p className="form-error">{error}</p>}{result&&<div className="admin-notice"><ShieldCheck/><div><b>Ticket accepted</b><p>{result.event} · Ticket {result.ticketId}</p></div></div>}</form></main></>;
+ return <><Header title="Event entry" back/><main className="page">
+  <div className="page-intro"><span className="eyebrow">CUT SPORT · GATE CHECK-IN</span><h1>Validate a ticket.</h1><p>Use the device camera to scan a ticket QR code, or enter the ticket code manually. A successful redemption is recorded securely and each ticket can only be used once.</p></div>
+  <div className="scanner-card">
+   <div className="scanner-head"><b>QR ticket scanner</b><span>{scannerActive?"Camera active":"Camera stopped"}</span></div>
+   <div id="cut-ticket-reader" className="qr-reader" aria-label="Camera QR code scanner"/>
+   <div className="scanner-actions">
+    {!scannerActive?<button className="btn primary" type="button" disabled={scannerBusy} onClick={startScanner}>{scannerBusy?"Starting camera…":"Open camera scanner"}</button>:<button className="btn primary" type="button" onClick={stopScanner}>Stop camera</button>}
+   </div>
+   <small>Camera access requires HTTPS and your permission. The camera is used only to read the QR code; the code is checked by CUT Sport's secure ticket service.</small>
+  </div>
+  <form className="form-card" onSubmit={redeem}>
+   <label>Ticket code<input autoComplete="off" required value={ticketCode} onChange={e=>setTicketCode(e.target.value)} placeholder="Scanned code appears here, or paste it"/></label>
+   <button className="btn primary" disabled={busy||!ticketCode.trim()}>{busy?"Checking ticket…":"Validate and admit"}</button>
+   {error&&<p className="form-error">{error}</p>}
+   {result&&<div className="admin-notice"><ShieldCheck/><div><b>Ticket accepted</b><p>{result.event} · Ticket {result.ticketId}</p></div></div>}
+  </form>
+ </main></>;
 }
 
 function AdminDashboard({sports,teams,competitions,fixtures,articles,events,sponsors,athletes,roles}) {
