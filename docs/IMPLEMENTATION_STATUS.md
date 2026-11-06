@@ -72,3 +72,13 @@ Last updated: 2026-11-06
 - Security regression SQL checks passed, including checks that anonymous users cannot read orders or modify product prices/stock, and that client roles cannot create orders, order items or tickets. Supabase security advisor returned no findings.
 - Yoco API key, webhook signing secret, ticket signing secret and public app URL have not been configured. No sandbox or live payment was attempted. The app is not deployed to a public domain yet.
 - Outstanding before production: configure Edge Function secrets, register Yoco webhook, run end-to-end sandbox tests, schedule abandoned reservation cleanup, and add camera-based QR scanning.
+
+
+## Progressive Web App and temporary hosting preparation — 2026-11-06
+
+- Added a CUT Sport web app manifest, app icon, and production service worker.
+- Offline support caches only the app shell and same-origin static assets. Supabase Auth, REST, Functions and Storage endpoints are explicitly excluded; private user/payment/ticket data is not cached.
+- Added Netlify build configuration for branch `App`, Vite output `dist`, React Router history fallback, and static asset caching.
+- Added `docs/DOMAINLESS_DEPLOYMENT.md` with temporary HTTPS hosting, frontend environment variables, Supabase Auth redirect setup and later custom-domain migration steps.
+- These changes are independent of purchasing a custom domain. No hosting provider has been connected or deployed because the user's hosting account and approval of a temporary public site are not yet available.
+- PWA offline support preserves the app shell only; it does not provide offline account data, payments, ticket validation or live fixtures.
