@@ -51,7 +51,7 @@
 
 ## Priority 2 — Fixture and sport operations management
 
-**Implemented backend foundation (6 November 2026):** scoped CRUD policies for teams, competitions and fixtures; fixture team/competition sport-consistency trigger; separate `fixture_result_submissions` table; coaches/team managers may submit scores within assigned team scope; only assigned sport administrators may review submissions. A reviewed submission does not automatically overwrite the official fixture result; an administrator publishes the official score separately. Admin screen added at `/admin/operations`.
+**Implemented backend foundation (6 November 2026):** scoped CRUD policies for teams, competitions and fixtures; fixture team/competition sport-consistency trigger; separate `fixture_result_submissions` table; coaches/team managers may submit scores within assigned team scope; only assigned sport administrators may review submissions. Accepting a submission uses a restricted, SECURITY INVOKER database function to publish the official score and mark the submission accepted atomically. Admin screen added at `/admin/operations`.
 
 Proposed implementation sequence:
 1. Agree whether sport administrators can create teams/competitions/fixtures only inside assigned sports.
@@ -113,10 +113,10 @@ Required architecture:
 
 ## Implementation and verification notes — 6 November 2026
 
-- Applied Supabase migrations: `20261106004403_scoped_operations_athlete_approval_and_publishing`, `20261106004631_protect_athlete_visibility_and_index_result_submissions`, and `20261106004647_allow_private_athlete_edits_without_approval`.
+- Applied Supabase migrations: `20261106004403_scoped_operations_athlete_approval_and_publishing`, `20261106004631_protect_athlete_visibility_and_index_result_submissions`, and `20261106004647_allow_private_athlete_edits_without_approval`, and `20261106004922_publish_reviewed_fixture_results_atomically`.
 - Revoked anonymous write grants on the affected public tables and removed `TRUNCATE`, `REFERENCES` and `TRIGGER` privileges from API roles; RLS remains enabled.
 - Supabase security advisor returned no findings after the changes. Performance advisor still reports unindexed foreign keys and existing RLS initplan/multiple-policy notices; these are not security failures and need a separate tuning pass.
 - No CUT teams, competitions, fixtures, articles, events, result submissions, athletes or user roles were seeded or modified.
 - No admin account was provisioned. The live project inventory still contains no `user_roles` or sport assignment rows, so the new admin routes will deny access until an authorised CUT administrator is provisioned through an approved process.
-- CI production build passed on branch `App` after the UI fix. Authenticated CRUD tests and real admin-account browser tests remain outstanding.
+- CI production build passed on branch `App` after the UI fixes. The atomic result publisher is SECURITY INVOKER; execute permission is granted to `authenticated` and denied to `anon`. Authenticated CRUD tests and real admin-account browser tests remain outstanding.
 - Payment provider selection and merchant onboarding remain outstanding; no payment or ticket issuance is enabled.
