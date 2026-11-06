@@ -92,3 +92,13 @@ Last updated: 2026-11-06
 - Product amounts are converted to integer cents; checkout still re-reads prices and reserves stock server-side. The frontend does not become the authority for payment totals or inventory.
 - Supabase security advisor returned no findings after the policy change.
 - No products or shop-admin assignments were seeded. Product management is ready for an authorised account once a shop-admin role is assigned through the approved administrative process.
+
+
+## Ticket QR scanning and orphan checkout cleanup — 2026-11-06
+
+- Added camera-based QR scanning to `/admin/ticket-gate` using the pinned `html5-qrcode@2.3.8` browser library. The library is loaded only when a staff member opens the scanner.
+- Added local image/screenshot QR decoding as a fallback. The image is decoded in the browser and is not uploaded. Staff still review the decoded code and explicitly choose **Validate and admit**; scanning alone never redeems a ticket.
+- The gate continues to call the authenticated `redeem-ticket` Edge Function, which performs server-side role/scope checks and one-time atomic redemption.
+- Enabled Supabase `pg_cron` and scheduled `cut-sport-release-unlinked-yoco-orders` every five minutes. It releases stock only for Yoco orders older than 20 minutes that never received a persisted Yoco checkout ID. The function runs in the private schema and is not executable by anon, authenticated or service_role.
+- Runtime verification returned zero orphan reservations released (none were eligible) and confirmed the cleanup function is not executable by client roles. Supabase security advisor returned no findings.
+- Important safety boundary: orders with a persisted Yoco checkout ID are intentionally not auto-cancelled. The app's local 30-minute checkout timestamp is not proof that Yoco has expired the remote payment session. Those reservations remain until Yoco's expiry/reconciliation semantics can be verified with merchant credentials; releasing them prematurely could permit a late successful payment after stock has been returned.
