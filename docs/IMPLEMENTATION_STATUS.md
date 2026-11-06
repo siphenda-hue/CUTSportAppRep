@@ -112,3 +112,12 @@ Last updated: 2026-11-06
 - The view intentionally excludes customer names, email addresses, phone numbers, student numbers, ticket records, and payment credentials. It does not change order or payment status.
 - Fulfilment transitions remain read-only until a dedicated status-transition policy and audit workflow are designed and tested.
 - RLS policies were verified in the database. Supabase security advisor returned no findings after this change.
+
+
+## Event sales and attendee reporting — 2026-11-06
+
+- Deployed the authenticated `event-report` Edge Function. It verifies the caller's role and active full-sport assignment on every request; `super_admin` can access all events, while `sport_admin` is restricted to assigned sports.
+- Added `/admin/event-reports` with event selection, verified paid-ticket sales, revenue by ticket type, ticket inventory remaining, issued-ticket count, check-in count, attendee register and CSV export.
+- The attendee register returns attendee full name, ticket type, issue date and redemption status only. It deliberately excludes email, phone, student number, payment references and ticket-code hashes.
+- Sales revenue is derived from order items whose linked order has `payment_status = 'succeeded'`; ticket redemption status comes from the ticket records created after verified payment.
+- No attendee or sales data was seeded. End-to-end use requires an authenticated assigned sport-admin account and real event/ticket transactions.
