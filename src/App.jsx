@@ -369,7 +369,7 @@ function AdminOperations({roles,user}) {
   window.scrollTo({top:0,behavior:"smooth"});
  }
  async function saveRecord(kind,payload,reset){
-  if(!admin||!supabase)return;
+  if((kind==="fixture_result_submission"?!allowed:!admin)||!supabase)return;
   setBusy(true);setError("");
   const currentEdit=editing?.kind===kind?editing:null;
   const table=kind==="team"?"teams":kind==="competition"?"competitions":kind==="fixture"?"fixtures":"fixture_result_submissions";
