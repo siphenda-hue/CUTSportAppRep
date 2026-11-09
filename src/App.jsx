@@ -491,7 +491,7 @@ function AdminEditorial({roles,user,sports}) {
   if(event.ends_at&&new Date(event.ends_at)<new Date(event.starts_at)){setError("Event end time cannot be earlier than its start time.");return;}
   if(!editingEvent&&event.ticketed&&(Number(event.ticket_price)<2||!Number.isInteger(Number(event.ticket_quantity))||Number(event.ticket_quantity)<1)){setError("Ticketed events need a ticket price of at least R2 and a positive whole-number ticket quantity.");return;}
   setBusy(true);setError("");
-  const payload={sport_id:event.sport_id||null,title:event.title.trim(),description:event.description.trim()||null,venue:event.venue.trim()||null,starts_at:new Date(event.starts_at).toISOString(),ends_at:event.ends_at?new Date(event.ends_at).toISOString():null,published:Boolean(event.published),ticketed:editingEvent?event.ticketed:Boolean(event.ticketed)};
+  const payload={sport_id:event.sport_id||null,title:event.title.trim(),description:event.description.trim()||null,venue:event.venue.trim()||null,starts_at:new Date(event.starts_at).toISOString(),ends_at:event.ends_at?new Date(event.ends_at).toISOString():null,published:Boolean(event.published&&!events.find(item=>item.id===editingEvent)?.archived_at),ticketed:editingEvent?event.ticketed:Boolean(event.ticketed)};
   const response=editingEvent
    ?await supabase.from("events").update(payload).eq("id",editingEvent).select("id").maybeSingle()
    :await supabase.from("events").insert(payload).select("id").single();
@@ -548,14 +548,14 @@ function AdminEditorial({roles,user,sports}) {
    <div className="admin-form-actions"><button className="btn primary" disabled={busy}>{busy?"Saving…":editingArticle?"Save story changes":"Save story"}</button>{editingArticle&&<button type="button" onClick={resetArticle}>Cancel edit</button>}</div>
   </form>
   <form className="form-card" onSubmit={saveEvent}><h3>{editingEvent?"Edit event":"New event"}</h3>
-   <label>Sport scope<select required={!isSuper} value={event.sport_id} onChange={e=>setEvent({...event,sport_id:e.target.value})}><option value="">Institution-wide {isSuper?"(super administrator)": "(super administrator only)"}</option>{sportOptions}</select></label>
+   <label>Sport scope<select required={!isSuper} value={event.sport_id} onChange={e=>setEvent({...event,sport_id:e.target.value})}><option value="" disabled={!isSuper}>Institution-wide {isSuper?"(super administrator)": "(super administrator only)"}</option>{sportOptions}</select></label>
    <label>Event name<input required maxLength="180" value={event.title} onChange={e=>setEvent({...event,title:e.target.value})}/></label>
    <label>Description<textarea maxLength="5000" value={event.description} onChange={e=>setEvent({...event,description:e.target.value})}/></label>
    <label>Venue<input maxLength="240" value={event.venue} onChange={e=>setEvent({...event,venue:e.target.value})}/></label>
    <label>Start<input type="datetime-local" required value={event.starts_at} onChange={e=>setEvent({...event,starts_at:e.target.value})}/></label>
    <label>End<input type="datetime-local" min={event.starts_at||undefined} value={event.ends_at} onChange={e=>setEvent({...event,ends_at:e.target.value})}/></label>
    {editingEvent?<p className="muted">Ticket configuration is preserved while editing event details. Existing ticket inventory and orders are not modified.</p>:<><label className="check-label"><input type="checkbox" checked={event.ticketed} onChange={e=>setEvent({...event,ticketed:e.target.checked})}/> Ticketed event</label>{event.ticketed&&<><label>General admission price (R)<input type="number" min="2" step="0.01" required value={event.ticket_price} onChange={e=>setEvent({...event,ticket_price:e.target.value})}/></label><label>Tickets available<input type="number" min="1" step="1" required value={event.ticket_quantity} onChange={e=>setEvent({...event,ticket_quantity:e.target.value})}/></label></>}</>}
-   <label className="check-label"><input type="checkbox" checked={event.published} onChange={e=>setEvent({...event,published:e.target.checked})}/> Publish event</label>
+   <label className="check-label"><input type="checkbox" checked={event.published} disabled={Boolean(editingEvent&&events.find(item=>item.id===editingEvent)?.archived_at)} onChange={e=>setEvent({...event,published:e.target.checked})}/> Publish event</label>
    <div className="admin-form-actions"><button className="btn primary" disabled={busy}>{busy?"Saving…":editingEvent?"Save event changes":"Save event"}</button>{editingEvent&&<button type="button" onClick={resetEvent}>Cancel edit</button>}</div>
   </form>
   {error&&<p className="form-error">{error}</p>}
