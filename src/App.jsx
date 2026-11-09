@@ -372,9 +372,10 @@ function AdminOperations({roles,user}) {
   if(!admin||!supabase)return;
   setBusy(true);setError("");
   const currentEdit=editing?.kind===kind?editing:null;
+  const table=kind==="team"?"teams":kind==="competition"?"competitions":kind==="fixture"?"fixtures":"fixture_result_submissions";
   const query=currentEdit
-   ?supabase.from(kind==="team"?"teams":kind==="competition"?"competitions":"fixtures").update(payload).eq("id",currentEdit.id).select("id").maybeSingle()
-   :supabase.from(kind==="team"?"teams":kind==="competition"?"competitions":"fixtures").insert(payload).select("id").single();
+   ?supabase.from(table).update(payload).eq("id",currentEdit.id).select("id").maybeSingle()
+   :supabase.from(table).insert(payload).select("id").single();
   const {data,error}=await query;
   if(error)setError(error.message);
   else if(!data)setError("No record was changed. Confirm that your administrator assignment is still active for this sport.");
