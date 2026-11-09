@@ -1,6 +1,6 @@
 # CUT Sport implementation status
 
-Last updated: 2026-11-06
+Last updated: 2026-11-09
 
 ## Delivered
 - React 18 + Vite frontend with responsive CUT Sport interface.
@@ -21,15 +21,15 @@ Last updated: 2026-11-06
 - 11 sport codes exist. At last count, teams, athletes, fixtures, articles, products, events and sponsors had zero records.
 - Athlete insert/update/delete policies call `private.can_manage_athlete(sport_id, team_id)`, which checks active sport/team assignments and super-admin role.
 - Sponsor management policy allows `sport_admin` and `super_admin`.
-- Four Supabase Edge Functions are deployed: yoco-checkout, yoco-webhook, my-tickets and redeem-ticket. Yoco credentials and webhook secrets are not configured yet.
+- Six Supabase Edge Functions are deployed: yoco-checkout, yoco-webhook, my-tickets, redeem-ticket, event-report and manage-shop-order. Yoco credentials and webhook secrets are not configured yet.
 - Latest security advisor returned no findings. Performance advisor reports existing notices: 19 unindexed foreign keys, 11 RLS auth initplan notices, 18 unused-index notices, and one multiple-permissive-policy notice on sponsors. These were not changed because they require a separate reviewed database-performance pass.
 - Admin operations, athlete approval and editorial RLS policies have now been applied through three tracked Supabase migrations. No production records were seeded or altered.
 
 ## Not yet implemented / gated
-- Product and sport-code CRUD remains outstanding. Team, competition, fixture, article and event policy foundations plus initial management screens are implemented.
+- Product and sport-code catalogue management are implemented. Super administrators can create sport codes; super administrators and assigned full-sport administrators can edit, archive or restore them. Team, competition, fixture, article and event screens still need broader edit/archive coverage beyond their current create/publish flows.
 - Athlete profile, statistics, achievement and media approval controls are implemented. Database triggers enforce approver-only changes to verification fields.
 - Yoco Checkout, server-priced order creation, stock reservation, signed webhook verification, signed ticket pass retrieval and one-time staff redemption are implemented. Real/sandbox transactions are gated on merchant credentials and webhook configuration.
-- Camera-based QR scanning and automated expiry/release of abandoned checkout reservations remain outstanding.
+- Camera-based QR scanning and scheduled release of unlinked stale Yoco reservations are implemented. Orders with a persisted remote checkout ID are deliberately not auto-released until provider expiry is verified.
 - Student/staff discounts, refunds and delivery fulfilment: require approved institutional/business rules.
 - Live browser walkthrough and real administrator-account CRUD test remain outstanding.
 
@@ -150,3 +150,12 @@ Last updated: 2026-11-06
 - The shop order dashboard now exposes optional internal fulfilment notes and the two allowed status actions. It does not expose customer contact details or payment secrets.
 - Cancellation and refunds are intentionally not part of this workflow. They must be handled through the payment provider's authorised refund/cancellation process; a fulfilment status change must never imply a card refund.
 - No order records were created or modified during implementation. A real authorised shop-admin account and a successfully paid order are required to exercise the workflow end to end.
+
+
+## Sport catalogue administration — 2026-11-09
+
+- Added `/admin/sports` to manage the official sport-code directory without inserting or modifying institutional data during development.
+- Super administrators can create sport codes. Super administrators and active full-sport administrators can edit, archive or restore only records allowed by their database assignment.
+- Applied migration `20261109105606_sport_catalog_admin_permissions`: anonymous users retain SELECT only; authenticated users receive SELECT/INSERT/UPDATE grants; DELETE and elevated table privileges are withheld.
+- RLS uses the existing `private.can_manage_sport(id)` helper for assigned read/update scope. A separate INSERT policy restricts creation to `super_admin`; archiving uses `is_active=false` and never deletes linked records.
+- Added static SQL regression checks. Live role/assignment CRUD tests remain pending because the project currently has no `user_roles` or `sport_admin_assignments` records.

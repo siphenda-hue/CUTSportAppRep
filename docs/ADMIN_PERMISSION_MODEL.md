@@ -20,15 +20,16 @@
 - Sport assignments are represented by `sport_admin_profiles` and `sport_admin_assignments`; assignments can be sport-wide or team-scoped and include start/end dates and an active flag.
 - `private.can_manage_athlete(sport_id, team_id)` currently allows a super admin or an active assigned sport administrator/team manager/coach to manage the matching athlete record.
 - Public SELECT policies exist for active teams, competitions, fixtures, published articles, published events, active products and active sponsors.
-- The inspected public write policies currently cover sponsor administration and assigned athlete-related records, plus user-owned actions such as comments and event RSVPs. There are no verified write policies for teams, competitions, fixtures, articles, events or products.
-- Orders and tickets currently have user-owned read policies; no verified public-client order creation, payment confirmation or ticket issuance workflow exists.
-- No Supabase Edge Functions are currently deployed.
+- Scoped write policies exist for teams, competitions, fixtures, articles and events. Sport catalogue creation is restricted to super administrators; sport updates are restricted to super administrators and active full-sport assignments. Product management is limited to shop_admin/super_admin, while sponsor and athlete records use their own scoped policies.
+- Orders and tickets retain user-owned client reads; server-side Edge Functions create orders, verify provider webhooks, issue tickets after confirmed payment and perform scoped one-time redemption.
+- Six Supabase Edge Functions are deployed: yoco-checkout, yoco-webhook, my-tickets, redeem-ticket, event-report and manage-shop-order.
 - No user-role or sport-assignment records were present in the latest project inventory. A dashboard UI role alone will therefore not make an account an administrator.
 
 ## Target capability matrix
 
 | Area | Roles proposed | Scope | Required enforcement |
 |---|---|---|---|
+| Sports directory | super_admin creates; super_admin/assigned sport_admin updates | Super admin global; sport admin active full-sport assignment | RLS; no client DELETE; archive via is_active |
 | Teams | super_admin, sport_admin | Super admin global; sport admin assigned sport | RLS for insert/update/archive; validate sport ownership |
 | Competitions | super_admin, sport_admin | Assigned sport | RLS for CRUD; validate competition sport and lifecycle |
 | Fixtures/results | super_admin, sport_admin; coach/team manager may submit results | Assigned sport/team | RLS for CRUD; separate result submission/verification if required |
@@ -120,3 +121,12 @@ Required architecture:
 - No admin account was provisioned. The live project inventory still contains no `user_roles` or sport assignment rows, so the new admin routes will deny access until an authorised CUT administrator is provisioned through an approved process.
 - CI production build passed on branch `App` after the UI fixes. The atomic result publisher is SECURITY INVOKER; execute permission is granted to `authenticated` and denied to `anon`. Authenticated CRUD tests and real admin-account browser tests remain outstanding.
 - Payment provider selection and merchant onboarding remain outstanding; no payment or ticket issuance is enabled.
+
+
+## Sport catalogue administration — 9 November 2026
+
+- Applied `20261109105606_sport_catalog_admin_permissions`.
+- Anonymous users retain SELECT-only access to active sport codes. Authenticated users receive SELECT/INSERT/UPDATE grants; DELETE, TRUNCATE, REFERENCES and TRIGGER privileges are not granted.
+- Super administrators may create sport codes. Super administrators and active full-sport administrators may read managed records and update them. No client DELETE policy exists; archive/restore uses the existing `is_active` column.
+- The React admin route is `/admin/sports`. Its role checks and assignment lookup are presentation controls only; database RLS remains authoritative.
+- Static privilege/policy regression checks are included in `supabase/tests/sport_catalog_permissions_test.sql`. Account-level CRUD tests remain pending until authorised role and assignment records are provisioned.

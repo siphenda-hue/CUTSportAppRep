@@ -15,6 +15,7 @@
 | Notifications | `/notifications` | Signed-in user's notification list |
 | My tickets | `/tickets` | Signed ticket codes returned by an authenticated Edge Function only to the ticket owner |
 | Orders | `/orders` | Signed-in user's order history including payment status |
+| Sport code administration | `/admin/sports` | Super administrators create codes; super administrators and assigned full-sport administrators edit/archive/restore through scoped RLS |
 | Sponsor administration | `/admin/sponsors` | Role-gated sponsor create, edit and archive; database RLS enforces access |
 | Athlete administration | `/admin/athletes` | Assigned staff can register/edit athlete profile details; new profiles start pending |
 | Admin dashboard | `/admin` | Role-aware management landing page |
