@@ -125,7 +125,7 @@ Required architecture:
 
 ## Sport catalogue administration — 9 November 2026
 
-- Applied `20261109105606_sport_catalog_admin_permissions`.
+- Applied `20261109090344_sport_catalog_admin_permissions`.
 - Anonymous users retain SELECT-only access to active sport codes. Authenticated users receive SELECT/INSERT/UPDATE grants; DELETE, TRUNCATE, REFERENCES and TRIGGER privileges are not granted.
 - Super administrators may create sport codes. Super administrators and active full-sport administrators may read managed records and update them. No client DELETE policy exists; archive/restore uses the existing `is_active` column.
 - The React admin route is `/admin/sports`. Its role checks and assignment lookup are presentation controls only; database RLS remains authoritative.

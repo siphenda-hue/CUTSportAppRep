@@ -156,6 +156,6 @@ Last updated: 2026-11-09
 
 - Added `/admin/sports` to manage the official sport-code directory without inserting or modifying institutional data during development.
 - Super administrators can create sport codes. Super administrators and active full-sport administrators can edit, archive or restore only records allowed by their database assignment.
-- Applied migration `20261109105606_sport_catalog_admin_permissions`: anonymous users retain SELECT only; authenticated users receive SELECT/INSERT/UPDATE grants; DELETE and elevated table privileges are withheld.
+- Applied migration `20261109090344_sport_catalog_admin_permissions`: anonymous users retain SELECT only; authenticated users receive SELECT/INSERT/UPDATE grants; DELETE and elevated table privileges are withheld.
 - RLS uses the existing `private.can_manage_sport(id)` helper for assigned read/update scope. A separate INSERT policy restricts creation to `super_admin`; archiving uses `is_active=false` and never deletes linked records.
 - Added static SQL regression checks. Live role/assignment CRUD tests remain pending because the project currently has no `user_roles` or `sport_admin_assignments` records.
