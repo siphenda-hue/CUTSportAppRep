@@ -438,24 +438,129 @@ function AdminApprovals({roles,user}) {
 }
 
 function AdminEditorial({roles,user,sports}) {
- const allowed=roles.some(r=>["sport_admin","super_admin"].includes(r));
- const [articles,setArticles]=useState([]),[events,setEvents]=useState([]),[error,setError]=useState(""),[busy,setBusy]=useState(false);
- const [article,setArticle]=useState({sport_id:"",title:"",slug:"",excerpt:"",body:"",cover_image_url:"",status:"draft"});
- const [event,setEvent]=useState({sport_id:"",title:"",description:"",venue:"",starts_at:"",ends_at:"",published:false,ticketed:false,ticket_price:"",ticket_quantity:""});
- async function load(){if(!supabase||!allowed)return;const [a,e]=await Promise.all([supabase.from("articles").select("id,title,slug,status,sport_id,sports(name)").order("created_at",{ascending:false}),supabase.from("events").select("id,title,sport_id,starts_at,venue,published").order("starts_at")]);const fail=a.error||e.error;if(fail)setError(fail.message);else{setArticles(a.data||[]);setEvents(e.data||[]);}}
+ const isSuper=roles.includes("super_admin");
+ const allowed=isSuper||roles.includes("sport_admin");
+ const blankArticle={sport_id:"",title:"",slug:"",excerpt:"",body:"",cover_image_url:"",status:"draft",published_at:null};
+ const blankEvent={sport_id:"",title:"",description:"",venue:"",starts_at:"",ends_at:"",published:false,ticketed:false,ticket_price:"",ticket_quantity:""};
+ const [articles,setArticles]=useState([]),[events,setEvents]=useState([]),[error,setError]=useState(""),[busy,setBusy]=useState(false),[loading,setLoading]=useState(false);
+ const [editingArticle,setEditingArticle]=useState(null),[editingEvent,setEditingEvent]=useState(null);
+ const [article,setArticle]=useState(blankArticle),[event,setEvent]=useState(blankEvent);
+ async function load(){
+  if(!supabase||!allowed)return;
+  setLoading(true);setError("");
+  const [a,e]=await Promise.all([
+   supabase.from("articles").select("id,title,slug,excerpt,body,cover_image_url,status,published_at,author_id,sport_id,sports(name)").order("created_at",{ascending:false}),
+   supabase.from("events").select("id,title,description,venue,starts_at,ends_at,ticketed,published,archived_at,sport_id,sports(name)").order("starts_at")
+  ]);
+  const fail=a.error||e.error;
+  if(fail)setError(fail.message);
+  else{setArticles(a.data||[]);setEvents(e.data||[]);}
+  setLoading(false);
+ }
  useEffect(()=>{load()},[allowed]);
- async function saveArticle(e){e.preventDefault();setBusy(true);const payload={...article,author_id:user.id,sport_id:article.sport_id||null,slug:(article.slug||article.title).toLowerCase().trim().replace(/[^a-z0-9]+/g,"-").replace(/(^-|-$)/g,""),published_at:article.status==="published"?new Date().toISOString():null};const {error}=await supabase.from("articles").insert(payload);if(error)setError(error.message);else{setArticle({sport_id:"",title:"",slug:"",excerpt:"",body:"",cover_image_url:"",status:"draft"});await load();}setBusy(false);}
- async function saveEvent(e){e.preventDefault();setBusy(true);setError("");if(event.ticketed&&(Number(event.ticket_price)<2||Number(event.ticket_quantity)<1)){setError("Ticketed events need a ticket price of at least R2 and a positive ticket quantity.");setBusy(false);return}const payload={sport_id:event.sport_id||null,title:event.title,description:event.description||null,venue:event.venue||null,starts_at:new Date(event.starts_at).toISOString(),ends_at:event.ends_at?new Date(event.ends_at).toISOString():null,published:event.published,ticketed:event.ticketed};const {data:created,error}=await supabase.from("events").insert(payload).select("id").single();if(error)setError(error.message);else{if(event.ticketed){const {error:ticketError}=await supabase.from("event_ticket_types").insert({event_id:created.id,name:"General Admission",price_cents:Math.round(Number(event.ticket_price)*100),quantity_available:Number(event.ticket_quantity),max_per_order:6,is_active:true});if(ticketError)setError("Event was saved, but its ticket type could not be created: "+ticketError.message)}setEvent({sport_id:"",title:"",description:"",venue:"",starts_at:"",ends_at:"",published:false,ticketed:false,ticket_price:"",ticket_quantity:""});await load();}setBusy(false);}
- async function publishArticle(id,status){const {error}=await supabase.from("articles").update({status,published_at:status==="published"?new Date().toISOString():null}).eq("id",id);if(error)setError(error.message);else load();}
- async function publishEvent(id,published){const {error}=await supabase.from("events").update({published}).eq("id",id);if(error)setError(error.message);else load();}
+ function resetArticle(){setEditingArticle(null);setArticle(blankArticle);setError("");}
+ function resetEvent(){setEditingEvent(null);setEvent(blankEvent);setError("");}
+ function editArticle(item){
+  setEditingArticle(item.id);
+  setArticle({sport_id:item.sport_id||"",title:item.title||"",slug:item.slug||"",excerpt:item.excerpt||"",body:item.body||"",cover_image_url:item.cover_image_url||"",status:item.status,published_at:item.published_at});
+  setError("");
+ }
+ function editEvent(item){
+  setEditingEvent(item.id);
+  setEvent({sport_id:item.sport_id||"",title:item.title||"",description:item.description||"",venue:item.venue||"",starts_at:item.starts_at?new Date(item.starts_at).toISOString().slice(0,16):"",ends_at:item.ends_at?new Date(item.ends_at).toISOString().slice(0,16):"",published:item.published,ticketed:item.ticketed,ticket_price:"",ticket_quantity:""});
+  setError("");
+ }
+ async function saveArticle(e){
+  e.preventDefault();if(!allowed||!supabase||!user)return;
+  const slug=(article.slug||article.title).toLowerCase().trim().replace(/[^a-z0-9]+/g,"-").replace(/(^-|-$)/g,"");
+  if(!slug){setError("Add a valid headline or URL slug.");return;}
+  setBusy(true);setError("");
+  const payload={sport_id:article.sport_id||null,title:article.title.trim(),slug,excerpt:article.excerpt.trim()||null,body:article.body.trim()||null,cover_image_url:article.cover_image_url.trim()||null,status:article.status,published_at:article.status==="published"?(article.published_at||new Date().toISOString()):null};
+  const response=editingArticle
+   ?await supabase.from("articles").update(payload).eq("id",editingArticle).select("id").maybeSingle()
+   :await supabase.from("articles").insert({...payload,author_id:user.id}).select("id").single();
+  if(response.error)setError(response.error.message);
+  else if(!response.data)setError("No article was changed. Check your author and sport assignment permissions.");
+  else{resetArticle();await load();}
+  setBusy(false);
+ }
+ async function saveEvent(e){
+  e.preventDefault();if(!allowed||!supabase)return;
+  if(!event.starts_at){setError("Choose an event start date and time.");return;}
+  if(event.ends_at&&new Date(event.ends_at)<new Date(event.starts_at)){setError("Event end time cannot be earlier than its start time.");return;}
+  if(!editingEvent&&event.ticketed&&(Number(event.ticket_price)<2||!Number.isInteger(Number(event.ticket_quantity))||Number(event.ticket_quantity)<1)){setError("Ticketed events need a ticket price of at least R2 and a positive whole-number ticket quantity.");return;}
+  setBusy(true);setError("");
+  const payload={sport_id:event.sport_id||null,title:event.title.trim(),description:event.description.trim()||null,venue:event.venue.trim()||null,starts_at:new Date(event.starts_at).toISOString(),ends_at:event.ends_at?new Date(event.ends_at).toISOString():null,published:Boolean(event.published),ticketed:editingEvent?event.ticketed:Boolean(event.ticketed)};
+  const response=editingEvent
+   ?await supabase.from("events").update(payload).eq("id",editingEvent).select("id").maybeSingle()
+   :await supabase.from("events").insert(payload).select("id").single();
+  if(response.error)setError(response.error.message);
+  else if(!response.data)setError("No event was changed. Check your sport assignment permissions.");
+  else{
+   let ticketError=null;
+   if(!editingEvent&&event.ticketed){
+    const created=await supabase.from("event_ticket_types").insert({event_id:response.data.id,name:"General Admission",price_cents:Math.round(Number(event.ticket_price)*100),quantity_available:Number(event.ticket_quantity),max_per_order:6,is_active:true});
+    ticketError=created.error;
+   }
+   resetEvent();await load();
+   if(ticketError)setError("Event saved, but the general admission ticket type could not be created: "+ticketError.message);
+  }
+  setBusy(false);
+ }
+ async function setArticleStatus(item,status){
+  if(!allowed||!supabase)return;
+  setBusy(true);setError("");
+  const payload={status,published_at:status==="published"?(item.published_at||new Date().toISOString()):null};
+  const {error}=await supabase.from("articles").update(payload).eq("id",item.id);
+  if(error)setError(error.message);else await load();
+  setBusy(false);
+ }
+ async function setEventPublished(item,published){
+  if(!allowed||!supabase||item.archived_at)return;
+  setBusy(true);setError("");
+  const {error}=await supabase.from("events").update({published}).eq("id",item.id);
+  if(error)setError(error.message);else await load();
+  setBusy(false);
+ }
+ async function archiveEvent(item,restore=false){
+  if(!allowed||!supabase)return;
+  const message=restore?"Restore this event as an unpublished draft?":"Archive this event? It will be unpublished and ticket sales will stop. Existing ticket and order history will be retained.";
+  if(!window.confirm(message))return;
+  setBusy(true);setError("");
+  const {error}=await supabase.from("events").update({archived_at:restore?null:new Date().toISOString(),published:false}).eq("id",item.id);
+  if(error)setError(error.message);else await load();
+  setBusy(false);
+ }
  if(!allowed)return <><Header title="Admin access required" back/><main className="page"><Empty title="Restricted area" body="Only sport administrators and super administrators can publish news and events."/></main></>;
  const sportOptions=sports.map(s=><option key={s.id} value={s.id}>{s.name}</option>);
- return <><Header title="News & events" back/><main className="page"><div className="page-intro"><span className="eyebrow">PUBLISHING WORKSPACE</span><h1>News & events</h1><p>Only published records appear in public feeds. Institution-wide content is reserved for super administrators.</p></div>
- <form className="form-card" onSubmit={saveArticle}><h3>New story</h3><label>Sport scope<select value={article.sport_id} onChange={e=>setArticle({...article,sport_id:e.target.value})}><option value="">Institution-wide</option>{sportOptions}</select></label><label>Headline<input required value={article.title} onChange={e=>setArticle({...article,title:e.target.value})}/></label><label>Slug<input value={article.slug} onChange={e=>setArticle({...article,slug:e.target.value})}/></label><label>Summary<textarea value={article.excerpt} onChange={e=>setArticle({...article,excerpt:e.target.value})}/></label><label>Story body<textarea required value={article.body} onChange={e=>setArticle({...article,body:e.target.value})}/></label><label>Cover image URL<input type="url" value={article.cover_image_url} onChange={e=>setArticle({...article,cover_image_url:e.target.value})}/></label><label>Workflow<select value={article.status} onChange={e=>setArticle({...article,status:e.target.value})}><option value="draft">Save draft</option><option value="published">Publish now</option></select></label><button className="btn primary" disabled={busy}>Save story</button></form>
- <form className="form-card" onSubmit={saveEvent}><h3>New event</h3><label>Sport scope<select value={event.sport_id} onChange={e=>setEvent({...event,sport_id:e.target.value})}><option value="">Institution-wide</option>{sportOptions}</select></label><label>Event name<input required value={event.title} onChange={e=>setEvent({...event,title:e.target.value})}/></label><label>Description<textarea value={event.description} onChange={e=>setEvent({...event,description:e.target.value})}/></label><label>Venue<input value={event.venue} onChange={e=>setEvent({...event,venue:e.target.value})}/></label><label>Start<input type="datetime-local" required value={event.starts_at} onChange={e=>setEvent({...event,starts_at:e.target.value})}/></label><label>End<input type="datetime-local" value={event.ends_at} onChange={e=>setEvent({...event,ends_at:e.target.value})}/></label><label className="check-label"><input type="checkbox" checked={event.ticketed} onChange={e=>setEvent({...event,ticketed:e.target.checked})}/> Ticketed event</label>{event.ticketed&&<><label>General admission price (R)<input type="number" min="2" step="0.01" required value={event.ticket_price||""} onChange={e=>setEvent({...event,ticket_price:e.target.value})}/></label><label>Tickets available<input type="number" min="1" step="1" required value={event.ticket_quantity||""} onChange={e=>setEvent({...event,ticket_quantity:e.target.value})}/></label></>}<label className="check-label"><input type="checkbox" checked={event.published} onChange={e=>setEvent({...event,published:e.target.checked})}/> Publish event</label><button className="btn primary" disabled={busy}>Save event</button></form>
- {error&&<p className="form-error">{error}</p>}
- <Section title="Stories">{articles.length?articles.map(a=><div className="sponsor-card admin-sponsor" key={a.id}><div><b>{a.title}</b><small>{a.sports?.name||"Institution-wide"} · {a.status}</small></div>{a.status==="published"?<button onClick={()=>publishArticle(a.id,"archived")}>Archive</button>:<button onClick={()=>publishArticle(a.id,"published")}>Publish</button>}</div>):<Empty title="No stories yet" body="No article records have been created."/>}</Section>
- <Section title="Events">{events.length?events.map(e=><div className="sponsor-card admin-sponsor" key={e.id}><div><b>{e.title}</b><small>{dateLabel(e.starts_at)} · {e.published?"Published":"Draft"}</small></div><button onClick={()=>publishEvent(e.id,!e.published)}>{e.published?"Unpublish":"Publish"}</button></div>):<Empty title="No events yet" body="No event records have been created."/>}</Section>
+ return <><Header title="News & events" back/><main className="page">
+  <div className="page-intro"><span className="eyebrow">PUBLISHING WORKSPACE</span><h1>News & events</h1><p>Manage stories and event records. Sport administrators are restricted by assigned sport scope; institution-wide content is reserved for super administrators.</p></div>
+  <form className="form-card" onSubmit={saveArticle}><h3>{editingArticle?"Edit story":"New story"}</h3>
+   <label>Sport scope<select value={article.sport_id} onChange={e=>setArticle({...article,sport_id:e.target.value})}><option value="">Institution-wide {isSuper?"(super administrator)": "(super administrator only)"}</option>{sportOptions}</select></label>
+   {!isSuper&&!editingArticle&&<p className="muted">Choose a sport assigned to your administrator account. Institution-wide publishing is restricted to the super administrator.</p>}
+   <label>Headline<input required maxLength="180" value={article.title} onChange={e=>setArticle({...article,title:e.target.value})}/></label>
+   <label>Slug<input maxLength="200" value={article.slug} onChange={e=>setArticle({...article,slug:e.target.value})} placeholder="generated-from-headline"/></label>
+   <label>Summary<textarea maxLength="500" value={article.excerpt} onChange={e=>setArticle({...article,excerpt:e.target.value})}/></label>
+   <label>Story body<textarea required maxLength="50000" value={article.body} onChange={e=>setArticle({...article,body:e.target.value})}/></label>
+   <label>Cover image URL<input type="url" value={article.cover_image_url} onChange={e=>setArticle({...article,cover_image_url:e.target.value})}/></label>
+   <label>Workflow<select value={article.status} onChange={e=>setArticle({...article,status:e.target.value})}><option value="draft">Save draft</option><option value="published">Publish now</option><option value="archived">Archive</option></select></label>
+   <div className="admin-form-actions"><button className="btn primary" disabled={busy}>{busy?"Saving…":editingArticle?"Save story changes":"Save story"}</button>{editingArticle&&<button type="button" onClick={resetArticle}>Cancel edit</button>}</div>
+  </form>
+  <form className="form-card" onSubmit={saveEvent}><h3>{editingEvent?"Edit event":"New event"}</h3>
+   <label>Sport scope<select value={event.sport_id} onChange={e=>setEvent({...event,sport_id:e.target.value})}><option value="">Institution-wide {isSuper?"(super administrator)": "(super administrator only)"}</option>{sportOptions}</select></label>
+   <label>Event name<input required maxLength="180" value={event.title} onChange={e=>setEvent({...event,title:e.target.value})}/></label>
+   <label>Description<textarea maxLength="5000" value={event.description} onChange={e=>setEvent({...event,description:e.target.value})}/></label>
+   <label>Venue<input maxLength="240" value={event.venue} onChange={e=>setEvent({...event,venue:e.target.value})}/></label>
+   <label>Start<input type="datetime-local" required value={event.starts_at} onChange={e=>setEvent({...event,starts_at:e.target.value})}/></label>
+   <label>End<input type="datetime-local" min={event.starts_at||undefined} value={event.ends_at} onChange={e=>setEvent({...event,ends_at:e.target.value})}/></label>
+   {editingEvent?<p className="muted">Ticket configuration is preserved while editing event details. Existing ticket inventory and orders are not modified.</p>:<><label className="check-label"><input type="checkbox" checked={event.ticketed} onChange={e=>setEvent({...event,ticketed:e.target.checked})}/> Ticketed event</label>{event.ticketed&&<><label>General admission price (R)<input type="number" min="2" step="0.01" required value={event.ticket_price} onChange={e=>setEvent({...event,ticket_price:e.target.value})}/></label><label>Tickets available<input type="number" min="1" step="1" required value={event.ticket_quantity} onChange={e=>setEvent({...event,ticket_quantity:e.target.value})}/></label></>}</>}
+   <label className="check-label"><input type="checkbox" checked={event.published} onChange={e=>setEvent({...event,published:e.target.checked})}/> Publish event</label>
+   <div className="admin-form-actions"><button className="btn primary" disabled={busy}>{busy?"Saving…":editingEvent?"Save event changes":"Save event"}</button>{editingEvent&&<button type="button" onClick={resetEvent}>Cancel edit</button>}</div>
+  </form>
+  {error&&<p className="form-error">{error}</p>}
+  <Section title="Stories">{loading?<p className="muted">Loading stories…</p>:articles.length?articles.map(item=><div className="sponsor-card admin-sponsor" key={item.id}><div><b>{item.title}</b><small>{item.sports?.name||"Institution-wide"} · {item.status}</small></div><button type="button" disabled={busy} onClick={()=>editArticle(item)}>Edit</button>{item.status==="published"?<button type="button" disabled={busy} onClick={()=>setArticleStatus(item,"draft")}>Unpublish</button>:item.status!=="archived"?<button type="button" disabled={busy} onClick={()=>setArticleStatus(item,"published")}>Publish</button>:<button type="button" disabled={busy} onClick={()=>setArticleStatus(item,"draft")}>Restore</button>}{item.status!=="archived"&&<button type="button" disabled={busy} onClick={()=>setArticleStatus(item,"archived")}>Archive</button>}</div>):<Empty title="No stories yet" body="No article records have been created."/>}</Section>
+  <Section title="Events">{loading?<p className="muted">Loading events…</p>:events.length?events.map(item=><div className="sponsor-card admin-sponsor" key={item.id}><div><b>{item.title}</b><small>{item.sports?.name||"Institution-wide"} · {dateLabel(item.starts_at)} · {item.archived_at?"Archived":item.published?"Published":"Draft"}</small></div><button type="button" disabled={busy} onClick={()=>editEvent(item)}>Edit</button>{item.archived_at?<button type="button" disabled={busy} onClick={()=>archiveEvent(item,true)}>Restore</button>:<><button type="button" disabled={busy} onClick={()=>setEventPublished(item,!item.published)}>{item.published?"Unpublish":"Publish"}</button><button type="button" disabled={busy} onClick={()=>archiveEvent(item)}>Archive</button></>}</div>):<Empty title="No events yet" body="No event records have been created."/>}</Section>
+  <p className="muted">Archiving an event unpublishes it and stops public ticket availability while retaining ticket and order history. Editing an existing event does not change ticket prices or inventory.</p>
  </main></>;
 }
 
