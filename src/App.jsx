@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link, Route, Routes, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Bell, CalendarDays, ChevronRight, ClipboardList, FileText, Handshake, LogOut, MapPin, Newspaper, Package, ShieldCheck, ShoppingBag, Ticket, Trophy, Users, CalendarClock, Settings2 } from 'lucide-react';
 import BottomNav from './components/BottomNav';
