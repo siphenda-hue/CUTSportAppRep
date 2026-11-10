@@ -1,3 +1,4 @@
+import React from 'react';
 import { Home, ShoppingBag, Trophy, UserRound } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 export default function BottomNav() {
