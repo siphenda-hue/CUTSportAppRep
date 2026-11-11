@@ -7,7 +7,22 @@ import { supabase } from './lib/supabase';
 
 const fallback = ['Athletics & Cross Country','Basketball','Cheerleading','Cricket','E-Sport','Football','Golf','Hockey','Netball','Rugby','Volleyball'].map((name,i)=>({id:String(i),name,slug:name.toLowerCase().replaceAll(' ','-')}));
 function Empty({title,body}) { return <div className="empty"><Trophy/><b>{title}</b><p>{body}</p></div>; }
-function Header({title='CUT Sport',back=false}) { const nav=useNavigate(); return <header className="topbar">{back?<button className="icon-btn" onClick={()=>nav(-1)}><ArrowLeft/></button>:<Link className="brand-mark" to="/"><b>CUT</b><small>SPORT</small></Link>}<div className="topbar-title"><b>{title}</b><small>HERITAGE · CULTURE · COMMUNITY</small></div><Link className="icon-btn" to="/notifications"><Bell/></Link></header>; }
+function Header({title='CUT Sport',back=false}) {
+ const nav=useNavigate();
+ const [unreadCount,setUnreadCount]=useState(0);
+ useEffect(()=>{
+  let active=true;
+  if(!supabase){setUnreadCount(0);return()=>{active=false}}
+  supabase.auth.getUser().then(async({data})=>{
+   if(!active)return;
+   if(!data.user){setUnreadCount(0);return}
+   const {count,error}=await supabase.from("notifications").select("id",{count:"exact",head:true}).eq("user_id",data.user.id).is("read_at",null);
+   if(active)setUnreadCount(error?0:(count||0));
+  });
+  return()=>{active=false};
+ },[]);
+ return <header className="topbar">{back?<button className="icon-btn" onClick={()=>nav(-1)}><ArrowLeft/></button>:<Link className="brand-mark" to="/"><b>CUT</b><small>SPORT</small></Link>}<div className="topbar-title"><b>{title}</b><small>HERITAGE · CULTURE · COMMUNITY</small></div><Link className="icon-btn notification-bell" to="/notifications" aria-label={unreadCount?("Notifications, "+unreadCount+" unread"):"Notifications"}><Bell/>{unreadCount>0&&<span className="notification-count">{unreadCount>99?"99+":unreadCount}</span>}</Link></header>;
+}
 function Section({title,children,link}) { return <section className="section"><div className="section-head"><h2>{title}</h2>{link&&<Link to={link}>View all <ChevronRight size={15}/></Link>}</div>{children}</section>; }
 function App() {
  const [sports,setSports]=useState(fallback),[teams,setTeams]=useState([]),[competitions,setCompetitions]=useState([]),[products,setProducts]=useState([]),[fixtures,setFixtures]=useState([]),[articles,setArticles]=useState([]),[events,setEvents]=useState([]),[ticketTypes,setTicketTypes]=useState([]),[sponsors,setSponsors]=useState([]),[athletes,setAthletes]=useState([]);
@@ -298,7 +313,7 @@ function Personal({title,user,kind}) {
   {isNotifications?<div className="notifications-heading"><div><span className="eyebrow">CUT SPORT · YOUR UPDATES</span><h1>Notifications</h1><p>{unread.length} unread update(s)</p></div><div><button type="button" onClick={load} disabled={busy}>Refresh</button>{unread.length>0&&<button type="button" onClick={markAllRead} disabled={busy}>Mark all read</button>}</div></div>:<h1>{title}</h1>}
   {!user?<Empty title="Sign in to continue" body="Your personal information will appear here after you sign in."/>:null}
   {error&&<p className="form-error">{error}</p>}
-  {user&&items.length?items.map(x=>isNotifications?<article className={"personal-card notification-card "+(x.read_at?"is-read":"is-unread")} key={x.id}><div className="notification-card-head"><b>{x.title||"CUT Sport update"}</b><small>{dateLabel(x.created_at)}</small></div><p>{x.body}</p><div className="notification-card-foot"><span>{x.read_at?"Read":"Unread"}</span>{!x.read_at&&<button type="button" onClick={()=>markRead(x.id)}>Mark as read</button>}</div></article>:<div className="personal-card" key={x.id}><b>{x.title||x.event?.title||x.order_number||"CUT Sport update"}</b><p>{x.body||x.payment_status||x.status||dateLabel(x.created_at)}</p>{x.ticket_code&&<><small>Scan this QR code at the event entrance</small><TicketQr value={x.ticket_code}/><small>If scanning is unavailable, staff can enter this secure code manually</small><code className="ticket-code">{x.ticket_code}</code>{x.redeemed_at&&<small>Redeemed · {dateLabel(x.redeemed_at)}</small>}</>}</div>):null}
+  {user&&items.length?items.map(x=>isNotifications?<article className={"personal-card notification-card "+(x.read_at?"is-read":"is-unread")} key={x.id}><div className="notification-card-head"><b>{x.title||"CUT Sport update"}</b><small>{dateLabel(x.created_at)}</small></div><p>{x.body}</p><div className="notification-card-foot"><span>{x.read_at?"Read":"Unread"}</span><div className="notification-actions">{x.action_url?.startsWith("/")&&<Link to={x.action_url} onClick={()=>!x.read_at&&markRead(x.id)}>Open update</Link>}{!x.read_at&&<button type="button" onClick={()=>markRead(x.id)}>Mark as read</button>}</div></div></article>:<div className="personal-card" key={x.id}><b>{x.title||x.event?.title||x.order_number||"CUT Sport update"}</b><p>{x.body||x.payment_status||x.status||dateLabel(x.created_at)}</p>{x.ticket_code&&<><small>Scan this QR code at the event entrance</small><TicketQr value={x.ticket_code}/><small>If scanning is unavailable, staff can enter this secure code manually</small><code className="ticket-code">{x.ticket_code}</code>{x.redeemed_at&&<small>Redeemed · {dateLabel(x.redeemed_at)}</small>}</>}</div>):null}
   {user&&!items.length&&!busy&&<Empty title={isNotifications?"No notifications yet":"Nothing here yet"} body={isNotifications?"Payment confirmations and important CUT Sport updates will appear here.":"Your updates will appear here when available."}/>}
   {busy&&!items.length&&<p className="muted">Loading…</p>}
  </main></>;
