@@ -94,29 +94,30 @@ function Story({articles}) {const {slug}=useParams();const a=articles.find(x=>x.
 function Sponsors({sponsors}) {return <><Header title="Our sponsors" back/><main className="page"><h1>Stronger together.</h1>{sponsors.length?sponsors.map(s=><div className="sponsor-card" key={s.id}><b>{s.name}</b><p>{s.description}</p>{s.website_url&&<a href={s.website_url} target="_blank" rel="noreferrer">Visit partner</a>}</div>):<Empty title="Partner directory coming soon" body="Official sponsor profiles will be published here."/>}</main></>}
 function Profile({user,profile,roles}) {
  const [mode,setMode]=useState("login"),[email,setEmail]=useState(""),[password,setPassword]=useState(""),[newPassword,setNewPassword]=useState(""),[name,setName]=useState(profile?.full_name||""),[message,setMessage]=useState(""),[busy,setBusy]=useState(false);
- const [athleteReview,setAthleteReview]=useState({athlete:null,statistics:[],achievements:[],media:[]});
+ const [athleteReview,setAthleteReview]=useState({athlete:null,statistics:[],achievements:[],media:[],history:[]});
  const [reviewLoading,setReviewLoading]=useState(false),[reviewError,setReviewError]=useState("");
  const [reviewDrafts,setReviewDrafts]=useState({}),[reviewSaving,setReviewSaving]=useState("");
  useEffect(()=>setName(profile?.full_name||""),[profile]);
  useEffect(()=>{
   let active=true;
   async function loadAthleteReview(){
-   if(!user?.id||!supabase){setAthleteReview({athlete:null,statistics:[],achievements:[],media:[]});setReviewError("");return;}
+   if(!user?.id||!supabase){setAthleteReview({athlete:null,statistics:[],achievements:[],media:[],history:[]});setReviewError("");return;}
    setReviewLoading(true);setReviewError("");
    const athleteResult=await supabase.from("athletes").select("id,full_name,preferred_name,position,gender,nationality,hometown,province,faculty,qualification,year_of_study,student_status,years_representing_cut,previous_clubs,squad_number,bio,photo_url,approval_status,review_note,reviewed_at,sports(name),teams(name)").eq("profile_id",user.id).maybeSingle();
    if(!active)return;
    if(athleteResult.error){setReviewError(athleteResult.error.message);setReviewLoading(false);return;}
    if(!athleteResult.data){setAthleteReview({athlete:null,statistics:[],achievements:[],media:[]});setReviewLoading(false);return;}
    const athleteId=athleteResult.data.id;
-   const [stats,achievements,media]=await Promise.all([
+   const [stats,achievements,media,history]=await Promise.all([
     supabase.from("athlete_statistics").select("id,competition_id,fixture_id,season,period_label,metrics,approval_status,review_note,created_at").eq("athlete_id",athleteId).order("created_at",{ascending:false}),
     supabase.from("athlete_achievements").select("id,title,description,category,award_date,competition_id,review_status,review_note,created_at").eq("athlete_id",athleteId).order("created_at",{ascending:false}),
-    supabase.from("athlete_media").select("id,media_type,title,description,external_url,review_status,review_note,created_at").eq("athlete_id",athleteId).order("created_at",{ascending:false})
+    supabase.from("athlete_media").select("id,media_type,title,description,external_url,review_status,review_note,created_at").eq("athlete_id",athleteId).order("created_at",{ascending:false}),
+    supabase.from("athlete_review_history").select("id,record_type,record_id,from_status,to_status,previous_note,review_note,reviewed_at,changed_at").eq("athlete_id",athleteId).order("changed_at",{ascending:false}).limit(30)
    ]);
    if(!active)return;
-   const failed=[stats,achievements,media].find(x=>x.error);
+   const failed=[stats,achievements,media,history].find(x=>x.error);
    if(failed)setReviewError(failed.error.message);
-   setAthleteReview({athlete:athleteResult.data,statistics:stats.data||[],achievements:achievements.data||[],media:media.data||[]});
+   setAthleteReview({athlete:athleteResult.data,statistics:stats.data||[],achievements:achievements.data||[],media:media.data||[],history:history.data||[]});
    setReviewLoading(false);
   }
   loadAthleteReview();
@@ -233,6 +234,7 @@ function Profile({user,profile,roles}) {
  {athleteReview.achievements.length>0&&<><h3>Achievements</h3>{athleteReview.achievements.map(x=><React.Fragment key={x.id}>{reviewStatus(x.title,x.review_status,x.review_note,x.id)}{correctionForm("achievement",x)}</React.Fragment>)}</>}
  {athleteReview.media.length>0&&<><h3>Media submissions</h3>{athleteReview.media.map(x=><React.Fragment key={x.id}>{reviewStatus(x.title||"Media submission",x.review_status,x.review_note,x.id)}{correctionForm("media",x)}</React.Fragment>)}</>}
  {!athleteReview.statistics.length&&!athleteReview.achievements.length&&!athleteReview.media.length&&<p className="muted">No statistics, achievements or media submissions are linked to this athlete profile yet.</p>}
+ {athleteReview.history.length>0&&<><h3>Review history</h3>{athleteReview.history.map(h=><div className="sponsor-card" key={h.id}><b>{h.record_type.charAt(0).toUpperCase()+h.record_type.slice(1)} · {h.from_status||"new"} → {h.to_status}</b><small>{dateLabel(h.changed_at)}</small>{h.previous_note&&<p>Previous feedback: {h.previous_note}</p>}{h.review_note&&<p>Reviewer note: {h.review_note}</p>}</div>)}</>}
  <p className="muted">Rejected submissions can be corrected here and sent back to the assigned sport administrator. Resubmitted records return to pending review; media remains private until approved.</p></>}</Section>
  <div className="account-links"><Link to="/orders"><Package/> My orders</Link><Link to="/tickets"><Ticket/> My tickets</Link><Link to="/notifications"><Bell/> Notifications</Link>{roles.some(r=>["sport_admin","super_admin","coach","shop_admin"].includes(r))&&<Link to="/admin">CUT Sport admin dashboard</Link>}{roles.some(r=>["sport_admin","super_admin","coach"].includes(r))&&<Link to="/admin/athletes">Athlete profiles</Link>}<p>Roles: {roles.join(", ")||"Member"}</p><button onClick={()=>supabase.auth.signOut()}><LogOut/> Sign out</button></div></>:<><h1>Join the Blues.</h1><div className="tabs"><button type="button" onClick={()=>{setMode("login");setMessage("")}}>Log in</button><button type="button" onClick={()=>{setMode("signup");setMessage("")}}>Create account</button></div><form className="form-card" onSubmit={submit}>{mode==="signup"&&<label>Full name<input required value={name} onChange={e=>setName(e.target.value)}/></label>}<label>Email<input type="email" required value={email} onChange={e=>setEmail(e.target.value)} autoComplete="email"/></label><label>Password<input type="password" minLength="8" required value={password} onChange={e=>setPassword(e.target.value)} autoComplete={mode==="login"?"current-password":"new-password"}/></label><button className="btn primary" disabled={busy}>{busy?"Please wait…":"Continue"}</button>{mode==="login"&&<button type="button" className="btn secondary" disabled={busy} onClick={requestPasswordReset}>Forgot password?</button>}{message&&<p>{message}</p>}</form><p className="muted">Student and staff discounts require verified institutional eligibility.</p></>}</main></>;
 }
