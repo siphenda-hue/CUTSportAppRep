@@ -803,42 +803,109 @@ function AdminAthletes({roles,user}) {
  const superAdmin=roles.includes("super_admin");
  const [sports,setSports]=useState([]),[teams,setTeams]=useState([]),[items,setItems]=useState([]),[profiles,setProfiles]=useState([]);
  const [busy,setBusy]=useState(false),[error,setError]=useState(""),[editing,setEditing]=useState(null);
+ const [membershipAthlete,setMembershipAthlete]=useState(null),[memberships,setMemberships]=useState([]),[membershipTeam,setMembershipTeam]=useState(""),[membershipPosition,setMembershipPosition]=useState(""),[membershipNumber,setMembershipNumber]=useState(""),[membershipBusy,setMembershipBusy]=useState(false),[membershipError,setMembershipError]=useState("");
  const blank={sport_id:"",team_id:"",profile_id:"",full_name:"",preferred_name:"",position:"",gender:"",nationality:"",hometown:"",province:"",faculty:"",qualification:"",year_of_study:"",student_status:"current",years_representing_cut:"",previous_clubs:"",squad_number:"",bio:"",photo_url:"",is_featured:false,profile_visibility:"public"};
  const [form,setForm]=useState(blank);
- async function load(){if(!supabase||!allowed)return;const [s,t,a,p]=await Promise.all([supabase.from("sports").select("id,name").eq("is_active",true).order("display_order"),supabase.from("teams").select("id,name,sport_id").eq("is_active",true).order("name"),supabase.from("athletes").select("id,profile_id,sport_id,team_id,full_name,preferred_name,position,gender,nationality,hometown,province,faculty,qualification,year_of_study,student_status,years_representing_cut,previous_clubs,squad_number,bio,photo_url,is_featured,approval_status,profile_visibility,sports(name),teams(name)").order("full_name"),superAdmin?supabase.from("profiles").select("id,full_name,email,student_number").order("full_name"):Promise.resolve({data:[],error:null})]);const failure=s.error||t.error||a.error||p.error;if(failure)setError(failure.message);else{setSports(s.data||[]);setTeams(t.data||[]);setItems(a.data||[]);setProfiles(p.data||[]);}}
+ async function load(){
+  if(!supabase||!allowed)return;
+  const [s,t,a,p]=await Promise.all([
+   supabase.from("sports").select("id,name").eq("is_active",true).order("display_order"),
+   supabase.from("teams").select("id,name,sport_id,sports(name)").eq("is_active",true).order("name"),
+   supabase.from("athletes").select("id,profile_id,sport_id,team_id,full_name,preferred_name,position,gender,nationality,hometown,province,faculty,qualification,year_of_study,student_status,years_representing_cut,previous_clubs,squad_number,bio,photo_url,is_featured,approval_status,profile_visibility,sports(name),teams(name)").order("full_name"),
+   superAdmin?supabase.from("profiles").select("id,full_name,email,student_number").order("full_name"):Promise.resolve({data:[],error:null})
+  ]);
+  const failure=s.error||t.error||a.error||p.error;
+  if(failure)setError(failure.message);
+  else{setSports(s.data||[]);setTeams(t.data||[]);setItems(a.data||[]);setProfiles(p.data||[]);}
+ }
  useEffect(()=>{load()},[allowed,superAdmin]);
  const availableTeams=teams.filter(t=>!form.sport_id||t.sport_id===form.sport_id);
+ async function openMemberships(item){
+  setMembershipAthlete(item);setMembershipError("");setMembershipTeam("");setMembershipPosition("");setMembershipNumber("");setMemberships([]);
+  if(!supabase)return;
+  const {data,error}=await supabase.from("athlete_team_memberships").select("id,athlete_id,team_id,sport_id,position,squad_number,is_active,joined_at,left_at,teams(name),sports(name)").eq("athlete_id",item.id).order("joined_at",{ascending:false});
+  if(error)setMembershipError(error.message);else setMemberships(data||[]);
+ }
  function edit(item){setEditing(item.id);setForm({...blank,...item,year_of_study:item.year_of_study??"",years_representing_cut:item.years_representing_cut??"",previous_clubs:(item.previous_clubs||[]).join(", "),squad_number:item.squad_number??"",team_id:item.team_id||""});setError("");}
  function reset(){setEditing(null);setForm(blank);setError("");}
- async function save(e){e.preventDefault();if(!allowed||!supabase)return;setBusy(true);setError("");const payload={profile_id:superAdmin?(form.profile_id||null):undefined,sport_id:form.sport_id,team_id:form.team_id||null,full_name:form.full_name.trim(),preferred_name:form.preferred_name.trim()||null,position:form.position.trim()||null,gender:form.gender||null,nationality:form.nationality.trim()||null,hometown:form.hometown.trim()||null,province:form.province.trim()||null,faculty:form.faculty.trim()||null,qualification:form.qualification.trim()||null,year_of_study:form.year_of_study===""?null:Number(form.year_of_study),student_status:form.student_status,years_representing_cut:form.years_representing_cut===""?null:Number(form.years_representing_cut),previous_clubs:form.previous_clubs.split(",").map(x=>x.trim()).filter(Boolean),squad_number:form.squad_number===""?null:Number(form.squad_number),bio:form.bio.trim()||null,photo_url:form.photo_url.trim()||null,is_featured:Boolean(form.is_featured),profile_visibility:form.profile_visibility};const result=editing?await supabase.from("athletes").update(payload).eq("id",editing):await supabase.from("athletes").insert({...payload,approval_status:"pending"});if(result.error)setError(result.error.message);else{reset();await load();}setBusy(false);}
+ async function save(e){
+  e.preventDefault();if(!allowed||!supabase)return;
+  setBusy(true);setError("");
+  const payload={profile_id:superAdmin?(form.profile_id||null):undefined,sport_id:form.sport_id,team_id:form.team_id||null,full_name:form.full_name.trim(),preferred_name:form.preferred_name.trim()||null,position:form.position.trim()||null,gender:form.gender||null,nationality:form.nationality.trim()||null,hometown:form.hometown.trim()||null,province:form.province.trim()||null,faculty:form.faculty.trim()||null,qualification:form.qualification.trim()||null,year_of_study:form.year_of_study===""?null:Number(form.year_of_study),student_status:form.student_status,years_representing_cut:form.years_representing_cut===""?null:Number(form.years_representing_cut),previous_clubs:form.previous_clubs.split(",").map(x=>x.trim()).filter(Boolean),squad_number:form.squad_number===""?null:Number(form.squad_number),bio:form.bio.trim()||null,photo_url:form.photo_url.trim()||null,is_featured:Boolean(form.is_featured),profile_visibility:form.profile_visibility};
+  const result=editing?await supabase.from("athletes").update(payload).eq("id",editing):await supabase.from("athletes").insert({...payload,approval_status:"pending"});
+  if(result.error)setError(result.error.message);else{reset();await load();}
+  setBusy(false);
+ }
+ async function saveMembership(e){
+  e.preventDefault();
+  if(!membershipAthlete||!membershipTeam||!user||!supabase||membershipBusy)return;
+  const team=teams.find(t=>t.id===membershipTeam);
+  if(!team){setMembershipError("Choose an active team.");return}
+  const number=membershipNumber===""?null:Number(membershipNumber);
+  if(number!==null&&(!Number.isInteger(number)||number<0||number>999)){setMembershipError("Squad number must be a whole number from 0 to 999.");return}
+  if(membershipPosition.trim().length>120){setMembershipError("Position must be 120 characters or fewer.");return}
+  setMembershipBusy(true);setMembershipError("");
+  const existing=memberships.find(m=>m.team_id===team.id);
+  const values={position:membershipPosition.trim()||null,squad_number:number};
+  let result;
+  if(existing){
+   result=await supabase.from("athlete_team_memberships").update({...values,is_active:true,joined_at:existing.is_active?existing.joined_at:new Date().toISOString().slice(0,10),left_at:null,updated_at:new Date().toISOString()}).eq("id",existing.id).select("id").maybeSingle();
+  }else{
+   result=await supabase.from("athlete_team_memberships").insert({athlete_id:membershipAthlete.id,team_id:team.id,sport_id:team.sport_id,created_by:user.id,...values}).select("id").maybeSingle();
+  }
+  if(result.error)setMembershipError(result.error.message);
+  else if(!result.data)setMembershipError("No membership was changed. Your account may not have management permission for that team.");
+  else{setMembershipTeam("");setMembershipPosition("");setMembershipNumber("");await openMemberships(membershipAthlete);}
+  setMembershipBusy(false);
+ }
+ async function deactivateMembership(membership){
+  if(!supabase||membershipBusy)return;
+  setMembershipBusy(true);setMembershipError("");
+  const {data,error}=await supabase.from("athlete_team_memberships").update({is_active:false,left_at:new Date().toISOString().slice(0,10),updated_at:new Date().toISOString()}).eq("id",membership.id).eq("is_active",true).select("id").maybeSingle();
+  if(error)setMembershipError(error.message);else if(!data)setMembershipError("This membership was not changed. Check your team-level permissions.");
+  else await openMemberships(membershipAthlete);
+  setMembershipBusy(false);
+ }
  if(!allowed)return <><Header title="Admin access required" back/><main className="page"><Empty title="Restricted area" body="An assigned sport administrator, coach or super administrator role is required."/></main></>;
- return <><Header title="Athlete management" back/><main className="page"><div className="page-intro"><span className="eyebrow">ASSIGNED SPORT ACCESS</span><h1>Athlete profiles</h1><p>Profiles are visible here only where your database assignment allows it. New profiles start pending and are not publicly listed until approved.</p></div>
+ return <><Header title="Athlete management" back/><main className="page"><div className="page-intro"><span className="eyebrow">ASSIGNED SPORT ACCESS</span><h1>Athlete profiles</h1><p>Manage athlete records and their memberships across multiple CUT sport codes. Team-level permissions determine which squads you can manage.</p></div>
  <form className="form-card" onSubmit={save}><h3>{editing?"Update athlete profile":"Register athlete profile"}</h3>
  <label>Sport code<select required value={form.sport_id} onChange={e=>setForm({...form,sport_id:e.target.value,team_id:""})}><option value="">Choose sport</option>{sports.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select></label>
- <label>Team<select value={form.team_id} onChange={e=>setForm({...form,team_id:e.target.value})}><option value="">No team selected</option>{availableTeams.map(t=><option key={t.id} value={t.id}>{t.name}</option>)}</select></label>{superAdmin&&<label>Link CUT Sport account<select value={form.profile_id||""} onChange={e=>setForm({...form,profile_id:e.target.value})}><option value="">No account linked</option>{profiles.map(p=><option key={p.id} value={p.id}>{p.full_name||p.email||p.id}{p.student_number?" · "+p.student_number:""}</option>)}</select><small>Only a super administrator can link an athlete record to a member account.</small></label>}
+ <label>Primary team<select value={form.team_id} onChange={e=>setForm({...form,team_id:e.target.value})}><option value="">No primary team selected</option>{availableTeams.map(t=><option key={t.id} value={t.id}>{t.name}</option>)}</select></label>{superAdmin&&<label>Link CUT Sport account<select value={form.profile_id||""} onChange={e=>setForm({...form,profile_id:e.target.value})}><option value="">No account linked</option>{profiles.map(p=><option key={p.id} value={p.id}>{p.full_name||p.email||p.id}{p.student_number?" · "+p.student_number:""}</option>)}</select><small>Only a super administrator can link an athlete record to a member account.</small></label>}
  <label>Full name<input required value={form.full_name} onChange={e=>setForm({...form,full_name:e.target.value})}/></label>
  <label>Preferred name<input value={form.preferred_name||""} onChange={e=>setForm({...form,preferred_name:e.target.value})}/></label>
  <label>Playing position / event<input value={form.position||""} onChange={e=>setForm({...form,position:e.target.value})}/></label>
  <label>Gender<select value={form.gender||""} onChange={e=>setForm({...form,gender:e.target.value})}><option value="">Not specified</option><option value="female">Female</option><option value="male">Male</option><option value="non_binary">Non-binary</option><option value="prefer_not_to_say">Prefer not to say</option></select></label>
- <label>Nationality<input value={form.nationality||""} onChange={e=>setForm({...form,nationality:e.target.value})}/></label>
- <label>Hometown<input value={form.hometown||""} onChange={e=>setForm({...form,hometown:e.target.value})}/></label>
- <label>Province<input value={form.province||""} onChange={e=>setForm({...form,province:e.target.value})}/></label>
- <label>Faculty<input value={form.faculty||""} onChange={e=>setForm({...form,faculty:e.target.value})}/></label>
- <label>Qualification<input value={form.qualification||""} onChange={e=>setForm({...form,qualification:e.target.value})}/></label>
+ <label>Nationality<input value={form.nationality} onChange={e=>setForm({...form,nationality:e.target.value})}/></label>
+ <label>Hometown<input value={form.hometown} onChange={e=>setForm({...form,hometown:e.target.value})}/></label>
+ <label>Province<input value={form.province} onChange={e=>setForm({...form,province:e.target.value})}/></label>
+ <label>Faculty<input value={form.faculty} onChange={e=>setForm({...form,faculty:e.target.value})}/></label>
+ <label>Qualification<input value={form.qualification} onChange={e=>setForm({...form,qualification:e.target.value})}/></label>
  <label>Year of study<input type="number" min="1" max="12" value={form.year_of_study} onChange={e=>setForm({...form,year_of_study:e.target.value})}/></label>
  <label>Student status<select value={form.student_status} onChange={e=>setForm({...form,student_status:e.target.value})}><option value="current">Current student</option><option value="alumni">Alumni</option><option value="former">Former student</option><option value="staff">Staff</option></select></label>
  <label>Years representing CUT<input type="number" min="0" value={form.years_representing_cut} onChange={e=>setForm({...form,years_representing_cut:e.target.value})}/></label>
  <label>Previous clubs (comma separated)<input value={form.previous_clubs} onChange={e=>setForm({...form,previous_clubs:e.target.value})}/></label>
- <label>Squad number<input type="number" min="0" value={form.squad_number} onChange={e=>setForm({...form,squad_number:e.target.value})}/></label>
+ <label>Squad number (primary team)<input type="number" min="0" max="999" value={form.squad_number} onChange={e=>setForm({...form,squad_number:e.target.value})}/></label>
  <label>Short biography<textarea value={form.bio||""} onChange={e=>setForm({...form,bio:e.target.value})}/></label>
  <label>Photo URL<input type="url" value={form.photo_url||""} onChange={e=>setForm({...form,photo_url:e.target.value})}/></label>
  <label>Profile visibility<select value={form.profile_visibility} onChange={e=>setForm({...form,profile_visibility:e.target.value})}><option value="public">Public after approval</option><option value="private">Private</option></select></label>
  <label className="check-label"><input type="checkbox" checked={Boolean(form.is_featured)} onChange={e=>setForm({...form,is_featured:e.target.checked})}/> Feature on sport profile</label>
  <button className="btn primary" disabled={busy||!sports.length}>{busy?"Saving…":editing?"Save athlete":"Register athlete"}</button>{editing&&<button type="button" onClick={reset}>Cancel edit</button>}{error&&<p className="form-error">{error}</p>}</form>
- <Section title="Athlete records">{items.length?items.map(a=><div className="sponsor-card admin-sponsor" key={a.id}><div><b>{a.preferred_name||a.full_name}</b><small>{a.sports?.name||"Sport not set"} · {a.teams?.name||"No team"} · {a.approval_status}</small></div><button onClick={()=>edit(a)}>Edit</button></div>):<Empty title="No athlete records" body="No athlete profiles are currently available within your assigned sport or team permissions."/>}</Section>
+ <Section title="Athlete records">{items.length?items.map(a=><div className="sponsor-card admin-sponsor" key={a.id}><div><b>{a.preferred_name||a.full_name}</b><small>{a.sports?.name||"Sport not set"} · {a.teams?.name||"No primary team"} · {a.approval_status}</small></div><button onClick={()=>edit(a)}>Edit</button><button disabled={membershipBusy} onClick={()=>openMemberships(a)}>Manage teams</button></div>):<Empty title="No athlete records" body="No athlete profiles are currently available within your assigned sport or team permissions."/>}</Section>
+ {membershipAthlete&&<Section title={"Team memberships · "+(membershipAthlete.preferred_name||membershipAthlete.full_name)}>
+  <div className="form-card"><p className="muted">Add this athlete to another active team without changing their primary sport or existing memberships. Your account must have management permission for the destination team.</p>
+   <form onSubmit={saveMembership}>
+    <label>Sport team<select required value={membershipTeam} onChange={e=>{setMembershipTeam(e.target.value);const existing=memberships.find(m=>m.team_id===e.target.value);setMembershipPosition(existing?.position||"");setMembershipNumber(existing?.squad_number??"")}}><option value="">Choose a team across all sports</option>{teams.map(t=><option key={t.id} value={t.id}>{t.sports?.name||"Sport"} · {t.name}{memberships.some(m=>m.team_id===t.id&&m.is_active)?" · Active membership":memberships.some(m=>m.team_id===t.id)?" · Reactivate":""}</option>)}</select></label>
+    <label>Position / event<input maxLength="120" value={membershipPosition} onChange={e=>setMembershipPosition(e.target.value)}/></label>
+    <label>Squad number<input type="number" min="0" max="999" step="1" value={membershipNumber} onChange={e=>setMembershipNumber(e.target.value)}/></label>
+    <button className="btn primary" disabled={membershipBusy||!membershipTeam}>{membershipBusy?"Saving…":memberships.some(m=>m.team_id===membershipTeam)?"Save / reactivate membership":"Add team membership"}</button>
+    <button type="button" disabled={membershipBusy} onClick={()=>{setMembershipAthlete(null);setMemberships([]);setMembershipError("")}}>Close</button>
+   </form>
+  </div>
+  {membershipError&&<p className="form-error">{membershipError}</p>}
+  {memberships.length?memberships.map(m=><article className="performance-record" key={m.id}><div className="performance-record-head"><div><b>{m.sports?.name||"Sport"} · {m.teams?.name||"Team"}</b><small>{m.position||"Position not set"}{m.squad_number!==null?" · #"+m.squad_number:""} · Joined {dateLabel(m.joined_at)}</small></div><span className={"order-status "+(m.is_active?"is-paid":"")}>{m.is_active?"Active":"Inactive"}</span></div>{!m.is_active&&m.left_at&&<p className="muted">Membership ended {dateLabel(m.left_at)}. You can reactivate it using the team selector.</p>}{m.is_active&&<button type="button" disabled={membershipBusy} onClick={()=>deactivateMembership(m)}>End membership</button>}</article>):<Empty title="No team memberships recorded" body="Add the athlete to one or more active teams. Existing primary-team details remain unchanged until separately edited."/ >}
+ </Section>}
  </main></>;
 }
-
 
 
 function AdminSports({roles,user,setSports}) {
