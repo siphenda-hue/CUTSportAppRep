@@ -738,7 +738,7 @@ function AdminRecruitment({roles,user}) {
     return entries.length?(entries.reduce((sum,s)=>sum+Number(s.score),0)/entries.length).toFixed(2):"";
    })]);
   });
-  const csv=rows.map(row=>row.map(v=>"\""+String(v??"").replaceAll("\"","\\"")+"\"").join(",")).join("\r\n");
+  const csv=rows.map(row=>row.map(v=>"\""+String(v??"").replaceAll("\"","\"\"")+"\"").join(",")).join("\r\n");
   const url=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));
   const link=document.createElement("a");link.href=url;link.download="cut-sport-trial-"+opportunity.id+".csv";link.click();URL.revokeObjectURL(url);
  }
