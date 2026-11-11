@@ -65,6 +65,35 @@ function News({articles}) {return <><Header title="Articles & news"/><main class
 function Story({articles}) {const {slug}=useParams();const a=articles.find(x=>x.slug===slug);return <><Header title="Article" back/><main className="page">{a?<article><small>{dateLabel(a.published_at)}</small><h1>{a.title}</h1>{a.cover_image_url&&<img className="article-cover" src={a.cover_image_url} alt=""/>}<p>{a.excerpt}</p><div className="article-body">{a.body}</div></article>:<Empty title="Story not found" body="This story is no longer available."/>}</main></>}
 function Sponsors({sponsors}) {return <><Header title="Our sponsors" back/><main className="page"><h1>Stronger together.</h1>{sponsors.length?sponsors.map(s=><div className="sponsor-card" key={s.id}><b>{s.name}</b><p>{s.description}</p>{s.website_url&&<a href={s.website_url} target="_blank" rel="noreferrer">Visit partner</a>}</div>):<Empty title="Partner directory coming soon" body="Official sponsor profiles will be published here."/>}</main></>}
 function Profile({user,profile,roles}) {const [mode,setMode]=useState('login'),[email,setEmail]=useState(''),[password,setPassword]=useState(''),[name,setName]=useState(profile?.full_name||''),[message,setMessage]=useState('');useEffect(()=>setName(profile?.full_name||''),[profile]);async function submit(e){e.preventDefault();if(!supabase){setMessage('Connect Supabase environment variables first.');return}const r=mode==='login'?await supabase.auth.signInWithPassword({email,password}):await supabase.auth.signUp({email,password,options:{data:{full_name:name}}});setMessage(r.error?.message||'Request submitted. Check your email if confirmation is required.')}async function save(e){e.preventDefault();const {error}=await supabase.from('profiles').upsert({id:user.id,full_name:name,email:user.email},{onConflict:'id'});setMessage(error?.message||'Profile updated.')}return <><Header title="Profile"/><main className="page">{user?<><h1>{profile?.full_name||user.email}</h1><form className="form-card" onSubmit={save}><label>Full name<input value={name} onChange={e=>setName(e.target.value)}/></label><label>Email<input value={user.email||''} disabled/></label><button className="btn primary">Save profile</button></form><div className="account-links"><Link to="/orders"><Package/> My orders</Link><Link to="/tickets"><Ticket/> My tickets</Link><Link to="/notifications"><Bell/> Notifications</Link>{roles.some(r=>["sport_admin","super_admin","coach","shop_admin"].includes(r))&&<Link to="/admin">CUT Sport admin dashboard</Link>}{roles.some(r=>["sport_admin","super_admin","coach"].includes(r))&&<Link to="/admin/athletes">Athlete profiles</Link>}<p>Roles: {roles.join(', ')||'Member'}</p><button onClick={()=>supabase.auth.signOut()}><LogOut/> Sign out</button></div></>:<><h1>Join the Blues.</h1><div className="tabs"><button onClick={()=>setMode('login')}>Log in</button><button onClick={()=>setMode('signup')}>Create account</button></div><form className="form-card" onSubmit={submit}>{mode==='signup'&&<label>Full name<input required value={name} onChange={e=>setName(e.target.value)}/></label>}<label>Email<input type="email" required value={email} onChange={e=>setEmail(e.target.value)}/></label><label>Password<input type="password" minLength="8" required value={password} onChange={e=>setPassword(e.target.value)}/></label><button className="btn primary">Continue</button>{message&&<p>{message}</p>}</form><p className="muted">Student and staff discounts require verified institutional eligibility.</p></>}</main></>}
+let cutQrCodeLoader=null;
+function loadCutQrCode(){
+ if(window.QRCode)return Promise.resolve();
+ if(cutQrCodeLoader)return cutQrCodeLoader;
+ cutQrCodeLoader=new Promise((resolve,reject)=>{
+  const script=document.createElement("script");
+  script.src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js";
+  script.async=true;
+  script.onload=resolve;
+  script.onerror=()=>{script.remove();reject(new Error("QR code library could not be loaded."))};
+  document.head.appendChild(script);
+ }).catch(error=>{cutQrCodeLoader=null;throw error});
+ return cutQrCodeLoader;
+}
+function TicketQr({value}) {
+ const target=useRef(null),[error,setError]=useState("");
+ useEffect(()=>{
+  let active=true;
+  if(!value||!target.current)return;
+  loadCutQrCode().then(()=>{
+   if(!active||!target.current)return;
+   target.current.innerHTML="";
+   new window.QRCode(target.current,{text:value,width:216,height:216,colorDark:"#10213a",colorLight:"#ffffff",correctLevel:window.QRCode.CorrectLevel.M});
+  }).catch(()=>{if(active)setError("QR preview unavailable. The secure ticket code below can still be entered manually.")});
+  return()=>{active=false;if(target.current)target.current.innerHTML=""};
+ },[value]);
+ return <div className="ticket-qr-block"><div ref={target} className="ticket-qr" style={{display:"inline-block",background:"#ffffff",padding:10,borderRadius:12,minHeight:216,minWidth:216}}/>{error&&<small>{error}</small>}</div>;
+}
+
 function Personal({title,user,kind}) {
  const [items,setItems]=useState([]),[busy,setBusy]=useState(false),[error,setError]=useState("");
  const isNotifications=kind==="notifications";
@@ -95,7 +124,7 @@ function Personal({title,user,kind}) {
   {isNotifications?<div className="notifications-heading"><div><span className="eyebrow">CUT SPORT · YOUR UPDATES</span><h1>Notifications</h1><p>{unread.length} unread update(s)</p></div><div><button type="button" onClick={load} disabled={busy}>Refresh</button>{unread.length>0&&<button type="button" onClick={markAllRead} disabled={busy}>Mark all read</button>}</div></div>:<h1>{title}</h1>}
   {!user?<Empty title="Sign in to continue" body="Your personal information will appear here after you sign in."/>:null}
   {error&&<p className="form-error">{error}</p>}
-  {user&&items.length?items.map(x=>isNotifications?<article className={"personal-card notification-card "+(x.read_at?"is-read":"is-unread")} key={x.id}><div className="notification-card-head"><b>{x.title||"CUT Sport update"}</b><small>{dateLabel(x.created_at)}</small></div><p>{x.body}</p><div className="notification-card-foot"><span>{x.read_at?"Read":"Unread"}</span>{!x.read_at&&<button type="button" onClick={()=>markRead(x.id)}>Mark as read</button>}</div></article>:<div className="personal-card" key={x.id}><b>{x.title||x.event?.title||x.order_number||"CUT Sport update"}</b><p>{x.body||x.payment_status||x.status||dateLabel(x.created_at)}</p>{x.ticket_code&&<><small>Present this secure ticket code at the event entrance</small><code className="ticket-code">{x.ticket_code}</code>{x.redeemed_at&&<small>Redeemed · {dateLabel(x.redeemed_at)}</small>}</>}</div>):null}
+  {user&&items.length?items.map(x=>isNotifications?<article className={"personal-card notification-card "+(x.read_at?"is-read":"is-unread")} key={x.id}><div className="notification-card-head"><b>{x.title||"CUT Sport update"}</b><small>{dateLabel(x.created_at)}</small></div><p>{x.body}</p><div className="notification-card-foot"><span>{x.read_at?"Read":"Unread"}</span>{!x.read_at&&<button type="button" onClick={()=>markRead(x.id)}>Mark as read</button>}</div></article>:<div className="personal-card" key={x.id}><b>{x.title||x.event?.title||x.order_number||"CUT Sport update"}</b><p>{x.body||x.payment_status||x.status||dateLabel(x.created_at)}</p>{x.ticket_code&&<><small>Scan this QR code at the event entrance</small><TicketQr value={x.ticket_code}/><small>If scanning is unavailable, staff can enter this secure code manually</small><code className="ticket-code">{x.ticket_code}</code>{x.redeemed_at&&<small>Redeemed · {dateLabel(x.redeemed_at)}</small>}</>}</div>):null}
   {user&&!items.length&&!busy&&<Empty title={isNotifications?"No notifications yet":"Nothing here yet"} body={isNotifications?"Payment confirmations and important CUT Sport updates will appear here.":"Your updates will appear here when available."}/>}
   {busy&&!items.length&&<p className="muted">Loading…</p>}
  </main></>;
