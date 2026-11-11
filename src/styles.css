@@ -96,3 +96,10 @@
 .hockey-scorer-row small{display:block;color:var(--muted,#6c7788);font-weight:500;font-size:.7rem}
 .hockey-data-note{display:block;margin-top:12px;color:var(--muted,#6c7788);font-size:.72rem}
 @media(min-width:760px){.hockey-data-grid{grid-template-columns:1.2fr .8fr}}
+
+.hockey-team-stat{margin:0 0 14px;padding:13px 14px;border-radius:14px;background:linear-gradient(110deg,#092c67,#1459a6);color:#fff}
+.hockey-team-stat>b{display:block;margin-bottom:10px;font-size:.9rem}
+.hockey-team-stat>div{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.hockey-team-stat span{display:grid;gap:3px}
+.hockey-team-stat strong{font-size:1.15rem;font-variant-numeric:tabular-nums}
+.hockey-team-stat small{font-size:.67rem;opacity:.85}
