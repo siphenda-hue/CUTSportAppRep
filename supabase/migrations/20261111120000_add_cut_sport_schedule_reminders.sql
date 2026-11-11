@@ -47,7 +47,7 @@ begin
            || to_char(r.starts_at at time zone 'Africa/Johannesburg', 'Dy, DD Mon HH24:MI')
            || case when r.venue is not null then ' · ' || r.venue else '' end,
          'fixture_reminder', '/calendar', 'fixture', r.id,
-         'fixture-reminder:' || r.id::text || ':' || r.reminder_window
+         'fixture-reminder:' || r.id::text || ':' || r.reminder_window || ':' || r.user_id::text
   from recipients r
   where r.user_id is not null
   on conflict (source_key) where source_key is not null do nothing;
@@ -73,7 +73,7 @@ begin
            || to_char(d.starts_at at time zone 'Africa/Johannesburg', 'Dy, DD Mon HH24:MI')
            || case when d.venue is not null then ' · ' || d.venue else '' end,
          'event_reminder', '/calendar', 'event', d.id,
-         'event-reminder:' || d.id::text || ':' || d.reminder_window
+         'event-reminder:' || d.id::text || ':' || d.reminder_window || ':' || a.admin_profile_id::text
   from due d
   join public.sport_admin_assignments a
     on a.sport_id = d.sport_id and a.is_active = true
