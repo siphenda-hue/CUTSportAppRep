@@ -1961,7 +1961,7 @@ function AdminInternationalAppearances({roles,user}) {
  return <><Header title="International appearances" back/><main className="page">
   <div className="page-intro"><span className="eyebrow">THE BLUES · INTERNATIONAL HONOURS</span><h1>Representing<br/><em>the country.</em></h1><p>Record verified appearances for national teams. Approved records become part of the player's public career history.</p></div>
   {error&&<p className="form-error">{error}</p>}{message&&<p className="success-message">{message}</p>}
-  <form className="admin-form" onSubmit={submit}>
+  <form className="form-card" onSubmit={submit}>
    <h2>Record an international appearance</h2>
    <label>Player<select required value={playerId} onChange={e=>setPlayerId(e.target.value)}><option value="">Select player</option>{players.map(p=><option key={p.id} value={p.id}>{p.full_name}</option>)}</select></label>
    <label>Sport<select required value={sportId} onChange={e=>{setSportId(e.target.value);setCompetitionId("");}}><option value="">Select sport</option>{sports.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select></label>
