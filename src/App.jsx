@@ -187,7 +187,7 @@ function HockeyCompetitionData({competition}) {
 }
 function CompetitionSquads({squads=[]}) {
  if(!squads.length)return null;
- return <section className="competition-data-panel competition-squads-panel"><h3>Official CUT team sheets</h3>{squads.map(squad=>{
+ return <section className="competition-data-panel competition-squads-panel"><h3>Published CUT team lists</h3>{squads.map(squad=>{
   const members=[...(squad.competition_squad_members||[])].sort((a,b)=>(a.display_order??0)-(b.display_order??0)||String(a.player_name).localeCompare(String(b.player_name)));
   return <article className="competition-squad" key={squad.id}>
    <div className="competition-squad-head"><div><b>{squad.team_name}</b><small>{squad.squad_label||"Competition squad"} · {members.length} listed</small></div><span className={squad.is_complete?"squad-complete":"squad-partial"}>{squad.is_complete?"Full team sheet":"Squad list"}</span></div>
