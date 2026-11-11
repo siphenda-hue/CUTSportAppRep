@@ -1,10 +1,14 @@
 const expectedUrl = "https://tnkykdfxzwaqzbichxcl.supabase.co";
-const url = process.env.VITE_SUPABASE_URL;
-const key = process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+const rawUrl = process.env.VITE_SUPABASE_URL ?? "";
+const url = rawUrl.trim().replace(/\/+$/, "");
+const key = (process.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? "").trim();
 const errors = [];
 
 if (!url) errors.push("VITE_SUPABASE_URL is missing");
-else if (url !== expectedUrl) errors.push("VITE_SUPABASE_URL does not match the approved CUT Sport Supabase project");
+else if (url !== expectedUrl) {
+  errors.push("VITE_SUPABASE_URL does not match the approved CUT Sport Supabase project");
+  console.error("  Received Supabase URL:", url);
+}
 
 if (!key) errors.push("VITE_SUPABASE_PUBLISHABLE_KEY is missing");
 else if (!key.startsWith("sb_publishable_")) errors.push("Use the modern sb_publishable_ key, not a secret or service-role key");
