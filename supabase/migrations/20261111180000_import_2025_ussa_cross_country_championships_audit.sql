@@ -4,7 +4,7 @@
 insert into public.competitions
   (id, sport_id, name, season, start_date, end_date, venue, description, status)
 values
-  ('a43e3a9b-7c4e-4d7e-9f7c-2025u55a00001',
+  ('a43e3a9b-7c4e-4d7e-9f7c-2025a55a0001',
    (select id from public.sports where name = 'Athletics & Cross Country' limit 1),
    'USSA Cross Country Championships',
    '2025', '2025-10-03', '2025-10-04',
