@@ -34,7 +34,7 @@ function App() {
  const add=p=>{setCart(old=>{const found=old.find(x=>x.id===p.id);return found?old.map(x=>x.id===p.id?{...x,qty:x.qty+1}:x):[...old,{id:p.id,name:p.name,price_cents:p.price_cents,image_url:p.image_url,qty:1}]});setToast('Added to your bag');setTimeout(()=>setToast(''),2200)};
  const common={sports,teams,competitions,products,fixtures,articles,events,ticketTypes,sponsors,athletes,user,profile,roles,cart,setCart,add};
  return <div className="app-shell"><div className="app-frame"><Routes>
- <Route path="/" element={<Home {...common}/>}/><Route path="/shop" element={<Shop {...common}/>}/><Route path="/shop/:slug" element={<Product {...common}/>}/><Route path="/cart" element={<Cart {...common}/>}/><Route path="/checkout" element={<Checkout cart={cart} setCart={setCart} user={user}/>}/><Route path="/payment/:result" element={<PaymentReturn user={user} result="success" cart={cart} setCart={setCart}/>}/><Route path="/events/:id" element={<EventTickets events={events} ticketTypes={ticketTypes} user={user}/>}/><Route path="/sport" element={<Sport {...common}/>}/><Route path="/sport/:slug" element={<Hub {...common}/>}/><Route path="/news" element={<News {...common}/>}/><Route path="/news/:slug" element={<Story {...common}/>}/><Route path="/sponsors" element={<Sponsors {...common}/>}/><Route path="/profile" element={<Profile {...common}/>}/><Route path="/performance" element={<AthletePerformance user={user}/>}/><Route path="/trials" element={<Trials user={user} profile={profile}/>}/><Route path="/admin/recruitment" element={<AdminRecruitment roles={roles} user={user}/>}/><Route path="/admin" element={<AdminDashboard {...common}/>}/><Route path="/admin/sports" element={<AdminSports roles={roles} user={user} setSports={setSports}/>}/><Route path="/admin/sponsors" element={<AdminSponsors user={user} roles={roles}/>}/><Route path="/admin/products" element={<AdminProducts roles={roles} products={products} setProducts={setProducts}/>}/><Route path="/admin/shop-orders" element={<AdminShopOrders roles={roles}/>}/><Route path="/admin/athletes" element={<AdminAthletes roles={roles} user={user}/>}/><Route path="/admin/performance" element={<AdminPerformance roles={roles}/>}/><Route path="/admin/operations" element={<AdminOperations roles={roles} user={user}/>}/><Route path="/admin/approvals" element={<AdminApprovals roles={roles} user={user}/>}/><Route path="/admin/messages" element={<AdminMessages roles={roles} user={user}/>}/><Route path="/messages" element={<AthleteMessages user={user}/>}/><Route path="/admin/ticket-gate" element={<AdminTicketGate roles={roles}/>}/><Route path="/admin/event-reports" element={<AdminEventReports roles={roles}/>}/><Route path="/admin/editorial" element={<AdminEditorial roles={roles} user={user} sports={sports}/>}/><Route path="/notifications" element={<Personal title="Notifications" user={user} kind="notifications"/>}/><Route path="/tickets" element={<Personal title="My tickets" user={user} kind="tickets"/>}/><Route path="/orders" element={<Personal title="My orders" user={user} kind="orders"/>}/><Route path="*" element={<Home {...common}/>}/>
+ <Route path="/" element={<Home {...common}/>}/><Route path="/shop" element={<Shop {...common}/>}/><Route path="/shop/:slug" element={<Product {...common}/>}/><Route path="/cart" element={<Cart {...common}/>}/><Route path="/checkout" element={<Checkout cart={cart} setCart={setCart} user={user}/>}/><Route path="/payment/:result" element={<PaymentReturn user={user} result="success" cart={cart} setCart={setCart}/>}/><Route path="/events/:id" element={<EventTickets events={events} ticketTypes={ticketTypes} user={user}/>}/><Route path="/sport" element={<Sport {...common}/>}/><Route path="/sport/:slug" element={<Hub {...common}/>}/><Route path="/news" element={<News {...common}/>}/><Route path="/news/:slug" element={<Story {...common}/>}/><Route path="/sponsors" element={<Sponsors {...common}/>}/><Route path="/profile" element={<Profile {...common}/>}/><Route path="/performance" element={<AthletePerformance user={user}/>}/><Route path="/trials" element={<Trials user={user} profile={profile}/>}/><Route path="/admin/recruitment" element={<AdminRecruitment roles={roles} user={user}/>}/><Route path="/admin" element={<AdminDashboard {...common}/>}/><Route path="/admin/sports" element={<AdminSports roles={roles} user={user} setSports={setSports}/>}/><Route path="/admin/sponsors" element={<AdminSponsors user={user} roles={roles}/>}/><Route path="/admin/products" element={<AdminProducts roles={roles} products={products} setProducts={setProducts}/>}/><Route path="/admin/shop-orders" element={<AdminShopOrders roles={roles}/>}/><Route path="/admin/athletes" element={<AdminAthletes roles={roles} user={user}/>}/><Route path="/admin/rosters" element={<AdminRosters roles={roles} user={user}/>}/><Route path="/admin/performance" element={<AdminPerformance roles={roles}/>}/><Route path="/admin/operations" element={<AdminOperations roles={roles} user={user}/>}/><Route path="/admin/approvals" element={<AdminApprovals roles={roles} user={user}/>}/><Route path="/admin/messages" element={<AdminMessages roles={roles} user={user}/>}/><Route path="/messages" element={<AthleteMessages user={user}/>}/><Route path="/admin/ticket-gate" element={<AdminTicketGate roles={roles}/>}/><Route path="/admin/event-reports" element={<AdminEventReports roles={roles}/>}/><Route path="/admin/editorial" element={<AdminEditorial roles={roles} user={user} sports={sports}/>}/><Route path="/notifications" element={<Personal title="Notifications" user={user} kind="notifications"/>}/><Route path="/tickets" element={<Personal title="My tickets" user={user} kind="tickets"/>}/><Route path="/orders" element={<Personal title="My orders" user={user} kind="orders"/>}/><Route path="*" element={<Home {...common}/>}/>
  </Routes><BottomNav/><Link className="cart-fab" to="/cart"><ShoppingBag size={18}/>{cart.reduce((n,x)=>n+x.qty,0)>0&&<span>{cart.reduce((n,x)=>n+x.qty,0)}</span>}</Link>{toast&&<div className="toast">{toast}</div>}</div></div>;
 }
 function Home({sports,products,fixtures,articles,events,sponsors}) {
@@ -581,7 +581,7 @@ function AdminDashboard({sports,teams,competitions,fixtures,articles,events,spon
  const allowed=sportAdmin||coach||shopAdmin;
  const modules=[
   ...(sportAdmin?[{title:"Sport codes",description:"Manage the official sport directory; create new codes or edit/archive assigned sports.",to:"/admin/sports",icon:Settings2,state:"Available"},{title:"Sponsor directory",description:"Create, update and archive official partner profiles.",to:"/admin/sponsors",icon:Handshake,state:"Available"},{title:"Sport operations",description:"Team, competition and fixture publishing tools.",to:"/admin/operations",icon:CalendarClock,state:"Available"},{title:"News & events",description:"Editorial publishing and event management.",to:"/admin/editorial",icon:FileText,state:"Available"}]:[]),
-  ...((sportAdmin||coach)?[{title:"Athlete profiles",description:"Register and update profiles within your assigned sport or team scope.",to:"/admin/athletes",icon:Users,state:"Available"},{title:"Performance dashboards",description:"Compare approved athlete statistics by sport, athlete, season and metric.",to:"/admin/performance",icon:Trophy,state:"Available"}]:[]),
+  ...((sportAdmin||coach)?[{title:"Athlete profiles",description:"Register and update profiles within your assigned sport or team scope.",to:"/admin/athletes",icon:Users,state:"Available"},{title:"Team rosters",description:"View squads, add approved athletes, update positions and squad numbers, and retain membership history.",to:"/admin/rosters",icon:Users,state:"Available"},{title:"Performance dashboards",description:"Compare approved athlete statistics by sport, athlete, season and metric.",to:"/admin/performance",icon:Trophy,state:"Available"}]:[]),
   ...((sportAdmin||coach)?[{title:"Trials & recruitment",description:"Configure sport-specific evaluation, score applicants, select candidates and allocate squad places.",to:"/admin/recruitment",icon:ClipboardList,state:"Available"}]:[]),
   ...(sportAdmin?[{title:"Athlete approvals",description:"Review athlete profiles before publication.",to:"/admin/approvals",icon:ShieldCheck,state:"Available"},{title:"Athlete communication",description:"Send correction guidance and direct messages to registered athletes.",to:"/admin/messages",icon:MessageSquare,state:"Available"},{title:"Event ticket gate",description:"Validate and redeem paid event tickets at entry.",to:"/admin/ticket-gate",icon:Ticket,state:"Available"},{title:"Event sales & attendees",description:"Review ticket sales, revenue, attendee registers and check-ins.",to:"/admin/event-reports",icon:ClipboardList,state:"Available"}]:[]),
   ...((shopAdmin||roles.includes("super_admin"))?[{title:"Shop catalogue",description:"Create, update and archive products and manage published stock.",to:"/admin/products",icon:ShoppingBag,state:"Available"},{title:"Shop orders",description:"Review paid shop orders, line items and fulfilment status.",to:"/admin/shop-orders",icon:Package,state:"Available"}]:[])
@@ -798,6 +798,88 @@ function AdminRecruitment({roles,user}) {
   }):<Empty title="No opportunities created" body="Create a trial opportunity above. It will only be visible publicly when published as open."/>}</Section>
  </main></>;
 }
+function AdminRosters({roles,user}) {
+ const allowed=roles.some(r=>["sport_admin","super_admin","coach"].includes(r));
+ const [teams,setTeams]=useState([]),[selectedTeam,setSelectedTeam]=useState("");
+ const [members,setMembers]=useState([]),[athletes,setAthletes]=useState([]);
+ const [athleteId,setAthleteId]=useState(""),[position,setPosition]=useState(""),[number,setNumber]=useState("");
+ const [editing,setEditing]=useState({}),[busy,setBusy]=useState(false),[error,setError]=useState(""),[notice,setNotice]=useState("");
+ async function loadTeams(){
+  if(!supabase||!allowed)return;
+  const {data,error}=await supabase.from("teams").select("id,name,sport_id,category,season,coach_name,sports(name)").eq("is_active",true).order("name");
+  if(error){setError(error.message);return}
+  setTeams(data||[]);
+  if(!selectedTeam&&data?.length)setSelectedTeam(data[0].id);
+ }
+ async function loadRoster(teamId=selectedTeam){
+  if(!supabase||!teamId){setMembers([]);return}
+  const {data,error}=await supabase.from("athlete_team_memberships").select("id,athlete_id,team_id,sport_id,position,squad_number,is_active,joined_at,left_at,athletes(id,full_name,preferred_name,approval_status,profile_visibility),sports(name),teams(name)").eq("team_id",teamId).order("is_active",{ascending:false}).order("joined_at",{ascending:false});
+  if(error){setError(error.message);return}
+  setMembers(data||[]);
+  setEditing(Object.fromEntries((data||[]).map(m=>[m.id,{position:m.position||"",squad_number:m.squad_number??""}])));
+ }
+ async function loadAthletes(){
+  if(!supabase||!allowed)return;
+  const {data,error}=await supabase.from("athletes").select("id,full_name,preferred_name,approval_status").eq("approval_status","approved").order("full_name");
+  if(error)setError(error.message);else setAthletes(data||[]);
+ }
+ useEffect(()=>{loadTeams();loadAthletes()},[allowed]);
+ useEffect(()=>{if(selectedTeam)loadRoster(selectedTeam);else setMembers([])},[selectedTeam]);
+ const team=teams.find(t=>t.id===selectedTeam);
+ async function addAthlete(e){
+  e.preventDefault();if(!user?.id||!team||!athleteId||busy)return;
+  setBusy(true);setError("");setNotice("");
+  const existing=members.find(m=>m.athlete_id===athleteId);
+  const values={position:position.trim()||null,squad_number:number===""?null:Number(number)};
+  if(values.squad_number!==null&&(!Number.isInteger(values.squad_number)||values.squad_number<0||values.squad_number>999)){setError("Squad number must be a whole number from 0 to 999.");setBusy(false);return}
+  let result;
+  if(existing)result=await supabase.from("athlete_team_memberships").update({...values,is_active:true,left_at:null,joined_at:existing.is_active?existing.joined_at:new Date().toISOString().slice(0,10),updated_at:new Date().toISOString()}).eq("id",existing.id).select("id").maybeSingle();
+  else result=await supabase.from("athlete_team_memberships").insert({athlete_id:athleteId,team_id:team.id,sport_id:team.sport_id,created_by:user.id,...values}).select("id").maybeSingle();
+  if(result.error)setError(result.error.message);
+  else if(!result.data)setError("No roster change was made. Confirm that you have management permission for this team.");
+  else{setAthleteId("");setPosition("");setNumber("");setNotice("Athlete added to "+team.name+".");await loadRoster(team.id)}
+  setBusy(false);
+ }
+ async function saveMember(m){
+  const value=editing[m.id]||{};
+  const squad=value.squad_number===""?null:Number(value.squad_number);
+  if(squad!==null&&(!Number.isInteger(squad)||squad<0||squad>999)){setError("Squad number must be a whole number from 0 to 999.");return}
+  if((value.position||"").trim().length>120){setError("Position must be 120 characters or fewer.");return}
+  setBusy(true);setError("");setNotice("");
+  const {data,error}=await supabase.from("athlete_team_memberships").update({position:(value.position||"").trim()||null,squad_number:squad,updated_at:new Date().toISOString()}).eq("id",m.id).select("id").maybeSingle();
+  if(error)setError(error.message);else if(!data)setError("Membership was not updated. Check team-level permissions.");else{setNotice("Roster details saved.");await loadRoster()}
+  setBusy(false);
+ }
+ async function endMember(m){
+  if(!window.confirm("End this athlete's membership of "+(team?.name||"this team")+"? The membership history will be kept."))return;
+  setBusy(true);setError("");setNotice("");
+  const {data,error}=await supabase.from("athlete_team_memberships").update({is_active:false,left_at:new Date().toISOString().slice(0,10),updated_at:new Date().toISOString()}).eq("id",m.id).eq("is_active",true).select("id").maybeSingle();
+  if(error)setError(error.message);else if(!data)setError("Membership was not changed. Check team-level permissions.");else{setNotice("Membership ended; its history has been retained.");await loadRoster()}
+  setBusy(false);
+ }
+ if(!allowed)return <><Header title="Roster access required" back/><main className="page"><Empty title="Restricted area" body="An assigned sport administrator, coach or team manager role is required."/></main></>;
+ return <><Header title="Team roster management" back/><main className="page">
+  <div className="page-intro"><span className="eyebrow">SQUAD MANAGEMENT</span><h1>Team rosters.</h1><p>View and maintain athlete lists by team. Memberships are managed independently, so an athlete can represent multiple CUT sport codes.</p></div>
+  {error&&<p className="form-error" role="alert">{error}</p>}{notice&&<p className="admin-notice">{notice}</p>}
+  <div className="form-card"><label>Select team<select value={selectedTeam} onChange={e=>setSelectedTeam(e.target.value)}><option value="">Choose an active team</option>{teams.map(t=><option key={t.id} value={t.id}>{t.sports?.name||"Sport"} · {t.name}{t.category?" · "+t.category:""}</option>)}</select></label>
+   {team&&<p className="muted">{team.season||"Current squad"}{team.coach_name?" · Coach: "+team.coach_name:""} · {members.filter(m=>m.is_active).length} active athlete(s)</p>}
+  </div>
+  {team&&<Section title="Add athlete to this squad"><form className="form-card" onSubmit={addAthlete}>
+   <label>Approved athlete<select required value={athleteId} onChange={e=>setAthleteId(e.target.value)}><option value="">Choose athlete</option>{athletes.filter(a=>!members.some(m=>m.athlete_id===a.id&&m.is_active)).map(a=><option key={a.id} value={a.id}>{a.preferred_name||a.full_name}</option>)}</select></label>
+   <label>Position / event<input maxLength="120" value={position} onChange={e=>setPosition(e.target.value)}/></label>
+   <label>Squad number<input type="number" min="0" max="999" step="1" value={number} onChange={e=>setNumber(e.target.value)}/></label>
+   <button className="btn primary" disabled={busy||!athleteId}>{busy?"Saving…":"Add to roster"}</button>
+  </form></Section>}
+  <Section title={team?"Squad members · "+team.name:"Squad members"}>
+   {members.length?members.map(m=><article className="performance-record" key={m.id}>
+    <div className="performance-record-head"><div><b>{m.athletes?.preferred_name||m.athletes?.full_name||"Athlete record"}</b><small>{m.sports?.name||"Sport"} · {m.athletes?.approval_status||"Profile status unavailable"} · Joined {dateLabel(m.joined_at)}</small></div><span className={"order-status "+(m.is_active?"is-paid":"")}>{m.is_active?"Active":"Inactive"}</span></div>
+    {m.is_active?<><label>Position / event<input maxLength="120" value={editing[m.id]?.position??""} onChange={e=>setEditing(v=>({...v,[m.id]:{...v[m.id],position:e.target.value}}))}/></label><label>Squad number<input type="number" min="0" max="999" step="1" value={editing[m.id]?.squad_number??""} onChange={e=>setEditing(v=>({...v,[m.id]:{...v[m.id],squad_number:e.target.value}}))}/></label><div className="review-actions"><button type="button" className="btn secondary" disabled={busy} onClick={()=>saveMember(m)}>Save details</button><button type="button" disabled={busy} onClick={()=>endMember(m)}>End membership</button></div></>:<p className="muted">Membership ended {m.left_at?dateLabel(m.left_at):"on an unspecified date"}. Historical record retained.</p>}
+   </article>):<Empty title="No athletes in this roster" body="Add approved athlete profiles to build this team's squad. You will only be able to save changes where your team assignment permits it."/>}
+  </Section>
+  <p className="muted">Need to create or approve an athlete profile? <Link to="/admin/athletes">Open Athlete Management</Link>.</p>
+ </main></>;
+}
+
 function AdminAthletes({roles,user}) {
  const allowed=roles.some(r=>["sport_admin","super_admin","coach"].includes(r));
  const superAdmin=roles.includes("super_admin");
