@@ -1,6 +1,7 @@
 -- Record CUT's verified participation in the 2024 USSA Cricket A Section.
--- Source evidence: UJ reports CUT lost to UJ by 106 runs; Maties reports a
--- group-stage win against CUT. No final CUT placing or complete scorecards
+-- The separate B Section tournament was hosted by CUT; CUT did not compete
+-- in that B Section. Maties reports a group-stage win against CUT, and UJ
+-- reports beating CUT by 106 runs. No final CUT placing or complete scorecards
 -- are asserted because the available reports do not establish them.
 
 insert into public.competitions (
@@ -21,8 +22,8 @@ values (
   '2024',
   '2024-12-02',
   '2024-12-06',
-  'Bloemfontein, Free State, South Africa (University of the Free State and Central University of Technology venues)',
-  'CUT participated in the 2024 USSA Cricket A Section tournament hosted in Bloemfontein from 2–6 December 2024. Confirmed published results include a group-stage defeat to Stellenbosch University (Maties) and a defeat to the University of Johannesburg by 106 runs. The available reports do not establish CUT’s final tournament placing or complete match scorecards; no other results or player statistics are asserted.',
+  'Bloemfontein, Free State, South Africa',
+  'CUT participated in the 2024 USSA Cricket A Section tournament in Bloemfontein from 2–6 December 2024. This is separate from the USSA Cricket B Section hosted by CUT. Confirmed published results include a group-stage defeat to Stellenbosch University (Maties) and a defeat to the University of Johannesburg by 106 runs. The available reports do not establish CUT’s final tournament placing or complete match scorecards; no other results or player statistics are asserted.',
   'completed'
 )
 on conflict (id) do update set
