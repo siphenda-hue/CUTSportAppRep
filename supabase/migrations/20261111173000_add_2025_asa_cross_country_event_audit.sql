@@ -5,7 +5,7 @@
 insert into public.competitions
   (id, sport_id, name, season, start_date, end_date, venue, description, status)
 values
-  ('a43e3a9b-7c4e-4d7e-9f7c-2025asa00001',
+  ('a43e3a9b-7c4e-4d7e-9f7c-2025a5a00001',
    (select id from public.sports where name = 'Athletics & Cross Country' limit 1),
    'ASA South African Cross Country Championships',
    '2025', '2025-09-06', '2025-09-06',
