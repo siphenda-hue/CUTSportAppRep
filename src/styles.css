@@ -132,3 +132,45 @@
 .squad-member-name small{padding:2px 5px;border-radius:8px;background:#eef3fb;color:var(--blue);font-size:8px;font-weight:700}
 .squad-member-details{color:var(--muted);font-size:10px;text-align:right}
 .competition-squad>p{font-size:11px;color:var(--muted);margin:8px 0 0}
+
+
+/* Unified player directory and claimed career profiles */
+.player-search{display:grid;gap:8px;margin:18px 0;font-weight:700}
+.player-search input,.player-claim-panel textarea{width:100%;padding:13px 14px;border:1px solid rgba(20,52,96,.22);border-radius:12px;background:#fff;color:#13294b;font:inherit}
+.player-directory-count{font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#64748b;margin:16px 0}
+.player-directory-grid{display:grid;gap:10px}
+.player-directory-card{display:flex;align-items:center;gap:12px;padding:14px;border:1px solid rgba(20,52,96,.12);border-radius:15px;background:linear-gradient(135deg,#fff 0%,#f1f6ff 100%);color:inherit;text-decoration:none;min-width:0}
+.player-directory-avatar,.player-profile-avatar{display:grid;place-items:center;flex:0 0 auto;width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#102c58,#1769aa);color:#fff;font-size:20px;font-weight:900}
+.player-directory-copy{display:grid;gap:4px;min-width:0;flex:1}
+.player-directory-copy b{overflow-wrap:anywhere}
+.player-directory-copy small,.player-directory-card small{color:#64748b;font-size:11px}
+.player-claimed,.player-unclaimed{display:inline-flex;align-items:center;width:max-content;max-width:100%;padding:5px 9px;border-radius:999px;font-size:10px;font-weight:800;letter-spacing:.03em}
+.player-claimed{background:#e1f4e9;color:#17633a}
+.player-unclaimed{background:#fff1cf;color:#80530a}
+.player-profile-hero{display:flex;align-items:center;gap:16px;padding:22px 18px;margin:12px 0 18px;border-radius:20px;background:linear-gradient(125deg,#0b2147,#174f8b 70%,#d5a72b);color:#fff}
+.player-profile-avatar{width:64px;height:64px;background:rgba(255,255,255,.17);border:1px solid rgba(255,255,255,.35);font-size:28px}
+.player-profile-hero h1{margin:5px 0;font-size:clamp(24px,7vw,36px);overflow-wrap:anywhere}
+.player-profile-hero p{margin:5px 0 10px;color:rgba(255,255,255,.82);font-size:12px}
+.player-profile-hero .eyebrow{color:#f5d77a}
+.player-profile-hero .player-claimed{background:#d7f5e3;color:#155b36}
+.player-profile-hero .player-unclaimed{background:#ffedc0;color:#80530a}
+.player-claim-panel{padding:18px;margin:14px 0;border:1px solid rgba(19,65,115,.15);border-radius:16px;background:#f4f8ff}
+.player-claim-panel h3{margin:0 0 8px}
+.player-claim-panel p{font-size:13px;color:#52627a}
+.player-claim-panel label{display:grid;gap:7px;margin:12px 0;font-size:12px;font-weight:700}
+.player-claim-panel textarea{min-height:80px;resize:vertical}
+.player-claim-status{padding:12px;border-radius:12px;background:#e8f2ff;color:#17477a;font-size:13px;font-weight:700}
+.player-history-group{margin:12px 0;padding:14px;border:1px solid rgba(20,52,96,.12);border-radius:15px;background:#fff}
+.player-history-group h3{font-size:14px;color:#173d70;margin:0 0 8px}
+.player-history-row{display:flex;justify-content:space-between;gap:12px;padding:11px 0;border-top:1px solid #edf1f6}
+.player-history-row>div{display:grid;gap:4px;min-width:0}
+.player-history-row b{font-size:13px}
+.player-history-row small,.player-history-row a{font-size:11px;color:#64748b;overflow-wrap:anywhere}
+.player-history-row a{color:#1765a5;font-weight:700;text-decoration:none}
+.player-history-row>span{font-size:10px;color:#64748b;white-space:nowrap}
+.player-claim-admin{padding:14px;margin:10px 0;border:1px solid rgba(20,52,96,.14);border-radius:14px;display:grid;gap:8px}
+.player-claim-admin small{font-size:11px;color:#64748b;overflow-wrap:anywhere}
+.player-claim-admin>div{display:flex;gap:8px;flex-wrap:wrap}
+.player-claim-admin button{padding:9px 12px;border:0;border-radius:10px;background:#174f8b;color:#fff;font-weight:800}
+.player-claim-admin button+button{background:#8b2635}
+.success-message{padding:12px;border-radius:12px;background:#e1f4e9;color:#17633a;font-size:13px;font-weight:700}
