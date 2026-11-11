@@ -1,0 +1,20 @@
+-- Import verified CUT match outcomes from the 2024 and 2025 USSA Cricket A Section campaigns.
+-- Scorecard totals and player-level figures are intentionally omitted where the cited
+-- published reports expose only the match result or a scorecard link that is inaccessible.
+-- Dates for the two 2024 group matches are not asserted because the cited reports do not
+-- identify their individual match dates.
+
+insert into public.competition_matches
+(competition_id, source_match_id, starts_at, home_team, away_team, home_score, away_score, match_status, match_round, group_name, venue, source_url, source_checked_at, statistics)
+values
+('646179dd-9582-47f9-97f1-9fd577068726','2024-ussa-maties-v-cut',null,'Maties','CUT',null,null,'completed','Group stage',null,'Bloemfontein','https://www.su.ac.za/en/students/campus-life/sport/news/maties-excel-ussa-championships-across-country',now(),jsonb_build_object('result','Maties defeated CUT','scorecard_status','not published in cited report','date_status','exact match date not verified')),
+('646179dd-9582-47f9-97f1-9fd577068726','2024-ussa-uj-v-cut',null,'UJ','CUT',null,null,'completed','Group stage',null,'Bloemfontein','https://news.uj.ac.za/news/uj-mens-basketball-football-teams-crowned-2024-ussa-champions/',now(),jsonb_build_object('result','UJ defeated CUT by 106 runs','margin_runs',106,'scorecard_status','innings totals and player figures not published in cited report','date_status','exact match date not verified')),
+('b6bdca69-c0bf-445b-9089-a467b6f357dd','2025-12-01-eta-v-cut',null,'ETA','CUT',null,null,'completed','Group B — 1 December 2025','Group B','Stellenbosch','https://www.clubcricket.co.za/latestnews/ussa-cricket-week-updates/',now(),jsonb_build_object('result','ETA defeated CUT by 17 runs','margin_runs',17,'reported_date','2025-12-01','scorecard_link_present',true,'innings_totals_unavailable_in_text',true)),
+('b6bdca69-c0bf-445b-9089-a467b6f357dd','2025-12-02-cut-vc',null,'CUT','Varsity College',null,null,'completed','Group B — 2 December 2025','Group B','Stellenbosch','https://www.clubcricket.co.za/latestnews/ussa-cricket-week-updates/',now(),jsonb_build_object('result','CUT defeated Varsity College by 64 runs','margin_runs',64,'reported_date','2025-12-02','scorecard_link_present',true,'innings_totals_unavailable_in_text',true)),
+('b6bdca69-c0bf-445b-9089-a467b6f357dd','2025-12-03-cut-v-tut',null,'CUT','TUT',null,null,'completed','Group B — 3 December 2025','Group B','Stellenbosch','https://www.clubcricket.co.za/latestnews/ussa-cricket-week-updates/',now(),jsonb_build_object('result','CUT defeated TUT by 64 runs','margin_runs',64,'reported_date','2025-12-03','scorecard_link_present',true,'innings_totals_unavailable_in_text',true)),
+('b6bdca69-c0bf-445b-9089-a467b6f357dd','2025-12-04-uct-v-cut',null,'UCT','CUT',null,null,'completed','Group B — 4 December 2025','Group B','Stellenbosch','https://www.clubcricket.co.za/latestnews/ussa-cricket-week-updates/',now(),jsonb_build_object('result','UCT defeated CUT by four wickets','margin_wickets',4,'reported_date','2025-12-04','scorecard_link_present',true,'innings_totals_unavailable_in_text',true)),
+('b6bdca69-c0bf-445b-9089-a467b6f357dd','2025-12-05-madibaz-b-v-cut',null,'Madibaz B','CUT',null,null,'completed','Group B — 3rd-place play-off — 5 December 2025','Group B','Stellenbosch','https://www.clubcricket.co.za/latestnews/ussa-cricket-week-updates/',now(),jsonb_build_object('result','Madibaz B defeated CUT by 186 runs','margin_runs',186,'reported_date','2025-12-05','scorecard_link_present',true,'innings_totals_unavailable_in_text',true))
+on conflict (competition_id, source_match_id) do update set
+home_team=excluded.home_team, away_team=excluded.away_team, home_score=excluded.home_score, away_score=excluded.away_score,
+match_status=excluded.match_status, match_round=excluded.match_round, group_name=excluded.group_name, venue=excluded.venue,
+source_url=excluded.source_url, source_checked_at=excluded.source_checked_at, statistics=excluded.statistics, updated_at=now();
