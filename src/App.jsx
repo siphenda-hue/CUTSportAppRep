@@ -47,7 +47,23 @@ function Checkout({cart,setCart,user}) {
 function PaymentReturn({user,result,cart,setCart}) {
  const [params]=useSearchParams(),route=useParams(),[order,setOrder]=useState(null),[error,setError]=useState("");
  const orderNumber=params.get("order");
- useEffect(()=>{\n  let active=true,attempts=0,timer=null;\n  if(!user||!orderNumber||!supabase){setOrder(null);return}\n  const load=async()=>{\n   const {data,error}=await supabase.from("orders").select("order_number,status,payment_status,total_cents,currency").eq("user_id",user.id).eq("order_number",orderNumber).maybeSingle();\n   if(!active)return;\n   if(error)setError(error.message);\n   else{\n    setOrder(data);\n    if(data?.payment_status==="succeeded"){setError("");setCart([]);return}\n   }\n   attempts+=1;\n   if(active&&attempts<24)timer=setTimeout(load,2500);\n  };\n  load();\n  return()=>{active=false;if(timer)clearTimeout(timer)};\n },[user,orderNumber,setCart]);
+ useEffect(()=>{
+  let active=true,attempts=0,timer=null;
+  if(!user||!orderNumber||!supabase){setOrder(null);return}
+  const load=async()=>{
+   const {data,error}=await supabase.from("orders").select("order_number,status,payment_status,total_cents,currency").eq("user_id",user.id).eq("order_number",orderNumber).maybeSingle();
+   if(!active)return;
+   if(error)setError(error.message);
+   else{
+    setOrder(data);
+    if(data?.payment_status==="succeeded"){setError("");setCart([]);return}
+   }
+   attempts+=1;
+   if(active&&attempts<24)timer=setTimeout(load,2500);
+  };
+  load();
+  return()=>{active=false;if(timer)clearTimeout(timer)};
+ },[user,orderNumber,setCart]);
  const paid=order?.payment_status==="succeeded";
  return <><Header title="Payment status" back/><main className="page"><div className="page-intro"><span className="eyebrow">YOCO PAYMENT</span><h1>{paid?"Payment confirmed":(route.result||result)==="cancelled"?"Checkout cancelled":(route.result||result)==="failed"?"Payment not completed":"Confirming your payment"}</h1><p>{paid?"Your payment has been verified. Your order is now recorded in CUT Sport.":(route.result||result)==="cancelled"?"You left the Yoco checkout. If you completed payment before returning, allow the secure notification to update your order.":(route.result||result)==="failed"?"The checkout did not complete. If your bank shows a debit, do not pay again until the order status has been checked.":"Yoco sends a signed notification to confirm payment. This return page is not itself proof of payment."}</p></div>{order&&<div className="personal-card"><b>Order {order.order_number}</b><p>{money(order.total_cents)} · {order.payment_status||order.status}</p></div>}{!orderNumber&&<p className="muted">No order reference was supplied.</p>}{error&&<p className="form-error">{error}</p>}<Link className="btn primary" to="/orders">View my orders</Link></main></>;
 }
