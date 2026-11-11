@@ -34,12 +34,12 @@ function App() {
  const add=p=>{setCart(old=>{const found=old.find(x=>x.id===p.id);return found?old.map(x=>x.id===p.id?{...x,qty:x.qty+1}:x):[...old,{id:p.id,name:p.name,price_cents:p.price_cents,image_url:p.image_url,qty:1}]});setToast('Added to your bag');setTimeout(()=>setToast(''),2200)};
  const common={sports,teams,competitions,products,fixtures,articles,events,ticketTypes,sponsors,athletes,user,profile,roles,cart,setCart,add};
  return <div className="app-shell"><div className="app-frame"><Routes>
- <Route path="/" element={<Home {...common}/>}/><Route path="/shop" element={<Shop {...common}/>}/><Route path="/shop/:slug" element={<Product {...common}/>}/><Route path="/cart" element={<Cart {...common}/>}/><Route path="/checkout" element={<Checkout cart={cart} setCart={setCart} user={user}/>}/><Route path="/payment/:result" element={<PaymentReturn user={user} result="success" cart={cart} setCart={setCart}/>}/><Route path="/events/:id" element={<EventTickets events={events} ticketTypes={ticketTypes} user={user}/>}/><Route path="/calendar" element={<CalendarPage {...common}/>}/><Route path="/sport" element={<Sport {...common}/>}/><Route path="/sport/:slug" element={<Hub {...common}/>}/><Route path="/news" element={<News {...common}/>}/><Route path="/news/:slug" element={<Story {...common}/>}/><Route path="/sponsors" element={<Sponsors {...common}/>}/><Route path="/profile" element={<Profile {...common}/>}/><Route path="/performance" element={<AthletePerformance user={user}/>}/><Route path="/trials" element={<Trials user={user} profile={profile}/>}/><Route path="/admin/recruitment" element={<AdminRecruitment roles={roles} user={user}/>}/><Route path="/admin" element={<AdminDashboard {...common}/>}/><Route path="/admin/sports" element={<AdminSports roles={roles} user={user} setSports={setSports}/>}/><Route path="/admin/sponsors" element={<AdminSponsors user={user} roles={roles}/>}/><Route path="/admin/products" element={<AdminProducts roles={roles} products={products} setProducts={setProducts}/>}/><Route path="/admin/shop-orders" element={<AdminShopOrders roles={roles}/>}/><Route path="/admin/athletes" element={<AdminAthletes roles={roles} user={user}/>}/><Route path="/admin/rosters" element={<AdminRosters roles={roles} user={user}/>}/><Route path="/admin/teams" element={<AdminTeams roles={roles} user={user}/>}/><Route path="/admin/performance" element={<AdminPerformance roles={roles}/>}/><Route path="/admin/calendar" element={<AdminCalendar roles={roles} sports={sports}/>}/><Route path="/admin/operations" element={<AdminOperations roles={roles} user={user}/>}/><Route path="/admin/approvals" element={<AdminApprovals roles={roles} user={user}/>}/><Route path="/admin/messages" element={<AdminMessages roles={roles} user={user}/>}/><Route path="/messages" element={<AthleteMessages user={user}/>}/><Route path="/admin/ticket-gate" element={<AdminTicketGate roles={roles}/>}/><Route path="/admin/event-reports" element={<AdminEventReports roles={roles}/>}/><Route path="/admin/editorial" element={<AdminEditorial roles={roles} user={user} sports={sports}/>}/><Route path="/notifications" element={<Personal title="Notifications" user={user} kind="notifications"/>}/><Route path="/tickets" element={<Personal title="My tickets" user={user} kind="tickets"/>}/><Route path="/orders" element={<Personal title="My orders" user={user} kind="orders"/>}/><Route path="*" element={<Home {...common}/>}/>
+ <Route path="/" element={<Home {...common}/>}/><Route path="/shop" element={<Shop {...common}/>}/><Route path="/shop/:slug" element={<Product {...common}/>}/><Route path="/cart" element={<Cart {...common}/>}/><Route path="/checkout" element={<Checkout cart={cart} setCart={setCart} user={user}/>}/><Route path="/payment/:result" element={<PaymentReturn user={user} result="success" cart={cart} setCart={setCart}/>}/><Route path="/events/:id" element={<EventTickets events={events} ticketTypes={ticketTypes} user={user}/>}/><Route path="/calendar" element={<CalendarPage {...common}/>}/><Route path="/sport" element={<Sport {...common}/>}/><Route path="/sport/:slug" element={<Hub {...common}/>}/><Route path="/news" element={<News {...common}/>}/><Route path="/news/:slug" element={<Story {...common}/>}/><Route path="/sponsors" element={<Sponsors {...common}/>}/><Route path="/profile" element={<Profile {...common}/>}/><Route path="/players" element={<PlayerDirectory user={user}/>}/><Route path="/players/:id" element={<PlayerProfilePage user={user} roles={roles}/>}/><Route path="/performance" element={<AthletePerformance user={user}/>}/><Route path="/trials" element={<Trials user={user} profile={profile}/>}/><Route path="/admin/recruitment" element={<AdminRecruitment roles={roles} user={user}/>}/><Route path="/admin" element={<AdminDashboard {...common}/>}/><Route path="/admin/sports" element={<AdminSports roles={roles} user={user} setSports={setSports}/>}/><Route path="/admin/sponsors" element={<AdminSponsors user={user} roles={roles}/>}/><Route path="/admin/products" element={<AdminProducts roles={roles} products={products} setProducts={setProducts}/>}/><Route path="/admin/shop-orders" element={<AdminShopOrders roles={roles}/>}/><Route path="/admin/athletes" element={<AdminAthletes roles={roles} user={user}/>}/><Route path="/admin/rosters" element={<AdminRosters roles={roles} user={user}/>}/><Route path="/admin/teams" element={<AdminTeams roles={roles} user={user}/>}/><Route path="/admin/performance" element={<AdminPerformance roles={roles}/>}/><Route path="/admin/calendar" element={<AdminCalendar roles={roles} sports={sports}/>}/><Route path="/admin/operations" element={<AdminOperations roles={roles} user={user}/>}/><Route path="/admin/approvals" element={<AdminApprovals roles={roles} user={user}/>}/><Route path="/admin/messages" element={<AdminMessages roles={roles} user={user}/>}/><Route path="/messages" element={<AthleteMessages user={user}/>}/><Route path="/admin/ticket-gate" element={<AdminTicketGate roles={roles}/>}/><Route path="/admin/event-reports" element={<AdminEventReports roles={roles}/>}/><Route path="/admin/editorial" element={<AdminEditorial roles={roles} user={user} sports={sports}/>}/><Route path="/notifications" element={<Personal title="Notifications" user={user} kind="notifications"/>}/><Route path="/tickets" element={<Personal title="My tickets" user={user} kind="tickets"/>}/><Route path="/orders" element={<Personal title="My orders" user={user} kind="orders"/>}/><Route path="*" element={<Home {...common}/>}/>
  </Routes><BottomNav/><Link className="cart-fab" to="/cart"><ShoppingBag size={18}/>{cart.reduce((n,x)=>n+x.qty,0)>0&&<span>{cart.reduce((n,x)=>n+x.qty,0)}</span>}</Link>{toast&&<div className="toast">{toast}</div>}</div></div>;
 }
 function Home({sports,products,fixtures,articles,events,sponsors}) {
  const upcoming=fixtures.filter(x=>['scheduled','live'].includes(x.status)).slice(0,3);
- return <><Header/><main className="page"><section className="hero"><span className="eyebrow">THE BLUES · CUT SPORT</span><h1>ONE CAMPUS.<br/><em>ONE TEAM.</em><br/>ONE BLUE.</h1><p>Every athlete. Every story. Every moment.</p><Link className="btn light" to="/sport">Explore CUT Sport <ChevronRight/></Link></section><div className="quick-links"><Link to="/calendar"><CalendarDays/>Calendar</Link><Link to="/sport"><Trophy/>Sport</Link><Link to="/shop"><ShoppingBag/>Shop</Link><Link to="/tickets"><Ticket/>Tickets</Link><Link to="/news"><Newspaper/>News</Link></div>
+ return <><Header/><main className="page"><section className="hero"><span className="eyebrow">THE BLUES · CUT SPORT</span><h1>ONE CAMPUS.<br/><em>ONE TEAM.</em><br/>ONE BLUE.</h1><p>Every athlete. Every story. Every moment.</p><Link className="btn light" to="/sport">Explore CUT Sport <ChevronRight/></Link></section><div className="quick-links"><Link to="/calendar"><CalendarDays/>Calendar</Link><Link to="/sport"><Trophy/>Sport</Link><Link to="/shop"><ShoppingBag/>Shop</Link><Link to="/tickets"><Ticket/>Tickets</Link><Link to="/news"><Newspaper/>News</Link><Link to="/players"><Users/>Players</Link></div>
  <Section title="Sport codes" link="/sport"><div className="sport-grid">{sports.map((s,i)=><Link className="sport-tile" to={'/sport/'+s.slug} key={s.id}><small>{String(i+1).padStart(2,'0')}</small><b>{s.name}</b><ChevronRight/></Link>)}</div></Section>
  <Section title="Matchday" link="/sport">{upcoming.length?upcoming.map(f=><Fixture key={f.id} f={f}/>):<Empty title="Fixtures coming soon" body="Official fixtures and live scores will appear here when published by CUT Sport."/>}</Section>
  <Section title="Heritage Collection" link="/shop"><div className="catalogue">{products.slice(0,4).map(p=><ProductCard key={p.id} p={p}/>)}</div>{!products.length&&<Empty title="The shop is being stocked" body="The official collection will appear here soon."/>}</Section>
@@ -231,6 +231,109 @@ function Hub({sports,teams,competitions,fixtures,articles,athletes}) {
 function News({articles}) {return <><Header title="Articles & news"/><main className="page"><h1>Stories that move us.</h1>{articles.length?articles.map(a=><StoryCard key={a.id} a={a}/>):<Empty title="No stories published yet" body="The latest CUT Sport news will appear here."/>}</main></>}
 function Story({articles}) {const {slug}=useParams();const a=articles.find(x=>x.slug===slug);return <><Header title="Article" back/><main className="page">{a?<article><small>{dateLabel(a.published_at)}</small><h1>{a.title}</h1>{a.cover_image_url&&<img className="article-cover" src={a.cover_image_url} alt=""/>}<p>{a.excerpt}</p><div className="article-body">{a.body}</div></article>:<Empty title="Story not found" body="This story is no longer available."/>}</main></>}
 function Sponsors({sponsors}) {return <><Header title="Our sponsors" back/><main className="page"><h1>Stronger together.</h1>{sponsors.length?sponsors.map(s=><div className="sponsor-card" key={s.id}><b>{s.name}</b><p>{s.description}</p>{s.website_url&&<a href={s.website_url} target="_blank" rel="noreferrer">Visit partner</a>}</div>):<Empty title="Partner directory coming soon" body="Official sponsor profiles will be published here."/>}</main></>}
+
+
+function PlayerDirectory({user}) {
+ const [players,setPlayers]=useState([]),[search,setSearch]=useState(""),[busy,setBusy]=useState(true),[error,setError]=useState("");
+ useEffect(()=>{
+  let active=true;
+  async function load(){
+   if(!supabase){setBusy(false);return;}
+   const [p,r]=await Promise.all([
+    supabase.from("player_profiles").select("id,full_name,display_name,claimed_at").order("full_name").limit(500),
+    supabase.from("player_profile_records").select("player_profile_id,record_type,sport_name,competition_id").limit(5000)
+   ]);
+   if(!active)return;
+   if(p.error||r.error)setError(p.error?.message||r.error?.message||"Unable to load player directory.");
+   const counts={};
+   (r.data||[]).forEach(row=>{
+    const x=counts[row.player_profile_id]||(counts[row.player_profile_id]={records:0,sports:new Set(),competitions:new Set()});
+    x.records++;
+    if(row.sport_name)x.sports.add(row.sport_name);
+    if(row.competition_id)x.competitions.add(row.competition_id);
+   });
+   setPlayers((p.data||[]).map(x=>({...x,history:counts[x.id]||{records:0,sports:new Set(),competitions:new Set()}})));
+   setBusy(false);
+  }
+  load();return()=>{active=false};
+ },[]);
+ const term=search.trim().toLocaleLowerCase();
+ const visible=players.filter(p=>(p.display_name||p.full_name).toLocaleLowerCase().includes(term));
+ return <><Header title="Player directory" back/><main className="page">
+  <div className="page-intro"><span className="eyebrow">THE BLUES · PLAYER ARCHIVE</span><h1>Every player.<br/><em>Every season.</em></h1><p>One player identity across CUT teams, sport codes and competition years. Open a profile to explore its verified history or request to claim it.</p></div>
+  <label className="player-search">Search players<input type="search" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search exact player name…"/></label>
+  {error&&<p className="form-error">{error}</p>}
+  <div className="player-directory-count">{visible.length} of {players.length} player profiles</div>
+  {busy?<p className="muted">Loading the CUT player archive…</p>:visible.length?<div className="player-directory-grid">{visible.map(p=><Link className="player-directory-card" to={"/players/"+p.id} key={p.id}>
+   <span className="player-directory-avatar">{(p.display_name||p.full_name).slice(0,1)}</span><span className="player-directory-copy"><b>{p.display_name||p.full_name}</b><small>{p.history.records} linked history records · {p.history.sports.size} sport code(s)</small></span><span className={p.claimed_at?"player-claimed":"player-unclaimed"}>{p.claimed_at?"Claimed":"Claim profile"}</span>
+  </Link>)}</div>:<Empty title="No players found" body="Try another name or search term."/>}
+  <p className="muted">Profiles are grouped only when the recorded player names match exactly, including spelling, order and capitalisation. Similar-looking names remain separate until verified.</p>
+  {!user&&<p className="muted">Sign in to request ownership of your player profile.</p>}
+ </main></>;
+}
+
+function PlayerProfilePage({user,roles=[]}) {
+ const {id}=useParams();
+ const [player,setPlayer]=useState(null),[records,setRecords]=useState([]),[claim,setClaim]=useState(null),[claimNote,setClaimNote]=useState(""),[busy,setBusy]=useState(true),[saving,setSaving]=useState(false),[error,setError]=useState(""),[message,setMessage]=useState(""),[pending,setPending]=useState([]);
+ const isSuper=roles.includes("super_admin");
+ async function load(){
+  if(!supabase)return;
+  setBusy(true);setError("");
+  const [p,r]=await Promise.all([
+   supabase.from("player_profiles").select("id,full_name,display_name,claimed_at").eq("id",id).maybeSingle(),
+   supabase.from("player_profile_records").select("*").eq("player_profile_id",id).order("record_date",{ascending:false,nullsFirst:false})
+  ]);
+  if(p.error||r.error)setError(p.error?.message||r.error?.message||"Unable to load this player profile.");
+  setPlayer(p.data||null);setRecords(r.data||[]);
+  if(user?.id){
+   const {data,error:ce}=await supabase.from("player_profile_claims").select("id,status,review_note,created_at").eq("player_profile_id",id).eq("user_id",user.id).maybeSingle();
+   if(ce)setError(ce.message);setClaim(data||null);
+  }else setClaim(null);
+  if(isSuper){
+   const {data,error:pe}=await supabase.from("player_profile_claims").select("id,player_profile_id,user_id,evidence_note,created_at,player_profiles(full_name)").eq("status","pending").order("created_at",{ascending:true}).limit(50);
+   if(error===null&&pe)setError(pe.message);setPending(data||[]);
+  }
+  setBusy(false);
+ }
+ useEffect(()=>{load()},[id,user?.id,isSuper]);
+ async function requestClaim(){
+  if(!user?.id){setMessage("Sign in first, then return here to request this profile.");return;}
+  if(!supabase||saving||!player||player.claimed_at||claim?.status==="pending")return;
+  setSaving(true);setError("");setMessage("");
+  const {data,error}=await supabase.from("player_profile_claims").insert({player_profile_id:id,user_id:user.id,evidence_note:claimNote.trim()||null}).select("id,status,review_note,created_at").single();
+  if(error)setError(error.message);else{setClaim(data);setMessage("Your claim request has been submitted for CUT Sport verification.");setClaimNote("")}
+  setSaving(false);
+ }
+ async function reviewClaim(claimId,decision){
+  if(!supabase||!isSuper)return;
+  setSaving(true);setError("");setMessage("");
+  const {error}=await supabase.rpc("review_player_profile_claim",{p_claim_id:claimId,p_decision:decision,p_note:null});
+  if(error)setError(error.message);else{setMessage("Claim "+decision+".");await load()}
+  setSaving(false);
+ }
+ const grouped=records.reduce((acc,row)=>{const key=[row.season||"Season not recorded",row.competition_name||"Team history",row.sport_name||"Sport not recorded"].join(" · ");(acc[key]||(acc[key]=[])).push(row);return acc},{});
+ const detailsText=row=>{
+  const d=row.details||{};
+  if(row.record_type==="competition_statistics"){
+   const stats=d.statistics&&typeof d.statistics==="object"?d.statistics:{};
+   const values=Object.entries({...stats,field_goals:d.field_goals,penalty_corner_goals:d.penalty_corner_goals,penalty_stroke_goals:d.penalty_stroke_goals,total_goals:d.total_goals}).filter(([k,v])=>v!==null&&v!==undefined&&k!=="stat_category");
+   return values.map(([k,v])=>k.replaceAll("_"," ")+": "+(typeof v==="object"?JSON.stringify(v):v)).join(" · ");
+  }
+  if(row.record_type==="athlete_statistics")return Object.entries(d.metrics||{}).map(([k,v])=>k.replaceAll("_"," ")+": "+v).join(" · ");
+  if(row.record_type==="team_membership")return [d.joined_at?"Joined "+d.joined_at:null,d.left_at?"Left "+d.left_at:null,d.is_active?"Current membership":"Past membership"].filter(Boolean).join(" · ");
+  return [row.position,row.role,row.is_captain?"Captain":null,row.is_vice_captain?"Vice-captain":null,row.squad_number!==null?"#"+row.squad_number:null].filter(Boolean).join(" · ");
+ };
+ return <><Header title="Player profile" back/><main className="page">
+  {busy?<p className="muted">Loading player history…</p>:!player?<Empty title="Player profile not found" body="This player profile may have been removed or the link is incorrect."/>:<>
+   <div className="player-profile-hero"><span className="player-profile-avatar">{(player.display_name||player.full_name).slice(0,1)}</span><div><span className="eyebrow">CUT SPORT · PLAYER RECORD</span><h1>{player.display_name||player.full_name}</h1><p>{records.length} linked record(s) · {new Set(records.map(x=>x.sport_name).filter(Boolean)).size} sport code(s) · {new Set(records.map(x=>x.competition_id).filter(Boolean)).size} competition(s)</p><span className={player.claimed_at?"player-claimed":"player-unclaimed"}>{player.claimed_at?"Claim verified":"Unclaimed player profile"}</span></div></div>
+   {!player.claimed_at&&<section className="player-claim-panel"><h3>Is this your player profile?</h3><p>Request to claim this profile. CUT Sport administrators will verify your identity before linking it to your account.</p>{!user?<Link className="btn primary" to="/profile">Sign in to claim profile</Link>:claim?.status==="pending"?<p className="player-claim-status">Your claim is awaiting verification.</p>:claim?.status==="rejected"?<p className="form-error">Your previous claim was not approved. Contact CUT Sport administration if you believe this is incorrect.</p>:<><label>Verification details (optional)<textarea value={claimNote} onChange={e=>setClaimNote(e.target.value)} maxLength={1000} placeholder="Add a short note to help administrators verify your identity."/></label><button className="btn primary" disabled={saving} onClick={requestClaim}>{saving?"Submitting…":"Request to claim this profile"}</button></>}</section>}
+   {player.claimed_at&&user?.id&&<p className="player-claim-status">This profile has been claimed. If it is yours but linked to another account, contact CUT Sport administration.</p>}
+   {message&&<p className="success-message">{message}</p>}{error&&<p className="form-error">{error}</p>}
+   <Section title="Career history">{records.length?Object.entries(grouped).map(([group,items])=><article className="player-history-group" key={group}><h3>{group}</h3>{items.map(row=><div className="player-history-row" key={row.record_type+row.record_id}><div><b>{row.team_name||"CUT Sport"}</b><small>{row.record_label||row.record_type.replaceAll("_"," ")}</small>{detailsText(row)&&<small>{detailsText(row)}</small>}{row.source_url&&<a href={row.source_url} target="_blank" rel="noreferrer">View source ↗</a>}</div><span>{row.record_date||""}</span></div>)}</article>):<Empty title="No linked competition records yet" body="Published team sheets, competition statistics and approved athlete records will appear here as they are added to the archive."/>}</Section>
+   {isSuper&&<Section title="Pending player claims">{pending.length?pending.map(c=><article className="player-claim-admin" key={c.id}><b>{c.player_profiles?.full_name||"Player profile"}</b><small>Account: {c.user_id} · Submitted {dateLabel(c.created_at)}</small>{c.evidence_note&&<p>{c.evidence_note}</p>}<div><button disabled={saving} onClick={()=>reviewClaim(c.id,"approved")}>Approve claim</button><button disabled={saving} onClick={()=>reviewClaim(c.id,"rejected")}>Reject claim</button></div></article>):<p className="muted">No pending player claims.</p>}</Section>}
+  </>}
+ </main></>;
+}
 
 function AthletePerformance({user}) {
  const [athlete,setAthlete]=useState(null),[records,setRecords]=useState([]),[achievements,setAchievements]=useState([]);
