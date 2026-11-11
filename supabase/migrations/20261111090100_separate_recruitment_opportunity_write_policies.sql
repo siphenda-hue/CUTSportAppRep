@@ -1,4 +1,0 @@
-drop policy if exists "Assigned staff manage recruitment opportunities" on public.recruitment_opportunities;
-create policy "Assigned staff create recruitment opportunities" on public.recruitment_opportunities for insert to authenticated with check (private.can_manage_athlete(sport_id,team_id) and created_by=(select auth.uid()));
-create policy "Assigned staff update recruitment opportunities" on public.recruitment_opportunities for update to authenticated using (private.can_manage_athlete(sport_id,team_id)) with check (private.can_manage_athlete(sport_id,team_id));
-create policy "Assigned staff delete recruitment opportunities" on public.recruitment_opportunities for delete to authenticated using (private.can_manage_athlete(sport_id,team_id));
