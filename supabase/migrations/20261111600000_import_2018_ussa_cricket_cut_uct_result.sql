@@ -45,7 +45,7 @@ insert into public.competition_matches (
 values (
   'a43e3a9b-7c4e-4d7e-9f7c-2018c5a00001',
   'ussa-cricket-2018-cut-vs-uct-7th-place-playoff',
-  '2018-12-07T00:00:00',
+  null,
   'CUT',
   'UCT',
   180,
@@ -54,7 +54,7 @@ values (
   '7th-place play-off',
   'Stellenbosch, Western Cape, South Africa',
   'https://www.sacricketmag.com/tuks-madibaz-b-crowned-ussa-champions/',
-  '{"result":"CUT won by 104 runs","cut_innings_total":180,"uct_innings_total":76,"cut_bowlers":[{"name":"Nealan van Heerden","wickets":3,"runs_conceded":10},{"name":"Jason Raubenheimer","wickets":3,"runs_conceded":21},{"name":"Devon du Plessis","wickets":3,"runs_conceded":24}],"scorecard_available":false}'::jsonb
+  '{"result":"CUT won by 104 runs","match_date":"2018-12-07","time_not_reported":true,"cut_innings_total":180,"uct_innings_total":76,"cut_bowlers":[{"name":"Nealan van Heerden","wickets":3,"runs_conceded":10},{"name":"Jason Raubenheimer","wickets":3,"runs_conceded":21},{"name":"Devon du Plessis","wickets":3,"runs_conceded":24}],"scorecard_available":false}'::jsonb
 )
 on conflict (competition_id, source_match_id) do update
 set
