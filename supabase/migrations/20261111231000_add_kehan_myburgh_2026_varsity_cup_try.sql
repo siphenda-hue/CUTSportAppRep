@@ -1,0 +1,5 @@
+insert into public.competition_player_statistics
+(competition_id,player_name,team_name,field_goals,penalty_corner_goals,penalty_stroke_goals,total_goals,source_url,source_checked_at,created_at,updated_at,statistics)
+values
+('7461d49d-ebeb-445e-a24f-6bba098968d5','Kehan Myburgh','CUT Ixias',0,0,0,0,'https://supersport.com/rugby/news/9fe83ac9-fd01-4dd9-84ec-b43cedee36e6/dominance-on-full-display-as-fnb-varsity-cup-heavyweights-shine-in-round-2',now(),now(),now(),'{"tries":1,"player_of_match_awards":[{"round":"Round 1","opponent":"NWU Eagles","source_url":"https://supersport.com/football/news/51850cf0-80db-4e97-85a2-dc7ab91c6b01/fnb-varsity-cup-2026-explodes-into-life-with-try-fest-opening-round"}],"stat_scope":"verified_match_reports_only","matches":[{"date":"2026-02-23","opponent":"UCT Ikeys","tries":1,"round":"Round 2","source_url":"https://supersport.com/rugby/news/9fe83ac9-fd01-4dd9-84ec-b43cedee36e6/dominance-on-full-display-as-fnb-varsity-cup-heavyweights-shine-in-round-2"}]}'::jsonb)
+on conflict (competition_id,player_name,team_name) do update set statistics=excluded.statistics,source_url=excluded.source_url,source_checked_at=now(),updated_at=now();
