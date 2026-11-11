@@ -678,7 +678,7 @@ function AdminRecruitment({roles,user}) {
   if(e)setError(e.message);else await load();
  }
  async function reviewApplication(item,status){
-  setError("");const {error:e}=await supabase.from("trial_applications").update({status,coach_notes:notes[item.id]??item.coach_notes??null,reviewed_by:user.id,reviewed_at:new Date().toISOString()}).eq("id",item.id);
+  setError("");const {error:e}=await supabase.from("trial_applications").update({status,coach_notes:notes[item.id]??item.coach_notes??null,reviewed_by:user.id,reviewed_at:new Date().toISOString(),updated_at:new Date().toISOString()}).eq("id",item.id);
   if(e)setError(e.message);else await load();
  }
  if(!allowed)return <><Header title="Admin access required" back/><main className="page"><Empty title="Restricted area" body="An assigned sport administrator, team manager or coach role is required."/></main></>;
