@@ -37,6 +37,10 @@ create table if not exists public.competition_player_statistics (
 create index if not exists competition_player_statistics_rank_idx on public.competition_player_statistics (competition_id, total_goals desc, player_name);
 alter table public.competition_matches enable row level security;
 alter table public.competition_player_statistics enable row level security;
+drop policy if exists "Competition matches public read" on public.competition_matches;
+drop policy if exists "Assigned sport admins manage competition matches" on public.competition_matches;
+drop policy if exists "Competition player statistics public read" on public.competition_player_statistics;
+drop policy if exists "Assigned sport admins manage competition player statistics" on public.competition_player_statistics;
 create policy "Competition matches public read" on public.competition_matches for select using (true);
 create policy "Assigned sport admins manage competition matches" on public.competition_matches for all using (exists (select 1 from public.competitions c where c.id=competition_matches.competition_id and c.sport_id is not null and private.can_manage_sport(c.sport_id))) with check (exists (select 1 from public.competitions c where c.id=competition_matches.competition_id and c.sport_id is not null and private.can_manage_sport(c.sport_id)));
 create policy "Competition player statistics public read" on public.competition_player_statistics for select using (true);
