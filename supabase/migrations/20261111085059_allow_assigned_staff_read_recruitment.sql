@@ -1,0 +1,1 @@
+create policy "Assigned staff read recruitment opportunities" on public.recruitment_opportunities for select to authenticated using (private.can_manage_athlete(sport_id,team_id));
