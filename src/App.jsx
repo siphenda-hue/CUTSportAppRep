@@ -68,7 +68,7 @@ function PaymentReturn({user,result,cart,setCart}) {
    if(error)setError(error.message);
    else{
     setOrder(data);
-    if(data?.payment_status==="succeeded"){setError("");setCart([]);return}
+    if(data?.payment_status==="succeeded"){setError("");setCart([]);try{sessionStorage.removeItem("cut-checkout-request")}catch{}return}
    }
    attempts+=1;
    if(active&&attempts<24)timer=setTimeout(load,2500);
