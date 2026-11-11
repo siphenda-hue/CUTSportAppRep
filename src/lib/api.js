@@ -14,12 +14,12 @@ async function query(table, select = '*', options = {}) {
 export const api = {
   sports: () => query('sports', 'id,name,slug,description,image_url,display_order', { eq: { is_active: true }, order: 'display_order' }),
   teams: (sportId) => query('teams', 'id,name,category,season,coach_name,image_url,sport_id', { eq: { is_active: true, ...(sportId ? { sport_id: sportId } : {}) }, order: 'name' }),
-  competitions: (sportId) => query('competitions', 'id,sport_id,name,season,start_date,end_date,venue,description,status', { eq: sportId ? { sport_id: sportId } : {}, order: 'start_date', ascending: true, limit: 50 }),
+  competitions: (sportId) => query('competitions', 'id,sport_id,name,season,start_date,end_date,venue,description,status', { eq: sportId ? { sport_id: sportId } : {}, order: 'start_date', ascending: true, limit: 200 }),
   athletes: (sportId) => query('athletes', 'id,full_name,preferred_name,position,squad_number,bio,photo_url,is_featured,sport_id,team_id,sports(name),teams(name)', { eq: { approval_status: 'approved', profile_visibility: 'public', ...(sportId ? { sport_id: sportId } : {}) }, order: 'full_name', limit: 100 }),
-  fixtures: (sportId) => query('fixtures', 'id,opponent,venue,starts_at,status,home_score,away_score,result_summary,sport_id,team_id,competition_id,teams(name),sports(name)', { eq: sportId ? { sport_id: sportId } : {}, order: 'starts_at', ascending: true, limit: 30 }),
+  fixtures: (sportId) => query('fixtures', 'id,opponent,venue,starts_at,status,home_score,away_score,result_summary,sport_id,team_id,competition_id,teams(name),sports(name)', { eq: sportId ? { sport_id: sportId } : {}, order: 'starts_at', ascending: true, limit: 200 }),
   articles: () => query('articles', 'id,title,slug,excerpt,body,cover_image_url,published_at,sport_id,sports(name)', { eq: { status: 'published' }, order: 'published_at', ascending: false, limit: 12 }),
   products: () => query('products', 'id,name,slug,description,category,price_cents,image_url,stock_quantity', { eq: { is_active: true }, order: 'created_at', ascending: false, limit: 30 }),
-  events: () => query('events', 'id,title,description,venue,starts_at,ends_at,ticketed,published,sport_id', { eq: { published: true, archived_at: null }, order: 'starts_at', limit: 20 }),
+  events: () => query('events', 'id,title,description,venue,starts_at,ends_at,ticketed,published,sport_id', { eq: { published: true, archived_at: null }, order: 'starts_at', limit: 100 }),
   sponsors: () => query('sponsors', 'id,name,slug,description,logo_url,website_url,sponsorship_tier,display_order', { eq: { is_active: true }, order: 'display_order' }),
   profile: async (userId) => {
     if (!supabase) return { data: null, error: null };
