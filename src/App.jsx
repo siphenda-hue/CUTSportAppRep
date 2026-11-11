@@ -186,14 +186,14 @@ function HockeyCompetitionData({competition}) {
  </div>;
 }
 function CompetitionData({competition}) {
- const matches=[...(competition.competition_matches||[])].sort((a,b)=>new Date(a.starts_at||0)-new Date(b.starts_at||0));
+ const matches=[...(competition.competition_matches||[])].sort((a,b)=>new Date(a.starts_at||"9999-12-31")-new Date(b.starts_at||"9999-12-31"));
  const teamStats=competition.competition_team_statistics||[];
  const playerStats=competition.competition_player_statistics||[];
  const fmtDate=value=>value?new Intl.DateTimeFormat("en-ZA",{day:"numeric",month:"short",year:"numeric",timeZone:"Africa/Johannesburg"}).format(new Date(value)):"Date TBC";
  const label=k=>String(k).replaceAll("_"," ").replace(/\b\w/g,x=>x.toUpperCase());
- const metricEntries=row=>Object.entries(row.statistics||{}).filter(([,v])=>v!==null&&v!==undefined&&typeof v!=="object");
+ const formatMetricValue=v=>Array.isArray(v)?v.map(formatMetricValue).join(" · "):v&&typeof v==="object"?Object.entries(v).map(([k,val])=>label(k)+": "+formatMetricValue(val)).join("; "):String(v);\n const metricEntries=row=>Object.entries(row.statistics||{}).filter(([,v])=>v!==null&&v!==undefined).map(([k,v])=>[k,formatMetricValue(v)]);
  return <div className="competition-data">
-  {matches.length>0&&<section className="competition-data-panel"><h3>Fixtures & results</h3><div className="competition-result-list">{matches.map(m=><article className="competition-result" key={m.id}><div><b>{m.home_team} <span>vs</span> {m.away_team}</b><small>{m.match_round||m.group_name||"Match"} · {fmtDate(m.starts_at)}{m.venue?" · "+m.venue:""}</small></div><strong>{m.home_score??"—"} – {m.away_score??"—"}</strong></article>)}</div></section>}
+  {matches.length>0&&<section className="competition-data-panel"><h3>Fixtures & results</h3><div className="competition-result-list">{matches.map(m=><article className="competition-result" key={m.id}><div><b>{m.home_team} <span>vs</span> {m.away_team}</b><small>{m.match_round||m.group_name||"Match"} · {fmtDate(m.starts_at)}{m.venue?" · "+m.venue:""}</small>{metricEntries(m).length>0&&<small className="competition-result-details">{metricEntries(m).map(([k,v])=>label(k)+": "+v).join(" · ")}</small>}</div><strong>{m.home_score??"—"} – {m.away_score??"—"}</strong></article>)}</div></section>}
   {teamStats.length>0&&<section className="competition-data-panel"><h3>Team statistics</h3><div className="competition-stat-grid">{teamStats.map(t=><article key={t.id}><b>{t.team_name}</b>{metricEntries(t).map(([k,v])=><span key={k}><small>{label(k)}</small><strong>{v}</strong></span>)}</article>)}</div></section>}
   {playerStats.length>0&&<section className="competition-data-panel"><h3>Player statistics</h3><div className="competition-player-list">{playerStats.map(p=><article key={p.id}><b>{p.player_name}</b><small>{p.team_name}{p.squad_number?" · #"+p.squad_number:""}</small>{metricEntries(p).length>0?<div>{metricEntries(p).map(([k,v])=><span key={k}>{label(k)}: <strong>{v}</strong></span>)}</div>:<div><span>Goals: <strong>{p.total_goals}</strong></span></div>}</article>)}</div></section>}
   <small className="competition-source-note">Competition statistics are displayed as published by the linked source. Player-level figures are shown only where a source provides them.</small>
