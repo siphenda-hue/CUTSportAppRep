@@ -1,4 +1,4 @@
-const CACHE_NAME = "cut-sport-shell-v1";
+const CACHE_NAME = "cut-sport-shell-v2";
 const APP_SHELL = ["/", "/index.html", "/manifest.webmanifest", "/icons/cut-sport.svg"];
 
 self.addEventListener("install", (event) => {
@@ -35,7 +35,22 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  if (url.pathname.startsWith("/assets/") || APP_SHELL.includes(url.pathname)) {
+  if (url.pathname.startsWith("/assets/")) {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          if (response.ok && response.type === "basic") {
+            const copy = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+          }
+          return response;
+        })
+        .catch(async () => (await caches.match(request)))
+    );
+    return;
+  }
+
+  if (APP_SHELL.includes(url.pathname)) {
     event.respondWith(
       caches.match(request).then((cached) => {
         if (cached) return cached;
