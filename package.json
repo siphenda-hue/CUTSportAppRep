@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
-    "build": "vite build",
+    "build": "npm run preflight:deploy && vite build",
     "preview": "vite preview --host 0.0.0.0",
     "preflight:deploy": "node scripts/deploy-preflight.mjs"
   },
