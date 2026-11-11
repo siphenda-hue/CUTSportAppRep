@@ -94,7 +94,33 @@ function Story({articles}) {const {slug}=useParams();const a=articles.find(x=>x.
 function Sponsors({sponsors}) {return <><Header title="Our sponsors" back/><main className="page"><h1>Stronger together.</h1>{sponsors.length?sponsors.map(s=><div className="sponsor-card" key={s.id}><b>{s.name}</b><p>{s.description}</p>{s.website_url&&<a href={s.website_url} target="_blank" rel="noreferrer">Visit partner</a>}</div>):<Empty title="Partner directory coming soon" body="Official sponsor profiles will be published here."/>}</main></>}
 function Profile({user,profile,roles}) {
  const [mode,setMode]=useState("login"),[email,setEmail]=useState(""),[password,setPassword]=useState(""),[newPassword,setNewPassword]=useState(""),[name,setName]=useState(profile?.full_name||""),[message,setMessage]=useState(""),[busy,setBusy]=useState(false);
+ const [athleteReview,setAthleteReview]=useState({athlete:null,statistics:[],achievements:[],media:[]});
+ const [reviewLoading,setReviewLoading]=useState(false),[reviewError,setReviewError]=useState("");
  useEffect(()=>setName(profile?.full_name||""),[profile]);
+ useEffect(()=>{
+  let active=true;
+  async function loadAthleteReview(){
+   if(!user?.id||!supabase){setAthleteReview({athlete:null,statistics:[],achievements:[],media:[]});setReviewError("");return;}
+   setReviewLoading(true);setReviewError("");
+   const athleteResult=await supabase.from("athletes").select("id,full_name,preferred_name,approval_status,review_note,reviewed_at,sports(name),teams(name)").eq("profile_id",user.id).maybeSingle();
+   if(!active)return;
+   if(athleteResult.error){setReviewError(athleteResult.error.message);setReviewLoading(false);return;}
+   if(!athleteResult.data){setAthleteReview({athlete:null,statistics:[],achievements:[],media:[]});setReviewLoading(false);return;}
+   const athleteId=athleteResult.data.id;
+   const [stats,achievements,media]=await Promise.all([
+    supabase.from("athlete_statistics").select("id,season,period_label,approval_status,review_note,created_at").eq("athlete_id",athleteId).order("created_at",{ascending:false}),
+    supabase.from("athlete_achievements").select("id,title,review_status,review_note,created_at").eq("athlete_id",athleteId).order("created_at",{ascending:false}),
+    supabase.from("athlete_media").select("id,title,review_status,review_note,created_at").eq("athlete_id",athleteId).order("created_at",{ascending:false})
+   ]);
+   if(!active)return;
+   const failed=[stats,achievements,media].find(x=>x.error);
+   if(failed)setReviewError(failed.error.message);
+   setAthleteReview({athlete:athleteResult.data,statistics:stats.data||[],achievements:achievements.data||[],media:media.data||[]});
+   setReviewLoading(false);
+  }
+  loadAthleteReview();
+  return()=>{active=false;};
+ },[user?.id]);
  async function submit(e){
   e.preventDefault();if(!supabase){setMessage("Connect Supabase environment variables first.");return}
   setBusy(true);setMessage("");
@@ -124,7 +150,17 @@ function Profile({user,profile,roles}) {
   setBusy(true);const {error}=await supabase.from("profiles").upsert({id:user.id,full_name:name,email:user.email},{onConflict:"id"});
   setMessage(error?.message||"Profile updated.");setBusy(false);
  }
- return <><Header title="Profile"/><main className="page">{user?<><h1>{profile?.full_name||user.email}</h1><form className="form-card" onSubmit={save}><label>Full name<input value={name} onChange={e=>setName(e.target.value)}/></label><label>Email<input value={user.email||""} disabled/></label><button className="btn primary" disabled={busy}>{busy?"Saving…":"Save profile"}</button></form><form className="form-card" onSubmit={updatePassword}><h3>Change password</h3><label>New password<input type="password" minLength="8" required value={newPassword} onChange={e=>setNewPassword(e.target.value)} autoComplete="new-password"/></label><button className="btn secondary" disabled={busy||newPassword.length<8}>{busy?"Updating…":"Update password"}</button></form>{message&&<p>{message}</p>}<div className="account-links"><Link to="/orders"><Package/> My orders</Link><Link to="/tickets"><Ticket/> My tickets</Link><Link to="/notifications"><Bell/> Notifications</Link>{roles.some(r=>["sport_admin","super_admin","coach","shop_admin"].includes(r))&&<Link to="/admin">CUT Sport admin dashboard</Link>}{roles.some(r=>["sport_admin","super_admin","coach"].includes(r))&&<Link to="/admin/athletes">Athlete profiles</Link>}<p>Roles: {roles.join(", ")||"Member"}</p><button onClick={()=>supabase.auth.signOut()}><LogOut/> Sign out</button></div></>:<><h1>Join the Blues.</h1><div className="tabs"><button type="button" onClick={()=>{setMode("login");setMessage("")}}>Log in</button><button type="button" onClick={()=>{setMode("signup");setMessage("")}}>Create account</button></div><form className="form-card" onSubmit={submit}>{mode==="signup"&&<label>Full name<input required value={name} onChange={e=>setName(e.target.value)}/></label>}<label>Email<input type="email" required value={email} onChange={e=>setEmail(e.target.value)} autoComplete="email"/></label><label>Password<input type="password" minLength="8" required value={password} onChange={e=>setPassword(e.target.value)} autoComplete={mode==="login"?"current-password":"new-password"}/></label><button className="btn primary" disabled={busy}>{busy?"Please wait…":"Continue"}</button>{mode==="login"&&<button type="button" className="btn secondary" disabled={busy} onClick={requestPasswordReset}>Forgot password?</button>}{message&&<p>{message}</p>}</form><p className="muted">Student and staff discounts require verified institutional eligibility.</p></>}</main></>;
+ function reviewStatus(label,status,note,id){
+  return <div className="sponsor-card" key={id}><div><b>{label}</b><small>Status: {status||"pending"}</small>{note&&<p className="form-error">Review note: {note}</p>}</div></div>;
+ }
+ return <><Header title="Profile"/><main className="page">{user?<><h1>{profile?.full_name||user.email}</h1><form className="form-card" onSubmit={save}><label>Full name<input value={name} onChange={e=>setName(e.target.value)}/></label><label>Email<input value={user.email||""} disabled/></label><button className="btn primary" disabled={busy}>{busy?"Saving…":"Save profile"}</button></form><form className="form-card" onSubmit={updatePassword}><h3>Change password</h3><label>New password<input type="password" minLength="8" required value={newPassword} onChange={e=>setNewPassword(e.target.value)} autoComplete="new-password"/></label><button className="btn secondary" disabled={busy||newPassword.length<8}>{busy?"Updating…":"Update password"}</button></form>{message&&<p>{message}</p>}
+ <Section title="Athlete submissions & review status">{reviewLoading?<p className="muted">Loading your athlete review information…</p>:reviewError?<p className="form-error">{reviewError}</p>:!athleteReview.athlete?<Empty title="No athlete profile linked yet" body="Your CUT Sport account is not linked to an athlete profile. Ask your coach or sport administrator to link your account before submitting or viewing athlete records."/>:<><div className="admin-notice"><ShieldCheck size={18}/><div><b>{athleteReview.athlete.preferred_name||athleteReview.athlete.full_name}</b><p>{athleteReview.athlete.sports?.name||"CUT Sport"}{athleteReview.athlete.teams?.name?" · "+athleteReview.athlete.teams.name:""} · Profile status: {athleteReview.athlete.approval_status}</p>{athleteReview.athlete.review_note&&<p className="form-error">Review note: {athleteReview.athlete.review_note}</p>}</div></div>
+ {athleteReview.statistics.length>0&&<><h3>Performance statistics</h3>{athleteReview.statistics.map(x=>reviewStatus([x.season,x.period_label].filter(Boolean).join(" · ")||"Statistics submission",x.approval_status,x.review_note,x.id))}</>}
+ {athleteReview.achievements.length>0&&<><h3>Achievements</h3>{athleteReview.achievements.map(x=>reviewStatus(x.title,x.review_status,x.review_note,x.id))}</>}
+ {athleteReview.media.length>0&&<><h3>Media submissions</h3>{athleteReview.media.map(x=>reviewStatus(x.title||"Media submission",x.review_status,x.review_note,x.id))}</>}
+ {!athleteReview.statistics.length&&!athleteReview.achievements.length&&!athleteReview.media.length&&<p className="muted">No statistics, achievements or media submissions are linked to this athlete profile yet.</p>}
+ <p className="muted">Rejected items show the reviewer’s correction note. Editing and resubmission will be enabled after the secure ownership checks are completed.</p></>}</Section>
+ <div className="account-links"><Link to="/orders"><Package/> My orders</Link><Link to="/tickets"><Ticket/> My tickets</Link><Link to="/notifications"><Bell/> Notifications</Link>{roles.some(r=>["sport_admin","super_admin","coach","shop_admin"].includes(r))&&<Link to="/admin">CUT Sport admin dashboard</Link>}{roles.some(r=>["sport_admin","super_admin","coach"].includes(r))&&<Link to="/admin/athletes">Athlete profiles</Link>}<p>Roles: {roles.join(", ")||"Member"}</p><button onClick={()=>supabase.auth.signOut()}><LogOut/> Sign out</button></div></>:<><h1>Join the Blues.</h1><div className="tabs"><button type="button" onClick={()=>{setMode("login");setMessage("")}}>Log in</button><button type="button" onClick={()=>{setMode("signup");setMessage("")}}>Create account</button></div><form className="form-card" onSubmit={submit}>{mode==="signup"&&<label>Full name<input required value={name} onChange={e=>setName(e.target.value)}/></label>}<label>Email<input type="email" required value={email} onChange={e=>setEmail(e.target.value)} autoComplete="email"/></label><label>Password<input type="password" minLength="8" required value={password} onChange={e=>setPassword(e.target.value)} autoComplete={mode==="login"?"current-password":"new-password"}/></label><button className="btn primary" disabled={busy}>{busy?"Please wait…":"Continue"}</button>{mode==="login"&&<button type="button" className="btn secondary" disabled={busy} onClick={requestPasswordReset}>Forgot password?</button>}{message&&<p>{message}</p>}</form><p className="muted">Student and staff discounts require verified institutional eligibility.</p></>}</main></>;
 }
 let cutQrCodeLoader=null;
 function loadCutQrCode(){
