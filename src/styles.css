@@ -103,3 +103,5 @@
 .hockey-team-stat span{display:grid;gap:3px}
 .hockey-team-stat strong{font-size:1.15rem;font-variant-numeric:tabular-nums}
 .hockey-team-stat small{font-size:.67rem;opacity:.85}
+
+.hockey-match-report{display:inline-block;margin-top:5px;color:var(--blue,#1554a3);font-size:.72rem;font-weight:800;text-decoration:none}
