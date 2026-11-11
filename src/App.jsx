@@ -639,7 +639,7 @@ function AdminOperations({roles,user}) {
 
 function AdminApprovals({roles,user}) {
  const allowed=roles.some(r=>["sport_admin","super_admin"].includes(r));
- const [items,setItems]=useState([]),[stats,setStats]=useState([]),[achievements,setAchievements]=useState([]),[media,setMedia]=useState([]);
+ const [items,setItems]=useState([]),[stats,setStats]=useState([]),[achievements,setAchievements]=useState([]),[media,setMedia]=useState([]),[history,setHistory]=useState([]);
  const [error,setError]=useState(""),[loading,setLoading]=useState(false),[busyKey,setBusyKey]=useState("");
  const [notes,setNotes]=useState({});
  async function load(){
@@ -653,7 +653,14 @@ function AdminApprovals({roles,user}) {
   ]);
   const fail=[a,s,g,m].find(x=>x.error);
   if(fail)setError(fail.error.message);
-  else{setItems(a.data||[]);setStats(s.data||[]);setAchievements(g.data||[]);setMedia(m.data||[]);}
+  else{
+   setItems(a.data||[]);setStats(s.data||[]);setAchievements(g.data||[]);setMedia(m.data||[]);
+   const pendingIds=[...(a.data||[]),...(s.data||[]),...(g.data||[]),...(m.data||[])].map(x=>x.id);
+   if(pendingIds.length){
+    const h=await supabase.from("athlete_review_history").select("id,record_type,record_id,from_status,to_status,previous_note,review_note,changed_at").in("record_id",pendingIds).order("changed_at",{ascending:false}).limit(100);
+    if(h.error)setError(h.error.message);else setHistory(h.data||[]);
+   }else setHistory([]);
+  }
   setLoading(false);
  }
  useEffect(()=>{load()},[allowed]);
@@ -685,9 +692,14 @@ function AdminApprovals({roles,user}) {
   else{setNotes(current=>{const next={...current};delete next[key];return next;});await load();}
   setBusyKey("");
  }
+ function reviewHistory(kind,item){
+  const rows=history.filter(h=>h.record_type===kind&&h.record_id===item.id);
+  if(!rows.length)return null;
+  return <div className="review-history"><b>Previous review activity</b>{rows.slice(0,3).map(h=><div key={h.id}><small>{h.from_status||"New"} → {h.to_status} · {dateLabel(h.changed_at)}</small>{h.previous_note&&<p>Previous feedback: {h.previous_note}</p>}{h.review_note&&<p>Reviewer note: {h.review_note}</p>}</div>)}</div>;
+ }
  function reviewNote(kind,item){
   const key=kind+":"+item.id;
-  return <label className="review-note-field">Rejection reason<textarea rows="2" placeholder="Explain what needs to be corrected before resubmission" value={notes[key]||""} onChange={e=>setNotes(current=>({...current,[key]:e.target.value}))}/></label>;
+  return <>{reviewHistory(kind,item)}<label className="review-note-field">Rejection reason<textarea rows="2" placeholder="Explain what needs to be corrected before resubmission" value={notes[key]||""} onChange={e=>setNotes(current=>({...current,[key]:e.target.value}))}/></label></>;
  }
  function actions(kind,item){
   const key=kind+":"+item.id,working=busyKey===key;
