@@ -20,7 +20,7 @@ values
    'Paarl Golf Club, Western Cape, South Africa',
    'CUT Golf finished 3rd overall in the USSA Golf Tournament, earning the team bronze medal. CUT captain Mojalefa Xaba finished 4th in the individual standings. The official CUT news article gives the event dates as 11–13 April 2022; the 2022 annual-report narrative gives a broader 10–15 April period, so the official CUT news article is used for the event dates. Xaba’s individual result is retained in this event description only because his name does not match an existing player record in the CUT competition-player registry; no individual statistics row has been created. Sources: CUT News, 19 April 2022 https://www.cut.ac.za/news/cut-golf-team-places-3rd-overall-in-ussa-golf ; CUT Annual Report 2022, page 281 https://cms.cut.ac.za/Files/Froala/a331d2a8-5ca9-493d-85dd-a942791a1a64.pdf',
    'completed'),
-  ('a43e3a9b-7c4e-4d7e-9f7c-2025a5a00001',
+  ('a43e3a9b-7c4e-4d7e-9f7c-2025b5a00001',
    (select id from public.sports where name = 'Golf' limit 1),
    'USSA Golf Tournament',
    '2025', '2025-12-01', '2025-12-05',
@@ -28,9 +28,9 @@ values
    'CUT Golf participated in the USSA Golf Tournament hosted by Nelson Mandela University from 1–5 December 2025 and achieved 2nd position overall. The available CUT annual-report source confirms the team placing but does not provide matchplay/strokeplay breakdowns, golfer names or individual scores. No individual statistics are inferred. Source: CUT Annual Report 2025, section 11.8, page 34 https://cms.cut.ac.za/Files/Froala/e1338b1b-1a2c-4dd1-8867-270ca64cbf93.pdf',
    'completed')
 on conflict (id) do update set
-  name=excluded.name, season=excluded.season, start_date=excluded.start_date,
-  end_date=excluded.end_date, venue=excluded.venue,
-  description=excluded.description, status=excluded.status;
+  sport_id=excluded.sport_id,name=excluded.name,season=excluded.season,
+  start_date=excluded.start_date,end_date=excluded.end_date,
+  venue=excluded.venue,description=excluded.description,status=excluded.status;
 
 insert into public.competition_standings
   (competition_id, team_name, group_name, position, source_url, source_checked_at)
@@ -39,7 +39,7 @@ values
    'CUT Golf', 'Overall Team Standing', 3,
    'https://www.cut.ac.za/news/cut-golf-team-places-3rd-overall-in-ussa-golf',
    now()),
-  ('a43e3a9b-7c4e-4d7e-9f7c-2025a5a00001',
+  ('a43e3a9b-7c4e-4d7e-9f7c-2025b5a00001',
    'CUT Golf', 'Overall Team Standing', 2,
    'https://cms.cut.ac.za/Files/Froala/e1338b1b-1a2c-4dd1-8867-270ca64cbf93.pdf',
    now())
