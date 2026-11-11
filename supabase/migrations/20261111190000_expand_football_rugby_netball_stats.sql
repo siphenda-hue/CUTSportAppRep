@@ -20,7 +20,7 @@ from (values
 ('2023','TTKay FC','Free State Stream A',4,12,5,2,5,22,26,-4,17,'https://en.wikipedia.org/wiki/2023_Sasol_Women%27s_League'),
 ('2023','De Jaguar FC','Free State Stream A',5,12,4,1,7,21,33,-12,13,'https://en.wikipedia.org/wiki/2023_Sasol_Women%27s_League'),
 ('2023','Matsimaholo Ladies','Free State Stream A',6,12,3,0,9,14,62,-48,9,'https://en.wikipedia.org/wiki/2023_Sasol_Women%27s_League'),
-('2023','Black Urban FC','Free State Stream A',7,0,0,0,0,0,0,0,'https://en.wikipedia.org/wiki/2023_Sasol_Women%27s_League'),
+('2023','Black Urban FC','Free State Stream A',7,0,0,0,0,0,0,0,0,0,'https://en.wikipedia.org/wiki/2023_Sasol_Women%27s_League'),
 ('2023','Molefe Khalinkomo FC','Free State Stream A',8,12,0,0,12,4,80,-76,0,'https://en.wikipedia.org/wiki/2023_Sasol_Women%27s_League')
 ) as v(season,team_name,grp,pos,pld,w,d,l,gf,ga,gd,pts,src)
 join public.competitions c on c.name='Sasol Women''s League — Free State' and c.season=v.season
