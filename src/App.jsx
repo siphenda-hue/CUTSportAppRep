@@ -319,7 +319,7 @@ function PlayerProfilePage({user,roles=[]}) {
    const values=Object.entries({...stats,field_goals:d.field_goals,penalty_corner_goals:d.penalty_corner_goals,penalty_stroke_goals:d.penalty_stroke_goals,total_goals:d.total_goals}).filter(([k,v])=>v!==null&&v!==undefined&&k!=="stat_category");
    return values.map(([k,v])=>k.replaceAll("_"," ")+": "+(typeof v==="object"?JSON.stringify(v):v)).join(" · ");
   }
-  if(row.record_type==="athlete_statistics")return Object.entries(d.metrics||{}).map(([k,v])=>k.replaceAll("_"," ")+": "+v).join(" · ");
+  if(row.record_type==="athlete_statistics")return Object.entries(d.metrics||{}).map(([k,v])=>k.replaceAll("_"," ")+": "+v).join(" · ");\n  if(row.record_type==="athlete_achievement")return [row.role,d.description,d.is_verified?"Verified achievement":null].filter(Boolean).join(" · ");
   if(row.record_type==="team_membership")return [d.joined_at?"Joined "+d.joined_at:null,d.left_at?"Left "+d.left_at:null,d.is_active?"Current membership":"Past membership"].filter(Boolean).join(" · ");
   return [row.position,row.role,row.is_captain?"Captain":null,row.is_vice_captain?"Vice-captain":null,row.squad_number!==null?"#"+row.squad_number:null].filter(Boolean).join(" · ");
  };
