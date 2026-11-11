@@ -360,7 +360,7 @@ function PlayerProfilePage({user,roles=[]}) {
   if(!obj||typeof obj!=="object"||Array.isArray(obj))return false;
   let found=false;
   Object.entries(obj).forEach(([key,value])=>{
-   if(additive.has(key)&&typeof value==="number"&&Number.isFinite(value)){const label=key==="total_tries"?"tries":key;totals[label]=(totals[label]||0)+value;found=true;}
+   if(additive.has(key)&&typeof value==="number"&&Number.isFinite(value)){const label=key==="total_tries"?"tries":key==="goals"?"total_goals":key;totals[label]=(totals[label]||0)+value;found=true;}
   });
   return found;
  };
