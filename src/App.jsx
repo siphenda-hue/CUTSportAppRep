@@ -657,7 +657,7 @@ function AdminRecruitment({roles,user}) {
   const failure=sp.error||tm.error||op.error;if(failure){setError(failure.message);return;}
   setSports(sp.data||[]);setTeams(tm.data||[]);setOpportunities(op.data||[]);
   const ids=(op.data||[]).map(x=>x.id);
-  if(ids.length){const {data,error:e}=await supabase.from("trial_applications").select("id,opportunity_id,full_name,playing_position,experience,motivation,status,coach_notes,created_at").in("opportunity_id",ids).order("created_at",{ascending:false});if(e)setError(e.message);else setApplications(data||[]);}
+  if(ids.length){const {data,error:e}=await supabase.from("trial_applications").select("id,opportunity_id,full_name,playing_position,experience,motivation,status,created_at").in("opportunity_id",ids).order("created_at",{ascending:false});if(e)setError(e.message);else{const appRows=data||[];const {data:reviews,error:re}=await supabase.from("trial_application_reviews").select("application_id,coach_notes").in("application_id",appRows.map(x=>x.id));if(re)setError(re.message);const byId=new Map((reviews||[]).map(x=>[x.application_id,x.coach_notes]));setApplications(appRows.map(x=>({...x,coach_notes:byId.get(x.id)||""})));}}
   else setApplications([]);
  }
  useEffect(()=>{load()},[allowed]);
