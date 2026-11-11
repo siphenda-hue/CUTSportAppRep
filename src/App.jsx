@@ -356,6 +356,7 @@ function PlayerProfilePage({user,roles=[]}) {
  const totals={};
  const additive=new Set(["total_goals","goals","field_goals","penalty_corner_goals","penalty_stroke_goals","tries","total_tries","wickets","runs","assists","tackles","saves","points","yellow_cards","red_cards","clean_sheets","goals_conceded","shots","shots_on_target","passes","pass_accuracy","interceptions","rebounds","blocks","steals","fouls","minutes_played","aces","double_faults","sets_won","games_won","birdies","pars","eagles","bogeys","penalty_strokes","rounds","overs","maidens","catches","run_outs","stumpings","boundaries","sixes","fours","sprint_time","distance_covered","successful_dribbles","key_passes","crosses","clearances","saves_made","shots_faced"]);
  let statisticRecords=0,squadSelections=0;
+ const aggregateCompetitions=new Set(records.filter(r=>r.record_type==="competition_statistics"&&r.competition_id).map(r=>r.competition_id));
  const addMetrics=(obj)=>{
   if(!obj||typeof obj!=="object"||Array.isArray(obj))return false;
   let found=false;
@@ -382,10 +383,12 @@ function PlayerProfilePage({user,roles=[]}) {
    if(d.fixture_id)appearances.add("fixture:"+d.fixture_id);
   }
   if(row.record_type==="match_appearance"){
-   appearances.add("match:"+row.record_id);
+   appearances.add(d.fixture_id?"fixture:"+d.fixture_id:[row.competition_id,d.match_date||row.record_date,d.opponent||""].join("|"));
    const metrics=d.metrics||{};
    if(Object.values(metrics).some(v=>typeof v==="number"&&Number.isFinite(v)))statisticRecords++;
-   addMetrics(metrics);
+   // Competition-level totals take precedence where available, preventing double-counting
+   // when individual match records are later added for the same competition.
+   if(!row.competition_id||!aggregateCompetitions.has(row.competition_id))addMetrics(metrics);
   }
  });
  const competitions=new Set(records.map(x=>x.competition_id).filter(Boolean)).size;
