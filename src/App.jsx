@@ -154,30 +154,31 @@ function AthletePerformance({user}) {
 
 function Profile({user,profile,roles}) {
  const [mode,setMode]=useState("login"),[email,setEmail]=useState(""),[password,setPassword]=useState(""),[newPassword,setNewPassword]=useState(""),[name,setName]=useState(profile?.full_name||""),[message,setMessage]=useState(""),[busy,setBusy]=useState(false);
- const [athleteReview,setAthleteReview]=useState({athlete:null,statistics:[],achievements:[],media:[],history:[]});
+ const [athleteReview,setAthleteReview]=useState({athlete:null,statistics:[],achievements:[],media:[],history:[],memberships:[]});
  const [reviewLoading,setReviewLoading]=useState(false),[reviewError,setReviewError]=useState("");
  const [reviewDrafts,setReviewDrafts]=useState({}),[reviewSaving,setReviewSaving]=useState("");
  useEffect(()=>setName(profile?.full_name||""),[profile]);
  useEffect(()=>{
   let active=true;
   async function loadAthleteReview(){
-   if(!user?.id||!supabase){setAthleteReview({athlete:null,statistics:[],achievements:[],media:[],history:[]});setReviewError("");return;}
+   if(!user?.id||!supabase){setAthleteReview({athlete:null,statistics:[],achievements:[],media:[],history:[],memberships:[]});setReviewError("");return;}
    setReviewLoading(true);setReviewError("");
    const athleteResult=await supabase.from("athletes").select("id,full_name,preferred_name,position,gender,nationality,hometown,province,faculty,qualification,year_of_study,student_status,years_representing_cut,previous_clubs,squad_number,bio,photo_url,approval_status,review_note,reviewed_at,sports(name),teams(name)").eq("profile_id",user.id).maybeSingle();
    if(!active)return;
    if(athleteResult.error){setReviewError(athleteResult.error.message);setReviewLoading(false);return;}
-   if(!athleteResult.data){setAthleteReview({athlete:null,statistics:[],achievements:[],media:[]});setReviewLoading(false);return;}
+   if(!athleteResult.data){setAthleteReview({athlete:null,statistics:[],achievements:[],media:[],history:[],memberships:[]});setReviewLoading(false);return;}
    const athleteId=athleteResult.data.id;
-   const [stats,achievements,media,history]=await Promise.all([
+   const [stats,achievements,media,history,memberships]=await Promise.all([
     supabase.from("athlete_statistics").select("id,competition_id,fixture_id,season,period_label,metrics,approval_status,review_note,created_at").eq("athlete_id",athleteId).order("created_at",{ascending:false}),
     supabase.from("athlete_achievements").select("id,title,description,category,award_date,competition_id,review_status,review_note,created_at").eq("athlete_id",athleteId).order("created_at",{ascending:false}),
     supabase.from("athlete_media").select("id,media_type,title,description,external_url,review_status,review_note,created_at").eq("athlete_id",athleteId).order("created_at",{ascending:false}),
-    supabase.from("athlete_review_history").select("id,record_type,record_id,from_status,to_status,previous_note,review_note,reviewed_at,changed_at").eq("athlete_id",athleteId).order("changed_at",{ascending:false}).limit(30)
+    supabase.from("athlete_review_history").select("id,record_type,record_id,from_status,to_status,previous_note,review_note,reviewed_at,changed_at").eq("athlete_id",athleteId).order("changed_at",{ascending:false}).limit(30),
+    supabase.from("athlete_team_memberships").select("id,team_id,sport_id,position,squad_number,is_active,joined_at,teams(name),sports(name)").eq("athlete_id",athleteId).eq("is_active",true).order("created_at",{ascending:false})
    ]);
    if(!active)return;
-   const failed=[stats,achievements,media,history].find(x=>x.error);
+   const failed=[stats,achievements,media,history,memberships].find(x=>x.error);
    if(failed)setReviewError(failed.error.message);
-   setAthleteReview({athlete:athleteResult.data,statistics:stats.data||[],achievements:achievements.data||[],media:media.data||[],history:history.data||[]});
+   setAthleteReview({athlete:athleteResult.data,statistics:stats.data||[],achievements:achievements.data||[],media:media.data||[],history:history.data||[],memberships:memberships.data||[]});
    setReviewLoading(false);
   }
   loadAthleteReview();
@@ -291,6 +292,7 @@ function Profile({user,profile,roles}) {
  }
  return <><Header title="Profile"/><main className="page">{user?<><h1>{profile?.full_name||user.email}</h1><form className="form-card" onSubmit={save}><label>Full name<input value={name} onChange={e=>setName(e.target.value)}/></label><label>Email<input value={user.email||""} disabled/></label><button className="btn primary" disabled={busy}>{busy?"Saving…":"Save profile"}</button></form><form className="form-card" onSubmit={updatePassword}><h3>Change password</h3><label>New password<input type="password" minLength="8" required value={newPassword} onChange={e=>setNewPassword(e.target.value)} autoComplete="new-password"/></label><button className="btn secondary" disabled={busy||newPassword.length<8}>{busy?"Updating…":"Update password"}</button></form>{message&&<p>{message}</p>}
  <Section title="Athlete submissions & review status">{reviewLoading?<p className="muted">Loading your athlete review information…</p>:reviewError?<p className="form-error">{reviewError}</p>:!athleteReview.athlete?<Empty title="No athlete profile linked yet" body="Your CUT Sport account is not linked to an athlete profile. Ask your coach or sport administrator to link your account before submitting or viewing athlete records."/>:<><div className="admin-notice"><ShieldCheck size={18}/><div><b>{athleteReview.athlete.preferred_name||athleteReview.athlete.full_name}</b><p>{athleteReview.athlete.sports?.name||"CUT Sport"}{athleteReview.athlete.teams?.name?" · "+athleteReview.athlete.teams.name:""} · Profile status: {athleteReview.athlete.approval_status}</p>{athleteReview.athlete.review_note&&<p className="form-error">Review note: {athleteReview.athlete.review_note}</p>}{correctionForm("athlete",athleteReview.athlete)}</div></div>
+ {athleteReview.memberships.length>0&&<><h3>Sport & team memberships</h3><div className="performance-grid">{athleteReview.memberships.map(m=><div className="sponsor-card" key={m.id}><b>{m.sports?.name||"Sport"}</b><small>{m.teams?.name||"Team"}{m.position?" · "+m.position:""}{m.squad_number!==null&&m.squad_number!==undefined?" · #"+m.squad_number:""}</small></div>)}</div></>}
  {athleteReview.statistics.length>0&&<><h3>Performance statistics</h3>{athleteReview.statistics.map(x=><React.Fragment key={x.id}>{reviewStatus([x.season,x.period_label].filter(Boolean).join(" · ")||"Statistics submission",x.approval_status,x.review_note,x.id)}{correctionForm("statistics",x)}</React.Fragment>)}</>}
  {athleteReview.achievements.length>0&&<><h3>Achievements</h3>{athleteReview.achievements.map(x=><React.Fragment key={x.id}>{reviewStatus(x.title,x.review_status,x.review_note,x.id)}{correctionForm("achievement",x)}</React.Fragment>)}</>}
  {athleteReview.media.length>0&&<><h3>Media submissions</h3>{athleteReview.media.map(x=><React.Fragment key={x.id}>{reviewStatus(x.title||"Media submission",x.review_status,x.review_note,x.id)}{correctionForm("media",x)}</React.Fragment>)}</>}
