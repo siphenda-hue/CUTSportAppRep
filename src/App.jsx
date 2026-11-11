@@ -190,7 +190,7 @@ function CompetitionData({competition}) {
  const teamStats=competition.competition_team_statistics||[];
  const playerStats=competition.competition_player_statistics||[];
  const fmtDate=value=>value?new Intl.DateTimeFormat("en-ZA",{day:"numeric",month:"short",year:"numeric",timeZone:"Africa/Johannesburg"}).format(new Date(value)):"Date TBC";
- const label=k=>String(k).replaceAll("_"," ").replace(/\\b\\w/g,x=>x.toUpperCase());
+ const label=k=>String(k).replaceAll("_"," ").replace(/\b\w/g,x=>x.toUpperCase());
  const metricEntries=row=>Object.entries(row.statistics||{}).filter(([,v])=>v!==null&&v!==undefined&&typeof v!=="object");
  return <div className="competition-data">
   {matches.length>0&&<section className="competition-data-panel"><h3>Fixtures & results</h3><div className="competition-result-list">{matches.map(m=><article className="competition-result" key={m.id}><div><b>{m.home_team} <span>vs</span> {m.away_team}</b><small>{m.match_round||m.group_name||"Match"} · {fmtDate(m.starts_at)}{m.venue?" · "+m.venue:""}</small></div><strong>{m.home_score??"—"} – {m.away_score??"—"}</strong></article>)}</div></section>}
