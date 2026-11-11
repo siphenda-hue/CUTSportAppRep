@@ -34,7 +34,7 @@ function App() {
  const add=p=>{setCart(old=>{const found=old.find(x=>x.id===p.id);return found?old.map(x=>x.id===p.id?{...x,qty:x.qty+1}:x):[...old,{id:p.id,name:p.name,price_cents:p.price_cents,image_url:p.image_url,qty:1}]});setToast('Added to your bag');setTimeout(()=>setToast(''),2200)};
  const common={sports,teams,competitions,products,fixtures,articles,events,ticketTypes,sponsors,athletes,user,profile,roles,cart,setCart,add};
  return <div className="app-shell"><div className="app-frame"><Routes>
- <Route path="/" element={<Home {...common}/>}/><Route path="/shop" element={<Shop {...common}/>}/><Route path="/shop/:slug" element={<Product {...common}/>}/><Route path="/cart" element={<Cart {...common}/>}/><Route path="/checkout" element={<Checkout cart={cart} setCart={setCart} user={user}/>}/><Route path="/payment/:result" element={<PaymentReturn user={user} result="success" cart={cart} setCart={setCart}/>}/><Route path="/events/:id" element={<EventTickets events={events} ticketTypes={ticketTypes} user={user}/>}/><Route path="/sport" element={<Sport {...common}/>}/><Route path="/sport/:slug" element={<Hub {...common}/>}/><Route path="/news" element={<News {...common}/>}/><Route path="/news/:slug" element={<Story {...common}/>}/><Route path="/sponsors" element={<Sponsors {...common}/>}/><Route path="/profile" element={<Profile {...common}/>}/><Route path="/performance" element={<AthletePerformance user={user}/>}/><Route path="/admin" element={<AdminDashboard {...common}/>}/><Route path="/admin/sports" element={<AdminSports roles={roles} user={user} setSports={setSports}/>}/><Route path="/admin/sponsors" element={<AdminSponsors user={user} roles={roles}/>}/><Route path="/admin/products" element={<AdminProducts roles={roles} products={products} setProducts={setProducts}/>}/><Route path="/admin/shop-orders" element={<AdminShopOrders roles={roles}/>}/><Route path="/admin/athletes" element={<AdminAthletes roles={roles} user={user}/>}/><Route path="/admin/performance" element={<AdminPerformance roles={roles}/>}/><Route path="/admin/operations" element={<AdminOperations roles={roles} user={user}/>}/><Route path="/admin/approvals" element={<AdminApprovals roles={roles} user={user}/>}/><Route path="/admin/messages" element={<AdminMessages roles={roles} user={user}/>}/><Route path="/messages" element={<AthleteMessages user={user}/>}/><Route path="/admin/ticket-gate" element={<AdminTicketGate roles={roles}/>}/><Route path="/admin/event-reports" element={<AdminEventReports roles={roles}/>}/><Route path="/admin/editorial" element={<AdminEditorial roles={roles} user={user} sports={sports}/>}/><Route path="/notifications" element={<Personal title="Notifications" user={user} kind="notifications"/>}/><Route path="/tickets" element={<Personal title="My tickets" user={user} kind="tickets"/>}/><Route path="/orders" element={<Personal title="My orders" user={user} kind="orders"/>}/><Route path="*" element={<Home {...common}/>}/>
+ <Route path="/" element={<Home {...common}/>}/><Route path="/shop" element={<Shop {...common}/>}/><Route path="/shop/:slug" element={<Product {...common}/>}/><Route path="/cart" element={<Cart {...common}/>}/><Route path="/checkout" element={<Checkout cart={cart} setCart={setCart} user={user}/>}/><Route path="/payment/:result" element={<PaymentReturn user={user} result="success" cart={cart} setCart={setCart}/>}/><Route path="/events/:id" element={<EventTickets events={events} ticketTypes={ticketTypes} user={user}/>}/><Route path="/sport" element={<Sport {...common}/>}/><Route path="/sport/:slug" element={<Hub {...common}/>}/><Route path="/news" element={<News {...common}/>}/><Route path="/news/:slug" element={<Story {...common}/>}/><Route path="/sponsors" element={<Sponsors {...common}/>}/><Route path="/profile" element={<Profile {...common}/>}/><Route path="/performance" element={<AthletePerformance user={user}/>}/><Route path="/trials" element={<Trials user={user} profile={profile}/>}/><Route path="/admin/recruitment" element={<AdminRecruitment roles={roles} user={user}/>}/><Route path="/admin" element={<AdminDashboard {...common}/>}/><Route path="/admin/sports" element={<AdminSports roles={roles} user={user} setSports={setSports}/>}/><Route path="/admin/sponsors" element={<AdminSponsors user={user} roles={roles}/>}/><Route path="/admin/products" element={<AdminProducts roles={roles} products={products} setProducts={setProducts}/>}/><Route path="/admin/shop-orders" element={<AdminShopOrders roles={roles}/>}/><Route path="/admin/athletes" element={<AdminAthletes roles={roles} user={user}/>}/><Route path="/admin/performance" element={<AdminPerformance roles={roles}/>}/><Route path="/admin/operations" element={<AdminOperations roles={roles} user={user}/>}/><Route path="/admin/approvals" element={<AdminApprovals roles={roles} user={user}/>}/><Route path="/admin/messages" element={<AdminMessages roles={roles} user={user}/>}/><Route path="/messages" element={<AthleteMessages user={user}/>}/><Route path="/admin/ticket-gate" element={<AdminTicketGate roles={roles}/>}/><Route path="/admin/event-reports" element={<AdminEventReports roles={roles}/>}/><Route path="/admin/editorial" element={<AdminEditorial roles={roles} user={user} sports={sports}/>}/><Route path="/notifications" element={<Personal title="Notifications" user={user} kind="notifications"/>}/><Route path="/tickets" element={<Personal title="My tickets" user={user} kind="tickets"/>}/><Route path="/orders" element={<Personal title="My orders" user={user} kind="orders"/>}/><Route path="*" element={<Home {...common}/>}/>
  </Routes><BottomNav/><Link className="cart-fab" to="/cart"><ShoppingBag size={18}/>{cart.reduce((n,x)=>n+x.qty,0)>0&&<span>{cart.reduce((n,x)=>n+x.qty,0)}</span>}</Link>{toast&&<div className="toast">{toast}</div>}</div></div>;
 }
 function Home({sports,products,fixtures,articles,events,sponsors}) {
@@ -297,7 +297,7 @@ function Profile({user,profile,roles}) {
  {!athleteReview.statistics.length&&!athleteReview.achievements.length&&!athleteReview.media.length&&<p className="muted">No statistics, achievements or media submissions are linked to this athlete profile yet.</p>}
  {athleteReview.history.length>0&&<><h3>Review history</h3>{athleteReview.history.map(h=><div className="sponsor-card" key={h.id}><b>{h.record_type.charAt(0).toUpperCase()+h.record_type.slice(1)} · {h.from_status||"new"} → {h.to_status}</b><small>{dateLabel(h.changed_at)}</small>{h.previous_note&&<p>Previous feedback: {h.previous_note}</p>}{h.review_note&&<p>Reviewer note: {h.review_note}</p>}</div>)}</>}
  <p className="muted">Rejected submissions can be corrected here and sent back to the assigned sport administrator. Resubmitted records return to pending review; media remains private until approved.</p></>}</Section>
- <div className="account-links"><Link to="/orders"><Package/> My orders</Link><Link to="/tickets"><Ticket/> My tickets</Link><Link to="/notifications"><Bell/> Notifications</Link><Link to="/messages"><MessageSquare/> Messages</Link><Link to="/performance"><Trophy/> My performance</Link>{roles.some(r=>["sport_admin","super_admin","coach","shop_admin"].includes(r))&&<Link to="/admin">CUT Sport admin dashboard</Link>}{roles.some(r=>["sport_admin","super_admin","coach"].includes(r))&&<Link to="/admin/athletes">Athlete profiles</Link>}<p>Roles: {roles.join(", ")||"Member"}</p><button onClick={()=>supabase.auth.signOut()}><LogOut/> Sign out</button></div></>:<><h1>Join the Blues.</h1><div className="tabs"><button type="button" onClick={()=>{setMode("login");setMessage("")}}>Log in</button><button type="button" onClick={()=>{setMode("signup");setMessage("")}}>Create account</button></div><form className="form-card" onSubmit={submit}>{mode==="signup"&&<label>Full name<input required value={name} onChange={e=>setName(e.target.value)}/></label>}<label>Email<input type="email" required value={email} onChange={e=>setEmail(e.target.value)} autoComplete="email"/></label><label>Password<input type="password" minLength="8" required value={password} onChange={e=>setPassword(e.target.value)} autoComplete={mode==="login"?"current-password":"new-password"}/></label><button className="btn primary" disabled={busy}>{busy?"Please wait…":"Continue"}</button>{mode==="login"&&<button type="button" className="btn secondary" disabled={busy} onClick={requestPasswordReset}>Forgot password?</button>}{message&&<p>{message}</p>}</form><p className="muted">Student and staff discounts require verified institutional eligibility.</p></>}</main></>;
+ <div className="account-links"><Link to="/orders"><Package/> My orders</Link><Link to="/tickets"><Ticket/> My tickets</Link><Link to="/notifications"><Bell/> Notifications</Link><Link to="/messages"><MessageSquare/> Messages</Link><Link to="/performance"><Trophy/> My performance</Link><Link to="/trials"><ClipboardList/> Trials & recruitment</Link>{roles.some(r=>["sport_admin","super_admin","coach","shop_admin"].includes(r))&&<Link to="/admin">CUT Sport admin dashboard</Link>}{roles.some(r=>["sport_admin","super_admin","coach"].includes(r))&&<Link to="/admin/athletes">Athlete profiles</Link>}<p>Roles: {roles.join(", ")||"Member"}</p><button onClick={()=>supabase.auth.signOut()}><LogOut/> Sign out</button></div></>:<><h1>Join the Blues.</h1><div className="tabs"><button type="button" onClick={()=>{setMode("login");setMessage("")}}>Log in</button><button type="button" onClick={()=>{setMode("signup");setMessage("")}}>Create account</button></div><form className="form-card" onSubmit={submit}>{mode==="signup"&&<label>Full name<input required value={name} onChange={e=>setName(e.target.value)}/></label>}<label>Email<input type="email" required value={email} onChange={e=>setEmail(e.target.value)} autoComplete="email"/></label><label>Password<input type="password" minLength="8" required value={password} onChange={e=>setPassword(e.target.value)} autoComplete={mode==="login"?"current-password":"new-password"}/></label><button className="btn primary" disabled={busy}>{busy?"Please wait…":"Continue"}</button>{mode==="login"&&<button type="button" className="btn secondary" disabled={busy} onClick={requestPasswordReset}>Forgot password?</button>}{message&&<p>{message}</p>}</form><p className="muted">Student and staff discounts require verified institutional eligibility.</p></>}</main></>;
 }
 let cutQrCodeLoader=null;
 function loadCutQrCode(){
@@ -580,11 +580,125 @@ function AdminDashboard({sports,teams,competitions,fixtures,articles,events,spon
  const modules=[
   ...(sportAdmin?[{title:"Sport codes",description:"Manage the official sport directory; create new codes or edit/archive assigned sports.",to:"/admin/sports",icon:Settings2,state:"Available"},{title:"Sponsor directory",description:"Create, update and archive official partner profiles.",to:"/admin/sponsors",icon:Handshake,state:"Available"},{title:"Sport operations",description:"Team, competition and fixture publishing tools.",to:"/admin/operations",icon:CalendarClock,state:"Available"},{title:"News & events",description:"Editorial publishing and event management.",to:"/admin/editorial",icon:FileText,state:"Available"}]:[]),
   ...((sportAdmin||coach)?[{title:"Athlete profiles",description:"Register and update profiles within your assigned sport or team scope.",to:"/admin/athletes",icon:Users,state:"Available"},{title:"Performance dashboards",description:"Compare approved athlete statistics by sport, athlete, season and metric.",to:"/admin/performance",icon:Trophy,state:"Available"}]:[]),
-  ...(sportAdmin?[{title:"Athlete approvals",description:"Review athlete profiles before publication.",to:"/admin/approvals",icon:ShieldCheck,state:"Available"},{title:"Athlete communication",description:"Send correction guidance and direct messages to registered athletes.",to:"/admin/messages",icon:MessageSquare,state:"Available"},{title:"Event ticket gate",description:"Validate and redeem paid event tickets at entry.",to:"/admin/ticket-gate",icon:Ticket,state:"Available"},{title:"Event sales & attendees",description:"Review ticket sales, revenue, attendee registers and check-ins.",to:"/admin/event-reports",icon:ClipboardList,state:"Available"}]:[]),
+  ...((sportAdmin||coach)?[{title:"Trials & recruitment",description:"Publish trials, review applications and record squad selection decisions.",to:"/admin/recruitment",icon:ClipboardList,state:"Available"}]:[]),\n  ...(sportAdmin?[{title:"Athlete approvals",description:"Review athlete profiles before publication.",to:"/admin/approvals",icon:ShieldCheck,state:"Available"},{title:"Athlete communication",description:"Send correction guidance and direct messages to registered athletes.",to:"/admin/messages",icon:MessageSquare,state:"Available"},{title:"Event ticket gate",description:"Validate and redeem paid event tickets at entry.",to:"/admin/ticket-gate",icon:Ticket,state:"Available"},{title:"Event sales & attendees",description:"Review ticket sales, revenue, attendee registers and check-ins.",to:"/admin/event-reports",icon:ClipboardList,state:"Available"}]:[]),
   ...((shopAdmin||roles.includes("super_admin"))?[{title:"Shop catalogue",description:"Create, update and archive products and manage published stock.",to:"/admin/products",icon:ShoppingBag,state:"Available"},{title:"Shop orders",description:"Review paid shop orders, line items and fulfilment status.",to:"/admin/shop-orders",icon:Package,state:"Available"}]:[])
  ];
  if(!allowed)return <><Header title="Admin access required" back/><main className="page"><Empty title="Restricted area" body="A CUT Sport administrator, coach or shop administrator role is required."/></main></>;
  return <><Header title="Admin dashboard" back/><main className="page"><div className="page-intro"><span className="eyebrow">CUT SPORT · MANAGEMENT</span><h1>Admin dashboard</h1><p>Manage the information published in the CUT Sport app. Access to each record is still enforced by Supabase policies.</p></div><div className="admin-stats"><div><b>{sports.length}</b><small>Sport codes</small></div><div><b>{teams.length}</b><small>Teams</small></div><div><b>{competitions.length}</b><small>Competitions</small></div><div><b>{fixtures.length}</b><small>Fixtures</small></div><div><b>{articles.length}</b><small>Published stories</small></div><div><b>{events.length}</b><small>Events</small></div><div><b>{athletes.length}</b><small>Public athletes</small></div><div><b>{sponsors.length}</b><small>Active sponsors</small></div></div><Section title="Management tools"><div className="admin-module-grid">{modules.map(m=><article className="admin-module" key={m.title}><div className="admin-module-icon"><m.icon size={20}/></div><div className="admin-module-copy"><b>{m.title}</b><p>{m.description}</p><small>{m.state}</small></div>{m.to?<Link to={m.to} aria-label={"Open "+m.title}><ChevronRight/></Link>:<ShieldCheck size={18} className="muted-icon"/>}</article>)}</div></Section><div className="admin-notice"><ShieldCheck size={18}/><div><b>Security-first publishing</b><p>Planned management tools remain read-only or unavailable until their role scopes, Row Level Security policies and server-side workflows are reviewed and tested. This dashboard does not grant new permissions.</p></div></div></main></> ;
+}
+
+
+function Trials({user,profile}) {
+ const [opportunities,setOpportunities]=useState([]),[applications,setApplications]=useState([]),[athlete,setAthlete]=useState(null);
+ const [selected,setSelected]=useState(""),[position,setPosition]=useState(""),[experience,setExperience]=useState(""),[motivation,setMotivation]=useState("");
+ const [busy,setBusy]=useState(false),[error,setError]=useState(""),[notice,setNotice]=useState("");
+ useEffect(()=>{
+  let active=true;
+  async function load(){
+   if(!supabase){setError("Recruitment is temporarily unavailable.");return;}
+   const {data:o,error:oe}=await supabase.from("recruitment_opportunities").select("id,title,description,venue,starts_at,closes_at,sport_id,team_id,sports(name),teams(name)").eq("status","open").order("starts_at",{ascending:true});
+   if(!active)return;
+   if(oe){setError(oe.message);return;}
+   setOpportunities(o||[]);
+   if(user?.id){
+    const [a,apps]=await Promise.all([
+     supabase.from("athletes").select("id,full_name,preferred_name,position").eq("profile_id",user.id).maybeSingle(),
+     supabase.from("trial_applications").select("id,opportunity_id,status,created_at").eq("applicant_user_id",user.id).order("created_at",{ascending:false})
+    ]);
+    if(!active)return;
+    if(a.error||apps.error)setError(a.error?.message||apps.error?.message||"Unable to load your applications.");
+    setAthlete(a.data||null);setApplications(apps.data||[]);
+   }
+  }
+  load();return()=>{active=false;};
+ },[user?.id]);
+ async function apply(e){
+  e.preventDefault();if(!user?.id){setError("Please sign in before applying.");return;}
+  if(!selected)return;
+  setBusy(true);setError("");setNotice("");
+  const {error:e1}=await supabase.from("trial_applications").insert({
+   opportunity_id:selected,applicant_user_id:user.id,athlete_id:athlete?.id||null,
+   full_name:(profile?.full_name||user.email||"").trim(),playing_position:position.trim()||athlete?.position||null,
+   experience:experience.trim()||null,motivation:motivation.trim()||null
+  });
+  if(e1)setError(e1.code==="23505"?"You have already applied for this trial.":e1.message);
+  else{
+   setNotice("Application submitted. You can track its status below.");
+   setPosition("");setExperience("");setMotivation("");
+   const {data}=await supabase.from("trial_applications").select("id,opportunity_id,status,created_at").eq("applicant_user_id",user.id).order("created_at",{ascending:false});
+   setApplications(data||[]);
+  }
+  setBusy(false);
+ }
+ const statusLabel={submitted:"Submitted",shortlisted:"Shortlisted",selected:"Selected",not_selected:"Not selected"};
+ return <><Header title="Trials & recruitment" back/><main className="page">
+  <div className="page-intro"><span className="eyebrow">YOUR NEXT OPPORTUNITY</span><h1>Earn your blue.</h1><p>Find open CUT Sport trials and put your name forward. Coaches will update your application when decisions are made.</p></div>
+  {error&&<p className="form-error" role="alert">{error}</p>}{notice&&<p className="admin-notice">{notice}</p>}
+  {!user&&<div className="admin-notice"><ShieldCheck size={18}/><div><b>Sign in to apply</b><p>You can browse open opportunities now. Sign in through your Profile to submit an application.</p><Link to="/profile">Go to Profile</Link></div></div>}
+  <Section title="Open trials">{opportunities.length?opportunities.map(o=><article className="performance-record" key={o.id}><div className="performance-record-head"><div><b>{o.title}</b><small>{o.sports?.name||"CUT Sport"}{o.teams?.name?" · "+o.teams.name:" · All teams"}</small></div><span className="status-pill">Open</span></div><p>{o.description||"Trial details will be provided by the coaching staff."}</p><div className="fixture-foot"><span><CalendarDays size={14}/>{o.starts_at?dateLabel(o.starts_at):"Date to be confirmed"}</span><span><MapPin size={14}/>{o.venue||"Venue to be confirmed"}</span></div>{o.closes_at&&<small>Applications close: {dateLabel(o.closes_at)}</small>}
+   {user&&<form className="form-card" onSubmit={apply}><h4>Apply for this trial</h4><label>Playing position / event<input value={selected===o.id?position:athlete?.position||""} onFocus={()=>setSelected(o.id)} onChange={e=>{setSelected(o.id);setPosition(e.target.value)}} placeholder="Your position or event"/></label><label>Previous playing / sporting experience<textarea rows="2" value={selected===o.id?experience:""} onFocus={()=>setSelected(o.id)} onChange={e=>{setSelected(o.id);setExperience(e.target.value)}} placeholder="Teams, clubs, competitions or experience"/></label><label>Why would you like to join? <textarea rows="3" maxLength="3000" value={selected===o.id?motivation:""} onFocus={()=>setSelected(o.id)} onChange={e=>{setSelected(o.id);setMotivation(e.target.value)}}/></label><button className="btn primary" disabled={busy}>{busy&&selected===o.id?"Submitting…":"Submit application"}</button></form>}
+  </article>):<Empty title="No open trials at the moment" body="New recruitment opportunities will appear here when CUT Sport coaches publish them."/>}</Section>
+  {user&&<Section title="My applications">{applications.length?applications.map(a=><div className="sponsor-card" key={a.id}><div><b>{opportunities.find(o=>o.id===a.opportunity_id)?.title||"CUT Sport trial"}</b><small>{dateLabel(a.created_at)} · {statusLabel[a.status]||a.status}</small></div></div>):<Empty title="No applications yet" body="Your submitted trial applications and selection updates will appear here."/ >}</Section>}
+ </main></>;
+}
+
+function AdminRecruitment({roles,user}) {
+ const allowed=roles.some(r=>["sport_admin","super_admin","coach"].includes(r));
+ const [sports,setSports]=useState([]),[teams,setTeams]=useState([]),[opportunities,setOpportunities]=useState([]),[applications,setApplications]=useState([]);
+ const [form,setForm]=useState({sport_id:"",team_id:"",title:"",description:"",venue:"",starts_at:"",closes_at:"",status:"draft"});
+ const [busy,setBusy]=useState(false),[error,setError]=useState(""),[notice,setNotice]=useState("");
+ async function load(){
+  if(!supabase||!allowed)return;
+  const [sp,tm,op]=await Promise.all([
+   supabase.from("sports").select("id,name").order("name"),
+   supabase.from("teams").select("id,name,sport_id").eq("is_active",true).order("name"),
+   supabase.from("recruitment_opportunities").select("id,title,sport_id,team_id,status,starts_at,closes_at,venue,sports(name),teams(name)").order("created_at",{ascending:false})
+  ]);
+  const failure=sp.error||tm.error||op.error;if(failure){setError(failure.message);return;}
+  setSports(sp.data||[]);setTeams(tm.data||[]);setOpportunities(op.data||[]);
+  const ids=(op.data||[]).map(x=>x.id);
+  if(ids.length){const {data,error:e}=await supabase.from("trial_applications").select("id,opportunity_id,full_name,playing_position,experience,motivation,status,coach_notes,created_at").in("opportunity_id",ids).order("created_at",{ascending:false});if(e)setError(e.message);else setApplications(data||[]);}
+  else setApplications([]);
+ }
+ useEffect(()=>{load()},[allowed]);
+ const availableTeams=teams.filter(t=>!form.sport_id||t.sport_id===form.sport_id);
+ async function create(e){
+  e.preventDefault();if(!allowed||!user?.id)return;
+  setBusy(true);setError("");setNotice("");
+  const {error:e1}=await supabase.from("recruitment_opportunities").insert({
+   sport_id:form.sport_id,team_id:form.team_id||null,title:form.title.trim(),description:form.description.trim()||null,
+   venue:form.venue.trim()||null,starts_at:form.starts_at?new Date(form.starts_at).toISOString():null,
+   closes_at:form.closes_at?new Date(form.closes_at).toISOString():null,status:form.status,created_by:user.id
+  });
+  if(e1)setError(e1.message);else{setForm({sport_id:"",team_id:"",title:"",description:"",venue:"",starts_at:"",closes_at:"",status:"draft"});setNotice("Recruitment opportunity saved.");await load();}
+  setBusy(false);
+ }
+ async function setOpportunityStatus(item,status){
+  setError("");const {error:e}=await supabase.from("recruitment_opportunities").update({status,updated_at:new Date().toISOString()}).eq("id",item.id);
+  if(e)setError(e.message);else await load();
+ }
+ async function reviewApplication(item,status){
+  setError("");const {error:e}=await supabase.from("trial_applications").update({status,reviewed_by:user.id,reviewed_at:new Date().toISOString()}).eq("id",item.id);
+  if(e)setError(e.message);else await load();
+ }
+ if(!allowed)return <><Header title="Admin access required" back/><main className="page"><Empty title="Restricted area" body="An assigned sport administrator, team manager or coach role is required."/></main></>;
+ return <><Header title="Recruitment management" back/><main className="page">
+  <div className="page-intro"><span className="eyebrow">TALENT IDENTIFICATION</span><h1>Trials & selection.</h1><p>Publish opportunities for your assigned sport or team, review applications and record selection decisions.</p></div>
+  {error&&<p className="form-error" role="alert">{error}</p>}{notice&&<p className="admin-notice">{notice}</p>}
+  <form className="form-card" onSubmit={create}><h3>Create recruitment opportunity</h3>
+   <label>Sport<select required value={form.sport_id} onChange={e=>setForm({...form,sport_id:e.target.value,team_id:""})}><option value="">Choose sport</option>{sports.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</select></label>
+   <label>Team scope<select value={form.team_id} onChange={e=>setForm({...form,team_id:e.target.value})}><option value="">Whole sport</option>{availableTeams.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</select></label>
+   <label>Opportunity title<input required minLength="3" maxLength="140" value={form.title} onChange={e=>setForm({...form,title:e.target.value})} placeholder="e.g. 2027 Varsity squad trials"/></label>
+   <label>Trial information<textarea rows="4" value={form.description} onChange={e=>setForm({...form,description:e.target.value})}/></label>
+   <label>Venue<input value={form.venue} onChange={e=>setForm({...form,venue:e.target.value})}/></label>
+   <label>Trial date and time<input type="datetime-local" value={form.starts_at} onChange={e=>setForm({...form,starts_at:e.target.value})}/></label>
+   <label>Application closing date<input type="datetime-local" value={form.closes_at} onChange={e=>setForm({...form,closes_at:e.target.value})}/></label>
+   <label>Publication status<select value={form.status} onChange={e=>setForm({...form,status:e.target.value})}><option value="draft">Save as draft</option><option value="open">Publish open trial</option></select></label>
+   <button className="btn primary" disabled={busy||!sports.length}>{busy?"Saving…":"Save opportunity"}</button>
+  </form>
+  <Section title={"Recruitment opportunities · "+opportunities.length}>{opportunities.length?opportunities.map(o=><article className="performance-record" key={o.id}><div className="performance-record-head"><div><b>{o.title}</b><small>{o.sports?.name||"Sport"}{o.teams?.name?" · "+o.teams.name:" · Whole sport"}</small></div><span>{o.status}</span></div><p>{o.venue||"Venue TBC"} · {o.starts_at?dateLabel(o.starts_at):"Date TBC"}</p><div className="review-actions">{o.status!=="open"&&<button className="btn primary" onClick={()=>setOpportunityStatus(o,"open")}>Open applications</button>}{o.status==="open"&&<button className="btn secondary" onClick={()=>setOpportunityStatus(o,"closed")}>Close applications</button>}{o.status==="closed"&&<button className="btn secondary" onClick={()=>setOpportunityStatus(o,"draft")}>Move to draft</button>}</div></article>):<Empty title="No opportunities created" body="Create a trial opportunity above. It will only be visible publicly when published as open."/ >}</Section>
+  <Section title={"Applications · "+applications.length}>{applications.length?applications.map(a=><article className="performance-record" key={a.id}><div className="performance-record-head"><div><b>{a.full_name}</b><small>{opportunities.find(o=>o.id===a.opportunity_id)?.title||"Trial"} · {a.playing_position||"Position not specified"}</small></div><span>{a.status.replaceAll("_"," ")}</span></div>{a.experience&&<p><b>Experience:</b> {a.experience}</p>}{a.motivation&&<p><b>Motivation:</b> {a.motivation}</p>}{a.coach_notes&&<p><b>Coach notes:</b> {a.coach_notes}</p>}<div className="review-actions"><button className="btn secondary" onClick={()=>reviewApplication(a,"shortlisted")}>Shortlist</button><button className="btn primary" onClick={()=>reviewApplication(a,"selected")}>Select</button><button className="btn secondary" onClick={()=>reviewApplication(a,"not_selected")}>Not selected</button></div></article>):<Empty title="No applications received" body="Applications submitted to your opportunities will appear here."/ >}</Section>
+ </main></>;
 }
 
 function AdminAthletes({roles,user}) {
