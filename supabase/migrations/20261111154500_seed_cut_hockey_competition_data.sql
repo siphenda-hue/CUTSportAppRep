@@ -1,3 +1,15 @@
+insert into public.competitions (sport_id,name,season,start_date,end_date,venue,description,status)
+select s.id,v.name,v.season,v.start_date::date,v.end_date::date,v.venue,v.description,'published'
+from public.sports s
+cross join (values
+ ('USSA Men C-Section','2023','2023-07-04','2023-07-07','Durban','SAHA historical record. CUT finished 1st; official fixtures, standings and player goal statistics.'),
+ ('USSA Women C-Section','2023','2023-07-04','2023-07-07','Durban','SAHA historical record. CUT finished 2nd; official fixtures, standings and player goal statistics.'),
+ ('USSA Men B-Section','2026','2026-06-29','2026-07-03','Stellenbosch','SAHA 2026 record. CUT participated in the Men B-Section; official fixtures, results, standings and player goal statistics.'),
+ ('USSA Women B-Section','2026','2026-06-29','2026-07-03','Stellenbosch','SAHA 2026 record. CUT participated in the Women B-Section; official fixtures, results, standings and player goal statistics.')
+) as v(name,season,start_date,end_date,venue,description)
+where s.slug='hockey' and not exists (
+ select 1 from public.competitions c where c.sport_id=s.id and c.name=v.name and c.season=v.season
+);
 -- Official SAHA AltiusRT CUT hockey data snapshot. All times are South African local time.
 insert into public.competition_standings (competition_id,group_name,position,team_name,played,won,drawn,lost,points_difference,points,source_url,source_checked_at) values
 ((select id from public.competitions where sport_id=(select id from public.sports where slug='hockey') and name='USSA Men C-Section' and season='2023' limit 1),'Pool A',1,'Central University of Technology',6,5,0,1,11,15,'https://saha.altiusrt.com/competitions/155',now()),
