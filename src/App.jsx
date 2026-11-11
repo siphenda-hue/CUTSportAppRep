@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, Route, Routes, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Bell, CalendarDays, ChevronRight, ClipboardList, FileText, Handshake, LogOut, MapPin, Newspaper, Package, ShieldCheck, ShoppingBag, Ticket, Trophy, Users, CalendarClock, Settings2 } from 'lucide-react';
+import { ArrowLeft, Bell, CalendarDays, ChevronRight, ClipboardList, FileText, Handshake, LogOut, MapPin, Newspaper, Package, ShieldCheck, ShoppingBag, Ticket, Trophy, Users, CalendarClock, Settings2, MessageSquare, Send, Reply } from 'lucide-react';
 import BottomNav from './components/BottomNav';
 import { api, money, dateLabel } from './lib/api';
 import { supabase } from './lib/supabase';
@@ -34,7 +34,7 @@ function App() {
  const add=p=>{setCart(old=>{const found=old.find(x=>x.id===p.id);return found?old.map(x=>x.id===p.id?{...x,qty:x.qty+1}:x):[...old,{id:p.id,name:p.name,price_cents:p.price_cents,image_url:p.image_url,qty:1}]});setToast('Added to your bag');setTimeout(()=>setToast(''),2200)};
  const common={sports,teams,competitions,products,fixtures,articles,events,ticketTypes,sponsors,athletes,user,profile,roles,cart,setCart,add};
  return <div className="app-shell"><div className="app-frame"><Routes>
- <Route path="/" element={<Home {...common}/>}/><Route path="/shop" element={<Shop {...common}/>}/><Route path="/shop/:slug" element={<Product {...common}/>}/><Route path="/cart" element={<Cart {...common}/>}/><Route path="/checkout" element={<Checkout cart={cart} setCart={setCart} user={user}/>}/><Route path="/payment/:result" element={<PaymentReturn user={user} result="success" cart={cart} setCart={setCart}/>}/><Route path="/events/:id" element={<EventTickets events={events} ticketTypes={ticketTypes} user={user}/>}/><Route path="/sport" element={<Sport {...common}/>}/><Route path="/sport/:slug" element={<Hub {...common}/>}/><Route path="/news" element={<News {...common}/>}/><Route path="/news/:slug" element={<Story {...common}/>}/><Route path="/sponsors" element={<Sponsors {...common}/>}/><Route path="/profile" element={<Profile {...common}/>}/><Route path="/admin" element={<AdminDashboard {...common}/>}/><Route path="/admin/sports" element={<AdminSports roles={roles} user={user} setSports={setSports}/>}/><Route path="/admin/sponsors" element={<AdminSponsors user={user} roles={roles}/>}/><Route path="/admin/products" element={<AdminProducts roles={roles} products={products} setProducts={setProducts}/>}/><Route path="/admin/shop-orders" element={<AdminShopOrders roles={roles}/>}/><Route path="/admin/athletes" element={<AdminAthletes roles={roles} user={user}/>}/><Route path="/admin/performance" element={<AdminPerformance roles={roles}/>}/><Route path="/admin/operations" element={<AdminOperations roles={roles} user={user}/>}/><Route path="/admin/approvals" element={<AdminApprovals roles={roles} user={user}/>}/><Route path="/admin/ticket-gate" element={<AdminTicketGate roles={roles}/>}/><Route path="/admin/event-reports" element={<AdminEventReports roles={roles}/>}/><Route path="/admin/editorial" element={<AdminEditorial roles={roles} user={user} sports={sports}/>}/><Route path="/notifications" element={<Personal title="Notifications" user={user} kind="notifications"/>}/><Route path="/tickets" element={<Personal title="My tickets" user={user} kind="tickets"/>}/><Route path="/orders" element={<Personal title="My orders" user={user} kind="orders"/>}/><Route path="*" element={<Home {...common}/>}/>
+ <Route path="/" element={<Home {...common}/>}/><Route path="/shop" element={<Shop {...common}/>}/><Route path="/shop/:slug" element={<Product {...common}/>}/><Route path="/cart" element={<Cart {...common}/>}/><Route path="/checkout" element={<Checkout cart={cart} setCart={setCart} user={user}/>}/><Route path="/payment/:result" element={<PaymentReturn user={user} result="success" cart={cart} setCart={setCart}/>}/><Route path="/events/:id" element={<EventTickets events={events} ticketTypes={ticketTypes} user={user}/>}/><Route path="/sport" element={<Sport {...common}/>}/><Route path="/sport/:slug" element={<Hub {...common}/>}/><Route path="/news" element={<News {...common}/>}/><Route path="/news/:slug" element={<Story {...common}/>}/><Route path="/sponsors" element={<Sponsors {...common}/>}/><Route path="/profile" element={<Profile {...common}/>}/><Route path="/admin" element={<AdminDashboard {...common}/>}/><Route path="/admin/sports" element={<AdminSports roles={roles} user={user} setSports={setSports}/>}/><Route path="/admin/sponsors" element={<AdminSponsors user={user} roles={roles}/>}/><Route path="/admin/products" element={<AdminProducts roles={roles} products={products} setProducts={setProducts}/>}/><Route path="/admin/shop-orders" element={<AdminShopOrders roles={roles}/>}/><Route path="/admin/athletes" element={<AdminAthletes roles={roles} user={user}/>}/><Route path="/admin/performance" element={<AdminPerformance roles={roles}/>}/><Route path="/admin/operations" element={<AdminOperations roles={roles} user={user}/>}/><Route path="/admin/approvals" element={<AdminApprovals roles={roles} user={user}/>}/><Route path="/admin/messages" element={<AdminMessages roles={roles} user={user}/>}/><Route path="/messages" element={<AthleteMessages user={user}/>}/><Route path="/admin/ticket-gate" element={<AdminTicketGate roles={roles}/>}/><Route path="/admin/event-reports" element={<AdminEventReports roles={roles}/>}/><Route path="/admin/editorial" element={<AdminEditorial roles={roles} user={user} sports={sports}/>}/><Route path="/notifications" element={<Personal title="Notifications" user={user} kind="notifications"/>}/><Route path="/tickets" element={<Personal title="My tickets" user={user} kind="tickets"/>}/><Route path="/orders" element={<Personal title="My orders" user={user} kind="orders"/>}/><Route path="*" element={<Home {...common}/>}/>
  </Routes><BottomNav/><Link className="cart-fab" to="/cart"><ShoppingBag size={18}/>{cart.reduce((n,x)=>n+x.qty,0)>0&&<span>{cart.reduce((n,x)=>n+x.qty,0)}</span>}</Link>{toast&&<div className="toast">{toast}</div>}</div></div>;
 }
 function Home({sports,products,fixtures,articles,events,sponsors}) {
@@ -319,6 +319,119 @@ function Personal({title,user,kind}) {
  </main></>;
 }
 
+
+function AdminMessages({roles,user}) {
+ const allowed=roles.some(r=>["sport_admin","super_admin"].includes(r));
+ const [athletes,setAthletes]=useState([]),[messages,setMessages]=useState([]);
+ const [athleteId,setAthleteId]=useState(""),[subject,setSubject]=useState(""),[body,setBody]=useState(""),[messageType,setMessageType]=useState("general"),[parentId,setParentId]=useState("");
+ const [busy,setBusy]=useState(false),[error,setError]=useState(""),[success,setSuccess]=useState("");
+ async function load(){
+  if(!supabase||!allowed||!user)return;
+  setBusy(true);setError("");
+  const [a,m]=await Promise.all([
+   supabase.from("athletes").select("id,profile_id,full_name,preferred_name,sport_id,sports(name)").not("profile_id","is",null).order("full_name"),
+   supabase.from("athlete_messages").select("id,athlete_id,sender_id,recipient_id,parent_message_id,subject,body,message_type,read_at,created_at,athletes(full_name,preferred_name,sports(name))").order("created_at",{ascending:false}).limit(100)
+  ]);
+  const failure=a.error||m.error;
+  if(failure)setError(failure.message);
+  else{setAthletes(a.data||[]);setMessages(m.data||[]);}
+  setBusy(false);
+ }
+ useEffect(()=>{load()},[allowed,user?.id]);
+ function replyTo(message){
+  const athlete=athletes.find(x=>x.id===message.athlete_id);
+  if(!athlete)return;
+  setAthleteId(athlete.id);
+  setSubject(message.subject?.toLowerCase().startsWith("re:")?message.subject:"Re: "+message.subject);
+  setParentId(message.id);
+  setMessageType(message.message_type==="correction"?"correction":"general");
+  setSuccess("");setError("");
+  document.getElementById("athlete-message-compose")?.scrollIntoView({behavior:"smooth",block:"start"});
+ }
+ async function send(e){
+  e.preventDefault();
+  if(!allowed||!user||!supabase)return;
+  const athlete=athletes.find(x=>x.id===athleteId);
+  if(!athlete?.profile_id){setError("Choose an athlete with a linked CUT Sport account.");return;}
+  if(!subject.trim()||!body.trim()){setError("Enter a subject and message.");return;}
+  setBusy(true);setError("");setSuccess("");
+  const {error:sendError}=await supabase.from("athlete_messages").insert({
+   athlete_id:athlete.id,sender_id:user.id,recipient_id:athlete.profile_id,
+   parent_message_id:parentId||null,subject:subject.trim(),body:body.trim(),message_type:messageType
+  });
+  if(sendError)setError(sendError.message);
+  else{setSuccess("Message sent. The athlete will receive an in-app notification.");setSubject("");setBody("");setParentId("");setMessageType("general");await load();}
+  setBusy(false);
+ }
+ async function markRead(message){
+  if(!user||message.read_at||message.recipient_id!==user.id)return;
+  const now=new Date().toISOString();
+  const {error:e}=await supabase.from("athlete_messages").update({read_at:now}).eq("id",message.id).eq("recipient_id",user.id).is("read_at",null);
+  if(e)setError(e.message);else setMessages(old=>old.map(x=>x.id===message.id?{...x,read_at:now}:x));
+ }
+ if(!allowed)return <><Header title="Athlete communication" back/><main className="page"><Empty title="Restricted area" body="Only assigned sport administrators and super administrators can manage athlete messages."/></main></>;
+ return <><Header title="Athlete communication" back/><main className="page">
+  <div className="page-intro"><span className="eyebrow">CUT SPORT · ATHLETE SUPPORT</span><h1>Communication centre</h1><p>Send athletes direct guidance, correction instructions and important updates. Messages are visible only to their participants.</p></div>
+  <form id="athlete-message-compose" className="message-compose" onSubmit={send}>
+   <h2>{parentId?"Reply to athlete":"New message"}</h2>
+   <label>Choose athlete<select value={athleteId} onChange={e=>{setAthleteId(e.target.value);setParentId("");}} required><option value="">Select an athlete</option>{athletes.map(x=><option key={x.id} value={x.id}>{x.preferred_name||x.full_name} · {x.sports?.name||"Sport"}</option>)}</select></label>
+   <label>Message type<select value={messageType} onChange={e=>setMessageType(e.target.value)}><option value="general">General message</option><option value="correction">Correction guidance</option><option value="announcement">Important announcement</option></select></label>
+   <label>Subject<input value={subject} onChange={e=>setSubject(e.target.value)} maxLength={160} placeholder="e.g. Athlete profile corrections required" required/></label>
+   <label>Message<textarea value={body} onChange={e=>setBody(e.target.value)} rows={5} maxLength={5000} placeholder="Write clear instructions or guidance for the athlete…" required/></label>
+   {error&&<p className="form-error">{error}</p>}{success&&<p className="form-success">{success}</p>}
+   <div className="message-compose-actions"><button className="btn primary" type="submit" disabled={busy||!athletes.length}><Send size={16}/>{busy?"Sending…":"Send message"}</button>{parentId&&<button type="button" onClick={()=>{setParentId("");setSubject("");setBody("");}}>Cancel reply</button>}</div>
+   {!athletes.length&&!busy&&<p className="muted">No athletes with linked user accounts are currently available to message.</p>}
+  </form>
+  <section className="section"><div className="section-head"><h2>Recent conversations</h2><button type="button" onClick={load} disabled={busy}>Refresh</button></div>
+   {messages.length?messages.map(m=><article className="message-card" key={m.id}>
+    <div className="message-card-top"><div><b>{m.athletes?.preferred_name||m.athletes?.full_name||"Athlete"}</b><small>{m.athletes?.sports?.name||"CUT Sport"} · {dateLabel(m.created_at)}</small></div><span className={m.read_at?"message-status":"message-status unread"}>{m.recipient_id===user?.id?(m.read_at?"Read":"Unread"):"Sent"}</span></div>
+    <b className="message-subject">{m.subject}</b><p>{m.body}</p>
+    <div className="message-card-actions">{m.recipient_id===user?.id&&!m.read_at&&<button type="button" onClick={()=>markRead(m)}>Mark read</button>}<button type="button" onClick={()=>replyTo(m)}><Reply size={14}/> Reply</button></div>
+   </article>):<Empty title="No messages yet" body="Messages sent to or received from athletes will appear here."/>}
+  </section>
+ </main></>;
+}
+
+function AthleteMessages({user}) {
+ const [messages,setMessages]=useState([]),[busy,setBusy]=useState(false),[error,setError]=useState(""),[replyId,setReplyId]=useState(""),[replyBody,setReplyBody]=useState("");
+ async function load(){
+  if(!supabase||!user){setMessages([]);return;}
+  setBusy(true);setError("");
+  const {data,error:e}=await supabase.from("athlete_messages").select("id,athlete_id,sender_id,recipient_id,parent_message_id,subject,body,message_type,read_at,created_at,athletes(full_name,preferred_name,sports(name))").order("created_at",{ascending:false}).limit(100);
+  if(e)setError(e.message);else setMessages(data||[]);
+  setBusy(false);
+ }
+ useEffect(()=>{load()},[user?.id]);
+ async function markRead(m){
+  if(!user||m.read_at||m.recipient_id!==user.id)return;
+  const now=new Date().toISOString();
+  const {error:e}=await supabase.from("athlete_messages").update({read_at:now}).eq("id",m.id).eq("recipient_id",user.id).is("read_at",null);
+  if(e)setError(e.message);else setMessages(old=>old.map(x=>x.id===m.id?{...x,read_at:now}:x));
+ }
+ async function reply(m){
+  if(!user||!supabase||!replyBody.trim())return;
+  const {error:e}=await supabase.from("athlete_messages").insert({
+   athlete_id:m.athlete_id,sender_id:user.id,recipient_id:m.sender_id,parent_message_id:m.id,
+   subject:m.subject.toLowerCase().startsWith("re:")?m.subject:"Re: "+m.subject,
+   body:replyBody.trim(),message_type:"general"
+  });
+  if(e)setError(e.message);else{setReplyBody("");setReplyId("");await load();}
+ }
+ const unread=messages.filter(m=>m.recipient_id===user?.id&&!m.read_at).length;
+ return <><Header title="My messages" back/><main className="page">
+  <div className="page-intro"><span className="eyebrow">CUT SPORT · YOUR ACCOUNT</span><h1>Messages</h1><p>{unread} unread message(s). Read guidance from your sport administrators and reply when needed.</p></div>
+  {!user?<Empty title="Sign in to view messages" body="Your athlete messages will appear here after signing in."/>:null}
+  {error&&<p className="form-error">{error}</p>}
+  {messages.length?messages.map(m=><article className="message-card" key={m.id}>
+   <div className="message-card-top"><div><b>{m.subject}</b><small>{m.message_type==="correction"?"Correction guidance":m.message_type==="announcement"?"Important announcement":"CUT Sport message"} · {dateLabel(m.created_at)}</small></div><span className={m.read_at?"message-status":"message-status unread"}>{m.recipient_id===user?.id?(m.read_at?"Read":"Unread"):"Sent"}</span></div>
+   <p>{m.body}</p>
+   <div className="message-card-actions">{m.recipient_id===user?.id&&!m.read_at&&<button type="button" onClick={()=>markRead(m)}>Mark read</button>}{m.recipient_id===user?.id&&<button type="button" onClick={()=>{setReplyId(replyId===m.id?"":m.id);setReplyBody("");markRead(m);}}><Reply size={14}/> Reply</button>}</div>
+   {replyId===m.id&&<div className="message-reply"><textarea rows={3} maxLength={5000} value={replyBody} onChange={e=>setReplyBody(e.target.value)} placeholder="Write your reply…"/><button className="btn primary" type="button" disabled={!replyBody.trim()} onClick={()=>reply(m)}><Send size={15}/> Send reply</button></div>}
+  </article>):user&&!busy?<Empty title="No messages yet" body="Messages from your sport administrators will appear here."/>:null}
+  {busy&&!messages.length&&<p className="muted">Loading messages…</p>}
+ </main></>;
+}
+
 function AdminTicketGate({roles}) {
  const allowed=roles.some(r=>["sport_admin","super_admin"].includes(r));
  const [ticketCode,setTicketCode]=useState(""),[busy,setBusy]=useState(false),[result,setResult]=useState(null),[error,setError]=useState("");
@@ -422,7 +535,7 @@ function AdminDashboard({sports,teams,competitions,fixtures,articles,events,spon
  const modules=[
   ...(sportAdmin?[{title:"Sport codes",description:"Manage the official sport directory; create new codes or edit/archive assigned sports.",to:"/admin/sports",icon:Settings2,state:"Available"},{title:"Sponsor directory",description:"Create, update and archive official partner profiles.",to:"/admin/sponsors",icon:Handshake,state:"Available"},{title:"Sport operations",description:"Team, competition and fixture publishing tools.",to:"/admin/operations",icon:CalendarClock,state:"Available"},{title:"News & events",description:"Editorial publishing and event management.",to:"/admin/editorial",icon:FileText,state:"Available"}]:[]),
   ...((sportAdmin||coach)?[{title:"Athlete profiles",description:"Register and update profiles within your assigned sport or team scope.",to:"/admin/athletes",icon:Users,state:"Available"},{title:"Performance dashboards",description:"Compare approved athlete statistics by sport, athlete, season and metric.",to:"/admin/performance",icon:Trophy,state:"Available"}]:[]),
-  ...(sportAdmin?[{title:"Athlete approvals",description:"Review athlete profiles before publication.",to:"/admin/approvals",icon:ShieldCheck,state:"Available"},{title:"Event ticket gate",description:"Validate and redeem paid event tickets at entry.",to:"/admin/ticket-gate",icon:Ticket,state:"Available"},{title:"Event sales & attendees",description:"Review ticket sales, revenue, attendee registers and check-ins.",to:"/admin/event-reports",icon:ClipboardList,state:"Available"}]:[]),
+  ...(sportAdmin?[{title:"Athlete approvals",description:"Review athlete profiles before publication.",to:"/admin/approvals",icon:ShieldCheck,state:"Available"},{title:"Athlete communication",description:"Send correction guidance and direct messages to registered athletes.",to:"/admin/messages",icon:MessageSquare,state:"Available"},{title:"Event ticket gate",description:"Validate and redeem paid event tickets at entry.",to:"/admin/ticket-gate",icon:Ticket,state:"Available"},{title:"Event sales & attendees",description:"Review ticket sales, revenue, attendee registers and check-ins.",to:"/admin/event-reports",icon:ClipboardList,state:"Available"}]:[]),
   ...((shopAdmin||roles.includes("super_admin"))?[{title:"Shop catalogue",description:"Create, update and archive products and manage published stock.",to:"/admin/products",icon:ShoppingBag,state:"Available"},{title:"Shop orders",description:"Review paid shop orders, line items and fulfilment status.",to:"/admin/shop-orders",icon:Package,state:"Available"}]:[])
  ];
  if(!allowed)return <><Header title="Admin access required" back/><main className="page"><Empty title="Restricted area" body="A CUT Sport administrator, coach or shop administrator role is required."/></main></>;
