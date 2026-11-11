@@ -614,11 +614,11 @@ function Trials({user,profile}) {
  },[user?.id]);
  async function apply(e,opportunityId){
   e.preventDefault();if(!user?.id){setError("Please sign in before applying.");return;}
-  if(!selected)return;
+  if(!opportunityId)return;
   setBusy(true);setError("");setNotice("");
   const {error:e1}=await supabase.from("trial_applications").insert({
-   opportunity_id:selected,applicant_user_id:user.id,athlete_id:athlete?.id||null,
-   full_name:(profile?.full_name||user.email||"").trim(),playing_position:position.trim()||athlete?.position||null,
+   opportunity_id:opportunityId,applicant_user_id:user.id,athlete_id:athlete?.id||null,
+   full_name:applicantName.trim(),playing_position:position.trim()||athlete?.position||null,
    experience:experience.trim()||null,motivation:motivation.trim()||null
   });
   if(e1)setError(e1.code==="23505"?"You have already applied for this trial.":e1.message);
