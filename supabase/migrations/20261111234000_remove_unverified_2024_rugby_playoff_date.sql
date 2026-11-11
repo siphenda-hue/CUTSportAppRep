@@ -1,0 +1,1 @@
+update public.competition_matches set starts_at=null,venue=null where source_match_id='2024-vc-promotion-relegation-cut-nmu';
