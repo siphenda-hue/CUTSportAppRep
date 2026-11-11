@@ -8,7 +8,7 @@ insert into public.competitions (
 select
   'f61de6a2-cbb9-4ffb-96c7-84a0e98023ca'::uuid,
   'USSA Track & Field Championships',
-  2025,
+  '2025',
   '2025-05-01'::date,
   '2025-05-03'::date,
   'Pilditch Stadium, Pretoria, South Africa',
@@ -18,5 +18,5 @@ where not exists (
   select 1 from public.competitions
   where sport_id = 'f61de6a2-cbb9-4ffb-96c7-84a0e98023ca'::uuid
     and name = 'USSA Track & Field Championships'
-    and season = 2025
+    and season = '2025'
 );
