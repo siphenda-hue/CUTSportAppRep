@@ -646,7 +646,7 @@ function AdminRecruitment({roles,user}) {
  const allowed=roles.some(r=>["sport_admin","super_admin","coach"].includes(r));
  const [sports,setSports]=useState([]),[teams,setTeams]=useState([]),[opportunities,setOpportunities]=useState([]),[applications,setApplications]=useState([]);
  const [form,setForm]=useState({sport_id:"",team_id:"",title:"",description:"",venue:"",starts_at:"",closes_at:"",status:"draft"});
- const [busy,setBusy]=useState(false),[error,setError]=useState(""),[notice,setNotice]=useState("");
+ const [busy,setBusy]=useState(false),[error,setError]=useState(""),[notice,setNotice]=useState(""),[notes,setNotes]=useState({});
  async function load(){
   if(!supabase||!allowed)return;
   const [sp,tm,op]=await Promise.all([
@@ -678,7 +678,10 @@ function AdminRecruitment({roles,user}) {
   if(e)setError(e.message);else await load();
  }
  async function reviewApplication(item,status){
-  setError("");const {error:e}=await supabase.from("trial_applications").update({status,coach_notes:notes[item.id]??item.coach_notes??null,reviewed_by:user.id,reviewed_at:new Date().toISOString(),updated_at:new Date().toISOString()}).eq("id",item.id);
+  setError("");const now=new Date().toISOString();
+  const {error:noteError}=await supabase.from("trial_application_reviews").upsert({application_id:item.id,coach_notes:notes[item.id]??item.coach_notes??null,reviewer_id:user.id,updated_at:now},{onConflict:"application_id"});
+  if(noteError){setError(noteError.message);return;}
+  const {error:e}=await supabase.from("trial_applications").update({status,reviewed_by:user.id,reviewed_at:now,updated_at:now}).eq("id",item.id);
   if(e)setError(e.message);else await load();
  }
  if(!allowed)return <><Header title="Admin access required" back/><main className="page"><Empty title="Restricted area" body="An assigned sport administrator, team manager or coach role is required."/></main></>;
