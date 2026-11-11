@@ -832,8 +832,29 @@ function AdminAthletes({roles,user}) {
   e.preventDefault();if(!allowed||!supabase)return;
   setBusy(true);setError("");
   const payload={profile_id:superAdmin?(form.profile_id||null):undefined,sport_id:form.sport_id,team_id:form.team_id||null,full_name:form.full_name.trim(),preferred_name:form.preferred_name.trim()||null,position:form.position.trim()||null,gender:form.gender||null,nationality:form.nationality.trim()||null,hometown:form.hometown.trim()||null,province:form.province.trim()||null,faculty:form.faculty.trim()||null,qualification:form.qualification.trim()||null,year_of_study:form.year_of_study===""?null:Number(form.year_of_study),student_status:form.student_status,years_representing_cut:form.years_representing_cut===""?null:Number(form.years_representing_cut),previous_clubs:form.previous_clubs.split(",").map(x=>x.trim()).filter(Boolean),squad_number:form.squad_number===""?null:Number(form.squad_number),bio:form.bio.trim()||null,photo_url:form.photo_url.trim()||null,is_featured:Boolean(form.is_featured),profile_visibility:form.profile_visibility};
-  const result=editing?await supabase.from("athletes").update(payload).eq("id",editing):await supabase.from("athletes").insert({...payload,approval_status:"pending"});
-  if(result.error)setError(result.error.message);else{reset();await load();}
+  const result=editing
+   ?await supabase.from("athletes").update(payload).eq("id",editing).select("id").maybeSingle()
+   :await supabase.from("athletes").insert({...payload,approval_status:"pending"}).select("id").single();
+  if(result.error)setError(result.error.message);
+  else if(!result.data)setError("No athlete record was changed. Check your assigned sport permissions.");
+  else{
+   let membershipFailure=null;
+   if(form.team_id){
+    const {data:existing,error:lookupError}=await supabase.from("athlete_team_memberships").select("id,is_active,joined_at").eq("athlete_id",result.data.id).eq("team_id",form.team_id).maybeSingle();
+    if(lookupError)membershipFailure=lookupError.message;
+    else{
+     const team=teams.find(t=>t.id===form.team_id);
+     const values={position:form.position.trim()||null,squad_number:form.squad_number===""?null:Number(form.squad_number)};
+     const membershipResult=existing
+      ?await supabase.from("athlete_team_memberships").update({...values,is_active:true,joined_at:existing.is_active?existing.joined_at:new Date().toISOString().slice(0,10),left_at:null,updated_at:new Date().toISOString()}).eq("id",existing.id).select("id").maybeSingle()
+      :await supabase.from("athlete_team_memberships").insert({athlete_id:result.data.id,team_id:form.team_id,sport_id:team?.sport_id||form.sport_id,created_by:user.id,...values}).select("id").maybeSingle();
+     if(membershipResult.error)membershipFailure=membershipResult.error.message;
+     else if(!membershipResult.data)membershipFailure="Your account may not have permission to manage the selected team.";
+    }
+   }
+   reset();await load();
+   if(membershipFailure)setError("Athlete profile saved, but the primary-team membership could not be saved: "+membershipFailure);
+  }
   setBusy(false);
  }
  async function saveMembership(e){
