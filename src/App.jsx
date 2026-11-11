@@ -590,7 +590,7 @@ function AdminDashboard({sports,teams,competitions,fixtures,articles,events,spon
 
 function Trials({user,profile}) {
  const [opportunities,setOpportunities]=useState([]),[applications,setApplications]=useState([]),[athlete,setAthlete]=useState(null);
- const [selected,setSelected]=useState(""),[position,setPosition]=useState(""),[experience,setExperience]=useState(""),[motivation,setMotivation]=useState("");
+ const [selected,setSelected]=useState(""),[applicantName,setApplicantName]=useState(profile?.full_name||""),[position,setPosition]=useState(""),[experience,setExperience]=useState(""),[motivation,setMotivation]=useState("");
  const [busy,setBusy]=useState(false),[error,setError]=useState(""),[notice,setNotice]=useState("");
  useEffect(()=>{
   let active=true;
@@ -612,7 +612,7 @@ function Trials({user,profile}) {
   }
   load();return()=>{active=false;};
  },[user?.id]);
- async function apply(e){
+ async function apply(e,opportunityId){
   e.preventDefault();if(!user?.id){setError("Please sign in before applying.");return;}
   if(!selected)return;
   setBusy(true);setError("");setNotice("");
@@ -636,7 +636,7 @@ function Trials({user,profile}) {
   {error&&<p className="form-error" role="alert">{error}</p>}{notice&&<p className="admin-notice">{notice}</p>}
   {!user&&<div className="admin-notice"><ShieldCheck size={18}/><div><b>Sign in to apply</b><p>You can browse open opportunities now. Sign in through your Profile to submit an application.</p><Link to="/profile">Go to Profile</Link></div></div>}
   <Section title="Open trials">{opportunities.length?opportunities.map(o=><article className="performance-record" key={o.id}><div className="performance-record-head"><div><b>{o.title}</b><small>{o.sports?.name||"CUT Sport"}{o.teams?.name?" · "+o.teams.name:" · All teams"}</small></div><span className="status-pill">Open</span></div><p>{o.description||"Trial details will be provided by the coaching staff."}</p><div className="fixture-foot"><span><CalendarDays size={14}/>{o.starts_at?dateLabel(o.starts_at):"Date to be confirmed"}</span><span><MapPin size={14}/>{o.venue||"Venue to be confirmed"}</span></div>{o.closes_at&&<small>Applications close: {dateLabel(o.closes_at)}</small>}
-   {user&&<form className="form-card" onSubmit={apply}><h4>Apply for this trial</h4><label>Playing position / event<input value={selected===o.id?position:athlete?.position||""} onFocus={()=>setSelected(o.id)} onChange={e=>{setSelected(o.id);setPosition(e.target.value)}} placeholder="Your position or event"/></label><label>Previous playing / sporting experience<textarea rows="2" value={selected===o.id?experience:""} onFocus={()=>setSelected(o.id)} onChange={e=>{setSelected(o.id);setExperience(e.target.value)}} placeholder="Teams, clubs, competitions or experience"/></label><label>Why would you like to join? <textarea rows="3" maxLength="3000" value={selected===o.id?motivation:""} onFocus={()=>setSelected(o.id)} onChange={e=>{setSelected(o.id);setMotivation(e.target.value)}}/></label><button className="btn primary" disabled={busy}>{busy&&selected===o.id?"Submitting…":"Submit application"}</button></form>}
+   {user&&<form className="form-card" onSubmit={e=>apply(e,o.id)}><h4>Apply for this trial</h4><label>Your full name<input required minLength="2" maxLength="120" value={applicantName} onChange={e=>setApplicantName(e.target.value)}/></label><label>Playing position / event<input value={selected===o.id?position:athlete?.position||""} onFocus={()=>setSelected(o.id)} onChange={e=>{setSelected(o.id);setPosition(e.target.value)}} placeholder="Your position or event"/></label><label>Previous playing / sporting experience<textarea rows="2" value={selected===o.id?experience:""} onFocus={()=>setSelected(o.id)} onChange={e=>{setSelected(o.id);setExperience(e.target.value)}} placeholder="Teams, clubs, competitions or experience"/></label><label>Why would you like to join? <textarea rows="3" maxLength="3000" value={selected===o.id?motivation:""} onFocus={()=>setSelected(o.id)} onChange={e=>{setSelected(o.id);setMotivation(e.target.value)}}/></label><button className="btn primary" disabled={busy}>{busy&&selected===o.id?"Submitting…":"Submit application"}</button></form>}
   </article>):<Empty title="No open trials at the moment" body="New recruitment opportunities will appear here when CUT Sport coaches publish them."/>}</Section>
   {user&&<Section title="My applications">{applications.length?applications.map(a=><div className="sponsor-card" key={a.id}><div><b>{opportunities.find(o=>o.id===a.opportunity_id)?.title||"CUT Sport trial"}</b><small>{dateLabel(a.created_at)} · {statusLabel[a.status]||a.status}</small></div></div>):<Empty title="No applications yet" body="Your submitted trial applications and selection updates will appear here."/ >}</Section>}
  </main></>;
