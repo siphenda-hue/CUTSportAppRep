@@ -740,7 +740,7 @@ function AdminRecruitment({roles,user}) {
   });
   const csv=rows.map(row=>row.map(v=>"\""+String(v??"").replaceAll("\"","\"\"")+"\"").join(",")).join("\r\n");
   const url=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));
-  const link=document.createElement("a");link.href=url;link.download="cut-sport-trial-"+opportunity.id+".csv";link.click();URL.revokeObjectURL(url);
+  const link=document.createElement("a");link.href=url;link.download="cut-sport-trial-"+opportunity.id+".csv";link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
  }
  if(!allowed)return <><Header title="Admin access required" back/><main className="page"><Empty title="Restricted area" body="An assigned sport administrator, team manager or coach role is required."/></main></>;
  return <><Header title="Recruitment management" back/><main className="page">
