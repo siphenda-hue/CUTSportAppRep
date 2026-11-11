@@ -239,35 +239,26 @@ function PlayerDirectory({user}) {
   let active=true;
   async function load(){
    if(!supabase){setBusy(false);return;}
-   const [p,r]=await Promise.all([
-    supabase.from("player_profiles").select("id,full_name,display_name,claimed_at").order("full_name").limit(500),
-    supabase.from("player_profile_records").select("player_profile_id,record_type,sport_name,competition_id").limit(5000)
-   ]);
+   const {data,error}=await supabase.from("player_profiles").select("id,full_name,display_name,claimed_at,photo_path,profile_visibility").order("full_name").limit(500);
    if(!active)return;
-   if(p.error||r.error)setError(p.error?.message||r.error?.message||"Unable to load player directory.");
-   const counts={};
-   (r.data||[]).forEach(row=>{
-    const x=counts[row.player_profile_id]||(counts[row.player_profile_id]={records:0,sports:new Set(),competitions:new Set()});
-    x.records++;
-    if(row.sport_name)x.sports.add(row.sport_name);
-    if(row.competition_id)x.competitions.add(row.competition_id);
-   });
-   setPlayers((p.data||[]).map(x=>({...x,history:counts[x.id]||{records:0,sports:new Set(),competitions:new Set()}})));
+   if(error)setError(error.message);
+   setPlayers(data||[]);
    setBusy(false);
   }
   load();return()=>{active=false};
  },[]);
  const term=search.trim().toLocaleLowerCase();
  const visible=players.filter(p=>(p.display_name||p.full_name).toLocaleLowerCase().includes(term));
+ const photoUrl=path=>path&&supabase?.storage.from("player-profile-photos").getPublicUrl(path).data.publicUrl;
  return <><Header title="Player directory" back/><main className="page">
-  <div className="page-intro"><span className="eyebrow">THE BLUES · PLAYER ARCHIVE</span><h1>Every player.<br/><em>Every season.</em></h1><p>One player identity across CUT teams, sport codes and competition years. Open a profile to explore its verified history or request to claim it.</p></div>
-  <label className="player-search">Search players<input type="search" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search exact player name…"/></label>
+  <div className="page-intro"><span className="eyebrow">THE BLUES · PLAYER ARCHIVE</span><h1>Every player.<br/><em>Every season.</em></h1><p>One player identity across CUT teams, sport codes and competition years. Explore career history, verified statistics and appearances.</p></div>
+  <label className="player-search">Search players<input type="search" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search player name…"/></label>
   {error&&<p className="form-error">{error}</p>}
   <div className="player-directory-count">{visible.length} of {players.length} player profiles</div>
   {busy?<p className="muted">Loading the CUT player archive…</p>:visible.length?<div className="player-directory-grid">{visible.map(p=><Link className="player-directory-card" to={"/players/"+p.id} key={p.id}>
-   <span className="player-directory-avatar">{(p.display_name||p.full_name).slice(0,1)}</span><span className="player-directory-copy"><b>{p.display_name||p.full_name}</b><small>{p.history.records} linked history records · {p.history.sports.size} sport code(s)</small></span><span className={p.claimed_at?"player-claimed":"player-unclaimed"}>{p.claimed_at?"Claimed":"Claim profile"}</span>
+   <span className="player-directory-avatar">{photoUrl(p.photo_path)?<img src={photoUrl(p.photo_path)} alt=""/>:(p.display_name||p.full_name).slice(0,1)}</span><span className="player-directory-copy"><b>{p.display_name||p.full_name}</b><small>{p.profile_visibility==="private"?"Private player profile":"Public player profile"} · {p.claimed_at?"Claim verified":"Unclaimed profile"}</small></span><ChevronRight size={18}/>
   </Link>)}</div>:<Empty title="No players found" body="Try another name or search term."/>}
-  <p className="muted">Profiles are grouped only when the recorded player names match exactly, including spelling, order and capitalisation. Similar-looking names remain separate until verified.</p>
+  <p className="muted">Profiles are grouped only when recorded names match exactly, including spelling, order and capitalisation. Similar-looking names remain separate until verified.</p>
   {!user&&<p className="muted">Sign in to request ownership of your player profile.</p>}
  </main></>;
 }
@@ -275,13 +266,14 @@ function PlayerDirectory({user}) {
 function PlayerProfilePage({user,roles=[]}) {
  const {id}=useParams();
  const [player,setPlayer]=useState(null),[records,setRecords]=useState([]),[claim,setClaim]=useState(null),[claimNote,setClaimNote]=useState(""),[busy,setBusy]=useState(true),[saving,setSaving]=useState(false),[error,setError]=useState(""),[message,setMessage]=useState(""),[pending,setPending]=useState([]);
+ const [photoBusy,setPhotoBusy]=useState(false);
  const isSuper=roles.includes("super_admin");
  async function load(){
   if(!supabase)return;
   setBusy(true);setError("");
   const [p,r]=await Promise.all([
-   supabase.from("player_profiles").select("id,full_name,display_name,claimed_at").eq("id",id).maybeSingle(),
-   supabase.from("player_profile_records").select("*").eq("player_profile_id",id).order("record_date",{ascending:false,nullsFirst:false})
+   supabase.from("player_profiles").select("id,full_name,display_name,claimed_at,photo_path,photo_approved_at,profile_visibility").eq("id",id).maybeSingle(),
+   supabase.from("player_profile_records").select("*").eq("player_profile_id",id).order("record_date",{ascending:false,nullsFirst:false}).limit(1000)
   ]);
   if(p.error||r.error)setError(p.error?.message||r.error?.message||"Unable to load this player profile.");
   setPlayer(p.data||null);setRecords(r.data||[]);
@@ -311,6 +303,42 @@ function PlayerProfilePage({user,roles=[]}) {
   if(error)setError(error.message);else{setMessage("Claim "+decision+".");await load()}
   setSaving(false);
  }
+ async function uploadApprovedPhoto(event){
+  const file=event.target.files?.[0];event.target.value="";
+  if(!file||!supabase||!isSuper||!user?.id)return;
+  const allowed=["image/jpeg","image/png","image/webp"];
+  if(!allowed.includes(file.type)){setError("Use a JPG, PNG or WebP image.");return;}
+  if(file.size>5*1024*1024){setError("The profile photo must be 5 MB or smaller.");return;}
+  setPhotoBusy(true);setError("");setMessage("");
+  const ext=file.type==="image/jpeg"?"jpg":file.type==="image/png"?"png":"webp";
+  const path=id+"/"+crypto.randomUUID()+"."+ext;
+  const {error:uploadError}=await supabase.storage.from("player-profile-photos").upload(path,file,{contentType:file.type,cacheControl:"3600",upsert:false});
+  if(uploadError){setError(uploadError.message);setPhotoBusy(false);return;}
+  const previous=player?.photo_path;
+  const {error:updateError}=await supabase.from("player_profiles").update({photo_path:path,photo_approved_at:new Date().toISOString(),photo_approved_by:user.id}).eq("id",id);
+  if(updateError){
+   setError("Photo uploaded but could not be assigned: "+updateError.message);
+   setPhotoBusy(false);return;
+  }
+  if(previous)await supabase.storage.from("player-profile-photos").remove([previous]);
+  setMessage("Photo assigned and approved for public display.");
+  await load();setPhotoBusy(false);
+ }
+ async function removeApprovedPhoto(){
+  if(!supabase||!isSuper||!player?.photo_path)return;
+  setPhotoBusy(true);setError("");const old=player.photo_path;
+  const {error:updateError}=await supabase.from("player_profiles").update({photo_path:null,photo_approved_at:null,photo_approved_by:null}).eq("id",id);
+  if(updateError)setError(updateError.message);
+  else{await supabase.storage.from("player-profile-photos").remove([old]);setMessage("Profile photo removed.");await load()}
+  setPhotoBusy(false);
+ }
+ async function changeVisibility(next){
+  if(!supabase||saving)return;
+  setSaving(true);setError("");setMessage("");
+  const {data,error}=await supabase.from("player_profiles").update({profile_visibility:next}).eq("id",id).select("id,profile_visibility").single();
+  if(error)setError(error.message);else{setPlayer(current=>({...current,profile_visibility:data.profile_visibility}));setMessage(next==="public"?"Player profile is now public.":"Player profile is now hidden from public view.");}
+  setSaving(false);
+ }
  const grouped=records.reduce((acc,row)=>{const key=[row.season||"Season not recorded",row.competition_name||"Team history",row.sport_name||"Sport not recorded"].join(" · ");(acc[key]||(acc[key]=[])).push(row);return acc},{});
  const detailsText=row=>{
   const d=row.details||{};
@@ -319,15 +347,53 @@ function PlayerProfilePage({user,roles=[]}) {
    const values=Object.entries({...stats,field_goals:d.field_goals,penalty_corner_goals:d.penalty_corner_goals,penalty_stroke_goals:d.penalty_stroke_goals,total_goals:d.total_goals}).filter(([k,v])=>v!==null&&v!==undefined&&k!=="stat_category");
    return values.map(([k,v])=>k.replaceAll("_"," ")+": "+(typeof v==="object"?JSON.stringify(v):v)).join(" · ");
   }
-  if(row.record_type==="athlete_statistics")return Object.entries(d.metrics||{}).map(([k,v])=>k.replaceAll("_"," ")+": "+v).join(" · ");\n  if(row.record_type==="athlete_achievement")return [row.role,d.description,d.is_verified?"Verified achievement":null].filter(Boolean).join(" · ");
+  if(row.record_type==="athlete_statistics")return Object.entries(d.metrics||{}).map(([k,v])=>k.replaceAll("_"," ")+": "+v).join(" · ");
+  if(row.record_type==="athlete_achievement")return [row.role,d.description,d.is_verified?"Verified achievement":null].filter(Boolean).join(" · ");
   if(row.record_type==="team_membership")return [d.joined_at?"Joined "+d.joined_at:null,d.left_at?"Left "+d.left_at:null,d.is_active?"Current membership":"Past membership"].filter(Boolean).join(" · ");
   return [row.position,row.role,row.is_captain?"Captain":null,row.is_vice_captain?"Vice-captain":null,row.squad_number!==null?"#"+row.squad_number:null].filter(Boolean).join(" · ");
  };
+ const appearances=new Set();
+ const totals={};
+ const additive=new Set(["total_goals","goals","field_goals","penalty_corner_goals","penalty_stroke_goals","tries","total_tries","wickets","runs","assists","tackles","saves","points","yellow_cards","red_cards","clean_sheets"]);
+ let statisticRecords=0,squadSelections=0;
+ const addMetrics=(obj)=>{
+  if(!obj||typeof obj!=="object"||Array.isArray(obj))return false;
+  let found=false;
+  Object.entries(obj).forEach(([key,value])=>{
+   if(additive.has(key)&&typeof value==="number"&&Number.isFinite(value)){const label=key==="total_tries"?"tries":key;totals[label]=(totals[label]||0)+value;found=true;}
+  });
+  return found;
+ };
+ records.forEach(row=>{
+  const d=row.details||{},stats=d.statistics&&typeof d.statistics==="object"?d.statistics:{};
+  if(row.record_type==="squad_appearance")squadSelections++;
+  if(row.record_type==="competition_statistics"){
+   const has=addMetrics(stats)||[d.total_goals,d.field_goals,d.penalty_corner_goals,d.penalty_stroke_goals].some(v=>typeof v==="number");
+   if(has)statisticRecords++;
+   addMetrics({total_goals:d.total_goals,field_goals:d.field_goals,penalty_corner_goals:d.penalty_corner_goals,penalty_stroke_goals:d.penalty_stroke_goals});
+   if(stats.match_date&&stats.match_opponent)appearances.add([row.competition_id,stats.match_date,stats.match_opponent].join("|"));
+   (Array.isArray(stats.matches)?stats.matches:[]).forEach(m=>{if(m?.date&&m?.opponent)appearances.add([row.competition_id,m.date,m.opponent].join("|"));});
+  }
+  if(row.record_type==="athlete_statistics"){
+   if(addMetrics(d.metrics||{}))statisticRecords++;
+   if(d.fixture_id)appearances.add("fixture:"+d.fixture_id);
+  }
+ });
+ const competitions=new Set(records.map(x=>x.competition_id).filter(Boolean)).size;
+ const statLabels={total_goals:"Goals",goals:"Goals",field_goals:"Field goals",penalty_corner_goals:"Penalty-corner goals",penalty_stroke_goals:"Penalty-stroke goals",tries:"Tries",wickets:"Wickets",runs:"Runs",assists:"Assists",tackles:"Tackles",saves:"Saves",points:"Points",yellow_cards:"Yellow cards",red_cards:"Red cards",clean_sheets:"Clean sheets"};
+ const photoUrl=player?.photo_path&&supabase?supabase.storage.from("player-profile-photos").getPublicUrl(player.photo_path).data.publicUrl:null;
+ const canManageVisibility=isSuper||claim?.status==="approved";
  return <><Header title="Player profile" back/><main className="page">
   {busy?<p className="muted">Loading player history…</p>:!player?<Empty title="Player profile not found" body="This player profile may have been removed or the link is incorrect."/>:<>
-   <div className="player-profile-hero"><span className="player-profile-avatar">{(player.display_name||player.full_name).slice(0,1)}</span><div><span className="eyebrow">CUT SPORT · PLAYER RECORD</span><h1>{player.display_name||player.full_name}</h1><p>{records.length} linked record(s) · {new Set(records.map(x=>x.sport_name).filter(Boolean)).size} sport code(s) · {new Set(records.map(x=>x.competition_id).filter(Boolean)).size} competition(s)</p><span className={player.claimed_at?"player-claimed":"player-unclaimed"}>{player.claimed_at?"Claim verified":"Unclaimed player profile"}</span></div></div>
+   <div className="player-profile-hero"><span className="player-profile-avatar">{photoUrl?<img src={photoUrl} alt={player.display_name||player.full_name}/>:((player.display_name||player.full_name).slice(0,1))}</span><div><span className="eyebrow">CUT SPORT · PLAYER RECORD</span><h1>{player.display_name||player.full_name}</h1><p>{appearances.size} documented match appearance(s) · {statisticRecords} statistics record(s) · {competitions} competition(s)</p><span className={player.claimed_at?"player-claimed":"player-unclaimed"}>{player.claimed_at?"Claim verified":"Unclaimed player profile"}</span><span className="player-visibility-tag">{player.profile_visibility==="private"?"Private profile":"Public profile"}</span></div></div>
+   <div className="player-career-stats">
+    <article><b>{appearances.size}</b><small>Match appearances</small></article><article><b>{statisticRecords}</b><small>Statistics records</small></article><article><b>{competitions}</b><small>Competitions</small></article><article><b>{squadSelections}</b><small>Squad selections</small></article>
+   </div>
+   {Object.keys(totals).some(k=>totals[k]!==0)&&<Section title="Recorded career totals"><div className="player-total-grid">{Object.entries(totals).filter(([,v])=>v!==0).map(([k,v])=><article key={k}><b>{v}</b><small>{statLabels[k]||k.replaceAll("_"," ")}</small></article>)}</div><p className="muted">Totals combine available source-backed records only. They are not represented as complete career totals unless the underlying competition records are complete.</p></Section>}
+   {canManageVisibility&&<section className="player-privacy-panel"><div><b>Public profile visibility</b><p>{player.profile_visibility==="public"?"Anyone can view this player dashboard.":"This player dashboard is hidden from public visitors."}</p></div><button className="btn secondary" disabled={saving} onClick={()=>changeVisibility(player.profile_visibility==="public"?"private":"public")}>{player.profile_visibility==="public"?"Hide profile":"Make profile public"}</button></section>}
+   {isSuper&&<section className="player-photo-admin"><div><b>Official CUT profile photo</b><p>Upload a professional CUT photo and assign it to this player. Assigning the image approves it for public display.</p></div><label className="btn secondary">{photoBusy?"Uploading…":player.photo_path?"Replace approved photo":"Upload and approve photo"}<input type="file" accept="image/jpeg,image/png,image/webp" onChange={uploadApprovedPhoto} disabled={photoBusy} hidden/></label>{player.photo_path&&<button className="btn secondary" type="button" onClick={removeApprovedPhoto} disabled={photoBusy}>Remove photo</button>}{player.photo_approved_at&&<small>Approved {dateLabel(player.photo_approved_at)}</small>}</section>}
    {!player.claimed_at&&<section className="player-claim-panel"><h3>Is this your player profile?</h3><p>Request to claim this profile. CUT Sport administrators will verify your identity before linking it to your account.</p>{!user?<Link className="btn primary" to="/profile">Sign in to claim profile</Link>:claim?.status==="pending"?<p className="player-claim-status">Your claim is awaiting verification.</p>:claim?.status==="rejected"?<p className="form-error">Your previous claim was not approved. Contact CUT Sport administration if you believe this is incorrect.</p>:<><label>Verification details (optional)<textarea value={claimNote} onChange={e=>setClaimNote(e.target.value)} maxLength={1000} placeholder="Add a short note to help administrators verify your identity."/></label><button className="btn primary" disabled={saving} onClick={requestClaim}>{saving?"Submitting…":"Request to claim this profile"}</button></>}</section>}
-   {player.claimed_at&&user?.id&&<p className="player-claim-status">This profile has been claimed. If it is yours but linked to another account, contact CUT Sport administration.</p>}
+   {player.claimed_at&&user?.id&&claim?.status==="approved"&&<p className="player-claim-status">This is your claimed CUT Sport player profile.</p>}
    {message&&<p className="success-message">{message}</p>}{error&&<p className="form-error">{error}</p>}
    <Section title="Career history">{records.length?Object.entries(grouped).map(([group,items])=><article className="player-history-group" key={group}><h3>{group}</h3>{items.map(row=><div className="player-history-row" key={row.record_type+row.record_id}><div><b>{row.team_name||"CUT Sport"}</b><small>{row.record_label||row.record_type.replaceAll("_"," ")}</small>{detailsText(row)&&<small>{detailsText(row)}</small>}{row.source_url&&<a href={row.source_url} target="_blank" rel="noreferrer">View source ↗</a>}</div><span>{row.record_date||""}</span></div>)}</article>):<Empty title="No linked competition records yet" body="Published team sheets, competition statistics and approved athlete records will appear here as they are added to the archive."/>}</Section>
    {isSuper&&<Section title="Pending player claims">{pending.length?pending.map(c=><article className="player-claim-admin" key={c.id}><b>{c.player_profiles?.full_name||"Player profile"}</b><small>Account: {c.user_id} · Submitted {dateLabel(c.created_at)}</small>{c.evidence_note&&<p>{c.evidence_note}</p>}<div><button disabled={saving} onClick={()=>reviewClaim(c.id,"approved")}>Approve claim</button><button disabled={saving} onClick={()=>reviewClaim(c.id,"rejected")}>Reject claim</button></div></article>):<p className="muted">No pending player claims.</p>}</Section>}
