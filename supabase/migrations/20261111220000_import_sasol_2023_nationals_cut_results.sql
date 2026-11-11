@@ -1,7 +1,7 @@
 -- Create the distinct 2023 Sasol League National Championship record and import CUT Ixias' verified Group C results.
 -- Results cross-checked against RSSSF and contemporary Sasol reporting.
 insert into public.competitions (sport_id,name,season,start_date,end_date,venue,description,status)
-select (select sport_id from public.competitions where name='Sasol Women's League — Free State' and season='2023' limit 1),
+select (select sport_id from public.competitions where name='Sasol Women''s League — Free State' and season='2023' limit 1),
        'SAFA Sasol League National Championship','2023','2023-10-16','2023-10-22',
        'Dr Petrus Molemela Stadium, Bloemfontein',
        'National championship; CUT Ixias qualified as Free State provincial champions and competed in Group C.',
