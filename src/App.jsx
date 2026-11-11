@@ -554,7 +554,7 @@ function AdminApprovals({roles,user}) {
   let table="",payload={...audit};
   if(kind==="athlete"){
    table="athletes";
-   payload={...payload,approval_status:decision,verified_by:user.id,verified_at:now};
+   payload={...payload,approval_status:decision,verified_by:decision==="approved"?user.id:null,verified_at:decision==="approved"?now:null};
   }else if(kind==="statistics"){
    table="athlete_statistics";
    payload={...payload,approval_status:decision,approved_by:decision==="approved"?user.id:null,approved_at:decision==="approved"?now:null};
