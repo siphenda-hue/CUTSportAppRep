@@ -368,14 +368,17 @@ function PlayerProfilePage({user,roles=[]}) {
   const d=row.details||{},stats=d.statistics&&typeof d.statistics==="object"?d.statistics:{};
   if(row.record_type==="squad_appearance")squadSelections++;
   if(row.record_type==="competition_statistics"){
-   const has=addMetrics(stats)||[d.total_goals,d.field_goals,d.penalty_corner_goals,d.penalty_stroke_goals].some(v=>typeof v==="number");
-   if(has)statisticRecords++;
+   const hasNumeric=Object.values(stats).some(v=>typeof v==="number"&&Number.isFinite(v))||[d.total_goals,d.field_goals,d.penalty_corner_goals,d.penalty_stroke_goals].some(v=>typeof v==="number");
+   if(hasNumeric)statisticRecords++;
+   addMetrics(stats);
    addMetrics({total_goals:d.total_goals,field_goals:d.field_goals,penalty_corner_goals:d.penalty_corner_goals,penalty_stroke_goals:d.penalty_stroke_goals});
    if(stats.match_date&&stats.match_opponent)appearances.add([row.competition_id,stats.match_date,stats.match_opponent].join("|"));
    (Array.isArray(stats.matches)?stats.matches:[]).forEach(m=>{if(m?.date&&m?.opponent)appearances.add([row.competition_id,m.date,m.opponent].join("|"));});
   }
   if(row.record_type==="athlete_statistics"){
-   if(addMetrics(d.metrics||{}))statisticRecords++;
+   const metrics=d.metrics||{};
+   if(Object.values(metrics).some(v=>typeof v==="number"&&Number.isFinite(v)))statisticRecords++;
+   addMetrics(metrics);
    if(d.fixture_id)appearances.add("fixture:"+d.fixture_id);
   }
  });
