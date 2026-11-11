@@ -1,5 +1,5 @@
 do $$
-declare f2022 uuid; n2025 uuid; n2026 uuid; r2025 uuid;
+declare f2022 uuid; n2025 uuid; n2026 uuid;
 begin
   insert into public.competitions (sport_id,name,season,venue,description,status)
   values ('4c1ccd6f-3965-422a-ad25-19aaa2797f23','Sasol Women''s League — Free State','2022','Free State','CUT Ladies (Ixias FC) finished first in Stream A unbeaten, winning all 10 recorded matches with no losses. The team were crowned Free State provincial Sasol League champions and qualified for the national promotion play-offs in Polokwane in October 2022.','completed')
@@ -30,18 +30,5 @@ begin
   values
   (n2026,'CUT','{"final_position":5,"qualification_for":"Varsity Netball 2027","qualification_achieved":true}'::jsonb,'https://supersport.com/rugby/news/9ef7e578-2cfb-4413-9315-d71a89dc3e3a/varsity-netball-returns-as-cut-makes-debut-while-maties-chase-centenary-glory');
 
-  select id into r2025 from public.competitions where sport_id='83ddd3ad-ceef-4855-8e37-1303e388f58d' and name='FNB Varsity Cup' and season='2025' limit 1;
-  insert into public.competition_standings
-  (competition_id,team_name,group_name,position,played,won,drawn,lost,scored,conceded,points_difference,bonus_points,points,source_url,source_checked_at)
-  values
-  (r2025,'CUT Ixias','League Table',6,7,3,0,4,140,300,-160,null,11,'https://en.wikipedia.org/wiki/2025_Varsity_Cup',now())
-  on conflict (competition_id,team_name,group_name) do update set
-   position=excluded.position,played=excluded.played,won=excluded.won,drawn=excluded.drawn,lost=excluded.lost,
-   scored=excluded.scored,conceded=excluded.conceded,points_difference=excluded.points_difference,
-   bonus_points=excluded.bonus_points,points=excluded.points,source_url=excluded.source_url,
-   source_checked_at=now(),updated_at=now();
 
-  update public.competitions
-  set description=description||' UJ won the 2026 championship with a 56-44 final victory over NWU Eagles.'
-  where sport_id='6c1bd7e1-bd32-4367-8270-d2d0d3c0f3b9' and name='Varsity Netball' and season='2026';
 end $$;
