@@ -174,3 +174,23 @@
 .player-claim-admin button{padding:9px 12px;border:0;border-radius:10px;background:#174f8b;color:#fff;font-weight:800}
 .player-claim-admin button+button{background:#8b2635}
 .success-message{padding:12px;border-radius:12px;background:#e1f4e9;color:#17633a;font-size:13px;font-weight:700}
+
+
+/* Public player career dashboard, privacy and approved CUT portraits */
+.player-directory-avatar{overflow:hidden}
+.player-directory-avatar img,.player-profile-avatar img{width:100%;height:100%;object-fit:cover;border-radius:inherit}
+.player-profile-avatar{overflow:hidden}
+.player-profile-hero{align-items:center}
+.player-profile-hero>div{min-width:0}
+.player-profile-hero .player-visibility-tag{display:inline-flex;width:max-content;margin:6px 0 0;padding:4px 8px;border:1px solid rgba(255,255,255,.28);border-radius:20px;color:#fff;font-size:10px;font-weight:800}
+.player-career-stats,.player-total-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:12px 0}
+.player-career-stats article,.player-total-grid article{display:grid;gap:4px;padding:14px;border:1px solid rgba(20,52,96,.12);border-radius:14px;background:linear-gradient(135deg,#fff,#f1f6ff)}
+.player-career-stats b,.player-total-grid b{font-size:25px;font-weight:900;color:#164b91;font-variant-numeric:tabular-nums}
+.player-career-stats small,.player-total-grid small{font-size:10px;color:#64748b;font-weight:800}
+.player-privacy-panel,.player-photo-admin{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin:14px 0;padding:15px;border:1px solid rgba(20,52,96,.14);border-radius:15px;background:#f5f8fd}
+.player-privacy-panel>div,.player-photo-admin>div{flex:1;min-width:180px}
+.player-privacy-panel p,.player-photo-admin p{margin:5px 0 0;color:#64748b;font-size:12px}
+.player-photo-admin>small{width:100%;color:#64748b;font-size:10px}
+.player-photo-admin .btn,.player-privacy-panel .btn{margin:0;white-space:nowrap}
+.player-photo-admin input[type=file]{display:none}
+@media(min-width:560px){.player-career-stats,.player-total-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
