@@ -655,7 +655,7 @@ function AdminRecruitment({roles,user}) {
   if(!supabase||!allowed)return;
   const [sp,tm,op]=await Promise.all([
    supabase.from("sports").select("id,name").order("name"),
-   supabase.from("teams").select("id,name,sport_id").eq("is_active",true).order("name"),
+   supabase.from("teams").select("id,name,sport_id,sports(name)").eq("is_active",true).order("name"),
    supabase.from("recruitment_opportunities").select("id,title,sport_id,team_id,status,starts_at,closes_at,venue,sports(name),teams(name)").order("created_at",{ascending:false})
   ]);
   const failure=sp.error||tm.error||op.error;if(failure){setError(failure.message);return;}
@@ -724,10 +724,14 @@ function AdminRecruitment({roles,user}) {
   if(!application.athlete_id){setError("This application has no linked athlete profile. Link or create the athlete profile before allocating a team.");return;}
   if(!teamId||!opportunity){setError("Choose a team for this selected applicant.");return;}
   const team=teams.find(t=>t.id===teamId);
-  if(!team||team.sport_id!==opportunity.sport_id){setError("The selected team does not belong to this sport.");return;}
+  if(!team){setError("Choose a valid active team.");return;}
   setError("");setNotice("");
-  const {error:e}=await supabase.from("athletes").update({team_id:teamId}).eq("id",application.athlete_id).eq("sport_id",opportunity.sport_id);
-  if(e)setError(e.message);else setNotice("Athlete team allocation saved.");
+  const {data:existing,error:lookupError}=await supabase.from("athlete_team_memberships").select("id").eq("athlete_id",application.athlete_id).eq("team_id",team.id).maybeSingle();
+  if(lookupError){setError(lookupError.message);return;}
+  const result=existing
+   ? await supabase.from("athlete_team_memberships").update({is_active:true,left_at:null,position:application.playing_position||null,updated_at:new Date().toISOString()}).eq("id",existing.id)
+   : await supabase.from("athlete_team_memberships").insert({athlete_id:application.athlete_id,team_id:team.id,sport_id:team.sport_id,position:application.playing_position||null,created_by:user.id});
+  if(result.error)setError(result.error.message);else setNotice("Athlete added to "+team.name+" ("+(team.sports?.name||"sport")+") without changing their other team memberships.");
  }
  function exportReport(opportunity){
   const opCriteria=criteria.filter(c=>c.opportunity_id===opportunity.id);
@@ -774,7 +778,7 @@ function AdminRecruitment({roles,user}) {
      const averages=appCriteria.map(c=>{const entries=appScores.filter(s=>s.criterion_id===c.id);return {criterion:c,average:entries.length?entries.reduce((sum,s)=>sum+Number(s.score),0)/entries.length:null,count:entries.length};});
      const complete=averages.length>0&&averages.every(x=>x.average!==null);
      const totalAverage=averages.reduce((sum,x)=>sum+(x.average??0),0),totalMaximum=appCriteria.reduce((sum,c)=>sum+Number(c.max_score),0);
-     const linkedTeams=teams.filter(t=>t.sport_id===o.sport_id);
+     const linkedTeams=teams;
      return <div className="performance-record" key={a.id}>
       <div className="performance-record-head"><div><b>{a.full_name}</b><small>{a.playing_position||"Position not specified"} · {a.athlete_id?"Linked athlete profile":"No linked athlete profile"}</small></div><span>{a.status.replaceAll("_"," ")}</span></div>
       {a.experience&&<p><b>Experience:</b> {a.experience}</p>}{a.motivation&&<p><b>Motivation:</b> {a.motivation}</p>}
@@ -784,7 +788,7 @@ function AdminRecruitment({roles,user}) {
       })}{complete&&<p className="admin-notice">Average total: {totalAverage.toFixed(2)} / {totalMaximum.toFixed(2)} ({((totalAverage/totalMaximum)*100).toFixed(1)}%)</p>}</div>:<p className="muted">Add evaluation criteria above before scoring applicants.</p>}
       <label>Private coach evaluation notes<textarea rows="2" value={notes[a.id]??a.coach_notes??""} onChange={e=>setNotes(current=>({...current,[a.id]:e.target.value}))} placeholder="Private notes for the selection record"/></label>
       <div className="review-actions"><button className="btn secondary" onClick={()=>reviewApplication(a,"shortlisted")}>Shortlist</button><button className="btn primary" onClick={()=>reviewApplication(a,"selected")}>Select</button><button className="btn secondary" onClick={()=>reviewApplication(a,"not_selected")}>Not selected</button></div>
-      {a.status==="selected"&&a.athlete_id&&<div className="form-card"><h4>Squad allocation</h4><label>Assign to team<select value={teamAssignments[a.id]||""} onChange={e=>setTeamAssignments(current=>({...current,[a.id]:e.target.value}))}><option value="">Choose team</option>{linkedTeams.map(t=><option key={t.id} value={t.id}>{t.name}</option>)}</select></label><button type="button" className="btn primary" onClick={()=>allocateTeam(a)}>Save team allocation</button></div>}
+      {a.status==="selected"&&a.athlete_id&&<div className="form-card"><h4>Squad allocation</h4><label>Assign to an additional team (any sport)<select value={teamAssignments[a.id]||""} onChange={e=>setTeamAssignments(current=>({...current,[a.id]:e.target.value}))}><option value="">Choose team</option>{linkedTeams.map(t=><option key={t.id} value={t.id}>{t.name} — {t.sports?.name||"Sport"}</option>)}</select></label><button type="button" className="btn primary" onClick={()=>allocateTeam(a)}>Save team allocation</button></div>}
       {a.status==="selected"&&!a.athlete_id&&<p className="muted">To allocate this selected applicant, first link their application to an approved athlete profile.</p>}
      </div>;
     }):<Empty title="No applications received" body="Applications submitted to this opportunity will appear here."/>}
