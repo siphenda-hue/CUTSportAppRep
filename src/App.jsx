@@ -1176,18 +1176,19 @@ function AdminTeams({roles,user}) {
  const sportAdmin=roles.some(r=>["sport_admin","super_admin"].includes(r));
  const superAdmin=roles.includes("super_admin");
  const blank={sport_id:"",name:"",category:"",season:"",coach_name:""};
- const [sports,setSports]=useState([]),[teams,setTeams]=useState([]),[form,setForm]=useState(blank),[editing,setEditing]=useState(null);
+ const [sports,setSports]=useState([]),[teams,setTeams]=useState([]),[teamTallies,setTeamTallies]=useState([]),[form,setForm]=useState(blank),[editing,setEditing]=useState(null);
  const [assignments,setAssignments]=useState([]),[staff,setStaff]=useState([]),[selectedStaff,setSelectedStaff]=useState(""),[assignmentSport,setAssignmentSport]=useState(""),[assignmentTeam,setAssignmentTeam]=useState(""),[assignmentRole,setAssignmentRole]=useState("coach"),[startsOn,setStartsOn]=useState(""),[endsOn,setEndsOn]=useState("");
  const [busy,setBusy]=useState(false),[error,setError]=useState(""),[notice,setNotice]=useState("");
  async function load(){
   if(!supabase||!sportAdmin)return;
   setBusy(true);setError("");
-  const [s,t]=await Promise.all([
+  const [s,t,ft]=await Promise.all([
    supabase.from("sports").select("id,name,is_active").order("name"),
-   supabase.from("teams").select("id,name,sport_id,category,season,coach_name,is_active,created_at,sports(name)").order("name")
+   supabase.from("teams").select("id,name,sport_id,category,season,competition_id,coach_name,is_active,created_at,sports(name)").order("name"),
+   supabase.from("team_fixture_tallies").select("team_id,competition_name,matches_listed,completed_matches,results_recorded,dated_calendar_fixtures,undated_match_records,wins,draws,losses")
   ]);
-  if(s.error||t.error){setError(s.error?.message||t.error?.message);setBusy(false);return}
-  setSports(s.data||[]);setTeams(t.data||[]);
+  if(s.error||t.error||ft.error){setError(s.error?.message||t.error?.message||ft.error?.message);setBusy(false);return}
+  setSports(s.data||[]);setTeams(t.data||[]);setTeamTallies(ft.data||[]);
   if(superAdmin){
    const [a,sp,pr]=await Promise.all([
     supabase.from("sport_admin_assignments").select("id,admin_profile_id,sport_id,team_id,assignment_role,starts_on,ends_on,is_active,created_at").order("created_at",{ascending:false}),
@@ -1255,7 +1256,7 @@ function AdminTeams({roles,user}) {
     <div className="review-actions"><button className="btn primary" disabled={busy}>{busy?"Saving…":editing?"Save team":"Create team"}</button>{editing&&<button type="button" onClick={reset}>Cancel</button>}</div>
    </form>
   </Section>
-  <Section title="Team directory">{teams.length?teams.map(t=><article className="performance-record" key={t.id}><div className="performance-record-head"><div><b>{t.name}</b><small>{t.sports?.name||"Sport"} · {t.category||"Category not set"} · {t.season||"Season not set"}</small></div><span className={"order-status "+(t.is_active?"is-paid":"")}>{t.is_active?"Active":"Archived"}</span></div>{t.coach_name&&<p className="muted">Coach: {t.coach_name}</p>}<div className="review-actions"><button type="button" disabled={busy} onClick={()=>edit(t)}>Edit</button><button type="button" disabled={busy} onClick={()=>archiveTeam(t)}>{t.is_active?"Archive team":"Restore team"}</button></div></article>):<Empty title={busy?"Loading teams":"No teams created"} body="Create the first squad above. Existing athlete and fixture records are preserved when a team is archived."/>}</Section>
+  <Section title="Team directory">{teams.length?teams.map(t=><article className="performance-record" key={t.id}><div className="performance-record-head"><div><b>{t.name}</b><small>{t.sports?.name||"Sport"} · {t.category||"Category not set"} · {t.season||"Season not set"}</small></div><span className={"order-status "+(t.is_active?"is-paid":"")}>{t.is_active?"Active":"Archived"}</span></div>{t.coach_name&&<p className="muted">Coach: {t.coach_name}</p>}{teamTallies.filter(x=>x.team_id===t.id).map(x=><p className="muted" key={x.team_id}>{x.competition_name||"Competition"} · {x.matches_listed} matches listed · {x.completed_matches} completed · {x.wins} W / {x.draws} D / {x.losses} L{x.undated_match_records? " · "+x.undated_match_records+" undated archive record(s)":""}</p>)}<div className="review-actions"><button type="button" disabled={busy} onClick={()=>edit(t)}>Edit</button><button type="button" disabled={busy} onClick={()=>archiveTeam(t)}>{t.is_active?"Archive team":"Restore team"}</button></div></article>):<Empty title={busy?"Loading teams":"No teams created"} body="Create the first squad above. Existing athlete and fixture records are preserved when a team is archived."/>}</Section>
   {superAdmin&&<Section title="Staff assignments">
    <p className="muted">Only existing CUT Sport staff profiles are eligible. Sport administrators receive full-sport management; coaches and team managers receive team-level access.</p>
    <form className="form-card" onSubmit={saveAssignment}>
