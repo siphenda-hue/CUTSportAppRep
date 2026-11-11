@@ -94,3 +94,22 @@ insert into public.competition_player_statistics (competition_id,player_name,tea
 ((select id from public.competitions where sport_id=(select id from public.sports where slug='hockey') and name='USSA Women B-Section' and season='2026' limit 1),'NORRIS Quincley','Central University of Technology',12,1,0,0,1,'https://saha.altiusrt.com/competitions/265/reports/scorers',now()),
 ((select id from public.competitions where sport_id=(select id from public.sports where slug='hockey') and name='USSA Women B-Section' and season='2026' limit 1),'WILLIAMS Tavia','Central University of Technology',15,1,0,0,1,'https://saha.altiusrt.com/competitions/265/reports/scorers',now())
 on conflict (competition_id,player_name,team_name) do update set squad_number=excluded.squad_number,field_goals=excluded.field_goals,penalty_corner_goals=excluded.penalty_corner_goals,penalty_stroke_goals=excluded.penalty_stroke_goals,total_goals=excluded.total_goals,source_url=excluded.source_url,source_checked_at=now();
+
+insert into public.competition_standings (competition_id,group_name,position,team_name,source_url,source_checked_at)
+select c.id,'Final Standing',v.rank,v.team,v.url,now()
+from (values
+ ('USSA Women C-Section','2023',1,'Sol Plaatje University','https://saha.altiusrt.com/competitions/156'),
+ ('USSA Women C-Section','2023',2,'Central University of Technology','https://saha.altiusrt.com/competitions/156'),
+ ('USSA Women C-Section','2023',3,'University of Limpopo','https://saha.altiusrt.com/competitions/156'),
+ ('USSA Women C-Section','2023',4,'Vaal University of Technology','https://saha.altiusrt.com/competitions/156'),
+ ('USSA Women B-Section','2026',1,'University of the Western Cape','https://saha.altiusrt.com/competitions/265'),
+ ('USSA Women B-Section','2026',2,'University of the Free State','https://saha.altiusrt.com/competitions/265'),
+ ('USSA Women B-Section','2026',3,'Rhodes University','https://saha.altiusrt.com/competitions/265'),
+ ('USSA Women B-Section','2026',4,'ETA College','https://saha.altiusrt.com/competitions/265'),
+ ('USSA Women B-Section','2026',5,'Central University of Technology','https://saha.altiusrt.com/competitions/265'),
+ ('USSA Women B-Section','2026',6,'Tshwane University of Technology','https://saha.altiusrt.com/competitions/265'),
+ ('USSA Women B-Section','2026',7,'Namibia University of Science and Technology','https://saha.altiusrt.com/competitions/265'),
+ ('USSA Women B-Section','2026',8,'Vaal University of Technology','https://saha.altiusrt.com/competitions/265')
+) as v(name,season,rank,team,url)
+join public.competitions c on c.name=v.name and c.season=v.season and c.sport_id=(select id from public.sports where slug='hockey')
+on conflict (competition_id,team_name,group_name) do update set position=excluded.position,source_url=excluded.source_url,source_checked_at=now();
