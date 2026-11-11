@@ -151,12 +151,13 @@ function Profile({user,profile,roles}) {
   setReviewSaving(key);setReviewError("");
   const {error}=await supabase.rpc("resubmit_athlete_record",{p_record_type:type,p_record_id:row.id,p_changes:changes});
   if(error){setReviewError(error.message);setReviewSaving("");return;}
+  const {data:historyRows}=await supabase.from("athlete_review_history").select("id,record_type,record_id,from_status,to_status,previous_note,review_note,reviewed_at,changed_at").eq("athlete_id",athleteReview.athlete.id).order("changed_at",{ascending:false}).limit(30);
   setReviewDrafts(current=>{const next={...current};delete next[key];return next;});
   setAthleteReview(current=>{
-   if(type==="athlete")return {...current,athlete:{...current.athlete,...changes,approval_status:"pending",review_note:null}};
+   if(type==="athlete")return {...current,history:historyRows||current.history,athlete:{...current.athlete,...changes,approval_status:"pending",review_note:null}};
    const field=type==="statistics"?"statistics":type==="achievement"?"achievements":"media";
    const statusField=type==="statistics"?"approval_status":"review_status";
-   return {...current,[field]:current[field].map(item=>item.id===row.id?{...item,...changes,[statusField]:"pending",review_note:null}:item)};
+   return {...current,history:historyRows||current.history,[field]:current[field].map(item=>item.id===row.id?{...item,...changes,[statusField]:"pending",review_note:null}:item)};
   });
   setReviewSaving("");
  }
