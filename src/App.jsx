@@ -580,7 +580,7 @@ function AdminDashboard({sports,teams,competitions,fixtures,articles,events,spon
  const modules=[
   ...(sportAdmin?[{title:"Sport codes",description:"Manage the official sport directory; create new codes or edit/archive assigned sports.",to:"/admin/sports",icon:Settings2,state:"Available"},{title:"Sponsor directory",description:"Create, update and archive official partner profiles.",to:"/admin/sponsors",icon:Handshake,state:"Available"},{title:"Sport operations",description:"Team, competition and fixture publishing tools.",to:"/admin/operations",icon:CalendarClock,state:"Available"},{title:"News & events",description:"Editorial publishing and event management.",to:"/admin/editorial",icon:FileText,state:"Available"}]:[]),
   ...((sportAdmin||coach)?[{title:"Athlete profiles",description:"Register and update profiles within your assigned sport or team scope.",to:"/admin/athletes",icon:Users,state:"Available"},{title:"Performance dashboards",description:"Compare approved athlete statistics by sport, athlete, season and metric.",to:"/admin/performance",icon:Trophy,state:"Available"}]:[]),
-  ...((sportAdmin||coach)?[{title:"Trials & recruitment",description:"Publish trials, review applications and record squad selection decisions.",to:"/admin/recruitment",icon:ClipboardList,state:"Available"}]:[]),
+  ...((sportAdmin||coach)?[{title:"Trials & recruitment",description:"Configure sport-specific evaluation, score applicants, select candidates and allocate squad places.",to:"/admin/recruitment",icon:ClipboardList,state:"Available"}]:[]),
   ...(sportAdmin?[{title:"Athlete approvals",description:"Review athlete profiles before publication.",to:"/admin/approvals",icon:ShieldCheck,state:"Available"},{title:"Athlete communication",description:"Send correction guidance and direct messages to registered athletes.",to:"/admin/messages",icon:MessageSquare,state:"Available"},{title:"Event ticket gate",description:"Validate and redeem paid event tickets at entry.",to:"/admin/ticket-gate",icon:Ticket,state:"Available"},{title:"Event sales & attendees",description:"Review ticket sales, revenue, attendee registers and check-ins.",to:"/admin/event-reports",icon:ClipboardList,state:"Available"}]:[]),
   ...((shopAdmin||roles.includes("super_admin"))?[{title:"Shop catalogue",description:"Create, update and archive products and manage published stock.",to:"/admin/products",icon:ShoppingBag,state:"Available"},{title:"Shop orders",description:"Review paid shop orders, line items and fulfilment status.",to:"/admin/shop-orders",icon:Package,state:"Available"}]:[])
  ];
@@ -646,8 +646,10 @@ function Trials({user,profile}) {
 
 function AdminRecruitment({roles,user}) {
  const allowed=roles.some(r=>["sport_admin","super_admin","coach"].includes(r));
- const [sports,setSports]=useState([]),[teams,setTeams]=useState([]),[opportunities,setOpportunities]=useState([]),[applications,setApplications]=useState([]);
+ const [sports,setSports]=useState([]),[teams,setTeams]=useState([]),[opportunities,setOpportunities]=useState([]),[applications,setApplications]=useState([]),[criteria,setCriteria]=useState([]),[scores,setScores]=useState([]);
  const [form,setForm]=useState({sport_id:"",team_id:"",title:"",description:"",venue:"",starts_at:"",closes_at:"",status:"draft"});
+ const [criteriaDraft,setCriteriaDraft]=useState({title:"",description:"",max_score:"10"});
+ const [scoreDrafts,setScoreDrafts]=useState({}),[teamAssignments,setTeamAssignments]=useState({});
  const [busy,setBusy]=useState(false),[error,setError]=useState(""),[notice,setNotice]=useState(""),[notes,setNotes]=useState({});
  async function load(){
   if(!supabase||!allowed)return;
@@ -659,8 +661,23 @@ function AdminRecruitment({roles,user}) {
   const failure=sp.error||tm.error||op.error;if(failure){setError(failure.message);return;}
   setSports(sp.data||[]);setTeams(tm.data||[]);setOpportunities(op.data||[]);
   const ids=(op.data||[]).map(x=>x.id);
-  if(ids.length){const {data,error:e}=await supabase.from("trial_applications").select("id,opportunity_id,full_name,playing_position,experience,motivation,status,created_at").in("opportunity_id",ids).order("created_at",{ascending:false});if(e)setError(e.message);else{const appRows=data||[];const {data:reviews,error:re}=await supabase.from("trial_application_reviews").select("application_id,coach_notes").in("application_id",appRows.map(x=>x.id));if(re)setError(re.message);const byId=new Map((reviews||[]).map(x=>[x.application_id,x.coach_notes]));setApplications(appRows.map(x=>({...x,coach_notes:byId.get(x.id)||""})));}}
-  else setApplications([]);
+  if(!ids.length){setApplications([]);setCriteria([]);setScores([]);return;}
+  const [appResult,criteriaResult]=await Promise.all([
+   supabase.from("trial_applications").select("id,opportunity_id,athlete_id,full_name,playing_position,experience,motivation,status,created_at").in("opportunity_id",ids).order("created_at",{ascending:false}),
+   supabase.from("trial_evaluation_criteria").select("id,opportunity_id,title,description,max_score,display_order").in("opportunity_id",ids).order("display_order").order("created_at")
+  ]);
+  if(appResult.error||criteriaResult.error){setError(appResult.error?.message||criteriaResult.error?.message);return;}
+  const appRows=appResult.data||[];
+  setApplications(appRows);
+  setCriteria(criteriaResult.data||[]);
+  const {data:reviews,error:reviewError}=appRows.length
+   ? await supabase.from("trial_application_reviews").select("application_id,coach_notes").in("application_id",appRows.map(x=>x.id))
+   : {data:[],error:null};
+  if(reviewError)setError(reviewError.message);
+  const byId=new Map((reviews||[]).map(x=>[x.application_id,x.coach_notes]));
+  setApplications(appRows.map(x=>({...x,coach_notes:byId.get(x.id)||""})));
+  const {data:scoreRows,error:scoreError}=await supabase.from("trial_application_scores").select("id,application_id,opportunity_id,criterion_id,reviewer_id,score,comments").in("opportunity_id",ids);
+  if(scoreError)setError(scoreError.message);else setScores(scoreRows||[]);
  }
  useEffect(()=>{load()},[allowed]);
  const availableTeams=teams.filter(t=>!form.sport_id||t.sport_id===form.sport_id);
@@ -679,16 +696,55 @@ function AdminRecruitment({roles,user}) {
   setError("");const {error:e}=await supabase.from("recruitment_opportunities").update({status,updated_at:new Date().toISOString()}).eq("id",item.id);
   if(e)setError(e.message);else await load();
  }
+ async function addCriterion(e,opportunity){
+  e.preventDefault();const title=criteriaDraft.title.trim(),max=Number(criteriaDraft.max_score);
+  if(!title||!Number.isFinite(max)||max<=0||max>1000){setError("Enter a criterion title and a maximum score greater than 0 and no more than 1,000.");return;}
+  setBusy(true);setError("");setNotice("");
+  const {error:e1}=await supabase.from("trial_evaluation_criteria").insert({opportunity_id:opportunity.id,title,description:criteriaDraft.description.trim()||null,max_score:max,display_order:criteria.filter(c=>c.opportunity_id===opportunity.id).length,created_by:user.id});
+  if(e1)setError(e1.message);else{setCriteriaDraft({title:"",description:"",max_score:"10"});setNotice("Evaluation criterion added.");await load();}
+  setBusy(false);
+ }
+ async function saveScore(application,criterion){
+  const key=application.id+":"+criterion.id,raw=scoreDrafts[key];
+  const value=Number(raw);
+  if(raw===""||raw===undefined||!Number.isFinite(value)||value<0||value>Number(criterion.max_score)){setError("Enter a valid score between 0 and "+criterion.max_score+".");return;}
+  setError("");setNotice("");
+  const {error:e}=await supabase.from("trial_application_scores").upsert({application_id:application.id,opportunity_id:application.opportunity_id,criterion_id:criterion.id,reviewer_id:user.id,score:value},{onConflict:"application_id,criterion_id,reviewer_id"});
+  if(e)setError(e.message);else{setNotice("Evaluation score saved.");await load();}
+ }
  async function reviewApplication(item,status){
   setError("");const now=new Date().toISOString();
   const {error:noteError}=await supabase.from("trial_application_reviews").upsert({application_id:item.id,coach_notes:notes[item.id]??item.coach_notes??null,reviewer_id:user.id,updated_at:now},{onConflict:"application_id"});
   if(noteError){setError(noteError.message);return;}
   const {error:e}=await supabase.from("trial_applications").update({status,reviewed_by:user.id,reviewed_at:now,updated_at:now}).eq("id",item.id);
-  if(e)setError(e.message);else await load();
+  if(e)setError(e.message);else{setNotice("Application decision saved.");await load();}
+ }
+ async function allocateTeam(application){
+  const opportunity=opportunities.find(o=>o.id===application.opportunity_id),teamId=teamAssignments[application.id];
+  if(!application.athlete_id){setError("This application has no linked athlete profile. Link or create the athlete profile before allocating a team.");return;}
+  if(!teamId||!opportunity){setError("Choose a team for this selected applicant.");return;}
+  const team=teams.find(t=>t.id===teamId);
+  if(!team||team.sport_id!==opportunity.sport_id){setError("The selected team does not belong to this sport.");return;}
+  setError("");setNotice("");
+  const {error:e}=await supabase.from("athletes").update({team_id:teamId}).eq("id",application.athlete_id).eq("sport_id",opportunity.sport_id);
+  if(e)setError(e.message);else setNotice("Athlete team allocation saved.");
+ }
+ function exportReport(opportunity){
+  const opCriteria=criteria.filter(c=>c.opportunity_id===opportunity.id);
+  const rows=[["Applicant","Position","Application status",...opCriteria.map(c=>c.title+" average")]];
+  applications.filter(a=>a.opportunity_id===opportunity.id).forEach(a=>{
+   rows.push([a.full_name,a.playing_position||"",a.status,...opCriteria.map(c=>{
+    const entries=scores.filter(s=>s.application_id===a.id&&s.criterion_id===c.id);
+    return entries.length?(entries.reduce((sum,s)=>sum+Number(s.score),0)/entries.length).toFixed(2):"";
+   })]);
+  });
+  const csv=rows.map(row=>row.map(v=>"\""+String(v??"").replaceAll("\"","\\"")+"\"").join(",")).join("\r\n");
+  const url=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));
+  const link=document.createElement("a");link.href=url;link.download="cut-sport-trial-"+opportunity.id+".csv";link.click();URL.revokeObjectURL(url);
  }
  if(!allowed)return <><Header title="Admin access required" back/><main className="page"><Empty title="Restricted area" body="An assigned sport administrator, team manager or coach role is required."/></main></>;
  return <><Header title="Recruitment management" back/><main className="page">
-  <div className="page-intro"><span className="eyebrow">TALENT IDENTIFICATION</span><h1>Trials & selection.</h1><p>Publish opportunities for your assigned sport or team, review applications and record selection decisions.</p></div>
+  <div className="page-intro"><span className="eyebrow">TALENT IDENTIFICATION</span><h1>Trials, evaluation & squads.</h1><p>Publish opportunities, configure sport-specific assessment criteria, score applicants, select candidates and allocate linked athlete profiles to teams.</p></div>
   {error&&<p className="form-error" role="alert">{error}</p>}{notice&&<p className="admin-notice">{notice}</p>}
   <form className="form-card" onSubmit={create}><h3>Create recruitment opportunity</h3>
    <label>Sport<select required value={form.sport_id} onChange={e=>setForm({...form,sport_id:e.target.value,team_id:""})}><option value="">Choose sport</option>{sports.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</select></label>
@@ -701,11 +757,41 @@ function AdminRecruitment({roles,user}) {
    <label>Publication status<select value={form.status} onChange={e=>setForm({...form,status:e.target.value})}><option value="draft">Save as draft</option><option value="open">Publish open trial</option></select></label>
    <button className="btn primary" disabled={busy||!sports.length}>{busy?"Saving…":"Save opportunity"}</button>
   </form>
-  <Section title={"Recruitment opportunities · "+opportunities.length}>{opportunities.length?opportunities.map(o=><article className="performance-record" key={o.id}><div className="performance-record-head"><div><b>{o.title}</b><small>{o.sports?.name||"Sport"}{o.teams?.name?" · "+o.teams.name:" · Whole sport"}</small></div><span>{o.status}</span></div><p>{o.venue||"Venue TBC"} · {o.starts_at?dateLabel(o.starts_at):"Date TBC"}</p><div className="review-actions">{o.status!=="open"&&<button className="btn primary" onClick={()=>setOpportunityStatus(o,"open")}>Open applications</button>}{o.status==="open"&&<button className="btn secondary" onClick={()=>setOpportunityStatus(o,"closed")}>Close applications</button>}{o.status==="closed"&&<button className="btn secondary" onClick={()=>setOpportunityStatus(o,"draft")}>Move to draft</button>}</div></article>):<Empty title="No opportunities created" body="Create a trial opportunity above. It will only be visible publicly when published as open."/>}</Section>
-  <Section title={"Applications · "+applications.length}>{applications.length?applications.map(a=><article className="performance-record" key={a.id}><div className="performance-record-head"><div><b>{a.full_name}</b><small>{opportunities.find(o=>o.id===a.opportunity_id)?.title||"Trial"} · {a.playing_position||"Position not specified"}</small></div><span>{a.status.replaceAll("_"," ")}</span></div>{a.experience&&<p><b>Experience:</b> {a.experience}</p>}{a.motivation&&<p><b>Motivation:</b> {a.motivation}</p>}<label>Coach evaluation notes<textarea rows="2" value={notes[a.id]??a.coach_notes??""} onChange={e=>setNotes(current=>({...current,[a.id]:e.target.value}))} placeholder="Private notes for the selection record"/></label><div className="review-actions"><button className="btn secondary" onClick={()=>reviewApplication(a,"shortlisted")}>Shortlist</button><button className="btn primary" onClick={()=>reviewApplication(a,"selected")}>Select</button><button className="btn secondary" onClick={()=>reviewApplication(a,"not_selected")}>Not selected</button></div></article>):<Empty title="No applications received" body="Applications submitted to your opportunities will appear here."/>}</Section>
+  <Section title={"Recruitment opportunities · "+opportunities.length}>{opportunities.length?opportunities.map(o=>{
+   const opCriteria=criteria.filter(c=>c.opportunity_id===o.id),opApplications=applications.filter(a=>a.opportunity_id===o.id);
+   return <article className="performance-record" key={o.id}>
+    <div className="performance-record-head"><div><b>{o.title}</b><small>{o.sports?.name||"Sport"}{o.teams?.name?" · "+o.teams.name:" · Whole sport"}</small></div><span>{o.status}</span></div>
+    <p>{o.venue||"Venue TBC"} · {o.starts_at?dateLabel(o.starts_at):"Date TBC"}</p>
+    <div className="review-actions">{o.status!=="open"&&<button className="btn primary" onClick={()=>setOpportunityStatus(o,"open")}>Open applications</button>}{o.status==="open"&&<button className="btn secondary" onClick={()=>setOpportunityStatus(o,"closed")}>Close applications</button>}{o.status==="closed"&&<button className="btn secondary" onClick={()=>setOpportunityStatus(o,"draft")}>Move to draft</button>}<button className="btn secondary" onClick={()=>exportReport(o)}>Export trial report CSV</button></div>
+    <div className="form-card"><h4>Evaluation criteria · {opCriteria.length}</h4>
+     {opCriteria.map(c=><div className="sponsor-card" key={c.id}><div><b>{c.title}</b><small>{c.description||"No description"} · scored out of {Number(c.max_score)}</small></div></div>)}
+     {!opCriteria.length&&<p className="muted">No criteria yet. Add assessment measures appropriate to this sport and trial.</p>}
+     <form onSubmit={e=>addCriterion(e,o)}><label>Criterion title<input required minLength="2" maxLength="120" value={criteriaDraft.title} onChange={e=>setCriteriaDraft({...criteriaDraft,title:e.target.value})} placeholder="e.g. Technical skill"/></label><label>What should coaches assess?<textarea rows="2" maxLength="1000" value={criteriaDraft.description} onChange={e=>setCriteriaDraft({...criteriaDraft,description:e.target.value})}/></label><label>Maximum score<input type="number" min="0.01" max="1000" step="0.01" required value={criteriaDraft.max_score} onChange={e=>setCriteriaDraft({...criteriaDraft,max_score:e.target.value})}/></label><button className="btn secondary" disabled={busy}>Add criterion</button></form>
+    </div>
+    <h4>Applicants · {opApplications.length}</h4>
+    {opApplications.length?opApplications.map(a=>{
+     const appCriteria=opCriteria,appScores=scores.filter(s=>s.application_id===a.id);
+     const averages=appCriteria.map(c=>{const entries=appScores.filter(s=>s.criterion_id===c.id);return {criterion:c,average:entries.length?entries.reduce((sum,s)=>sum+Number(s.score),0)/entries.length:null,count:entries.length};});
+     const complete=averages.length>0&&averages.every(x=>x.average!==null);
+     const totalAverage=averages.reduce((sum,x)=>sum+(x.average??0),0),totalMaximum=appCriteria.reduce((sum,c)=>sum+Number(c.max_score),0);
+     const linkedTeams=teams.filter(t=>t.sport_id===o.sport_id);
+     return <div className="performance-record" key={a.id}>
+      <div className="performance-record-head"><div><b>{a.full_name}</b><small>{a.playing_position||"Position not specified"} · {a.athlete_id?"Linked athlete profile":"No linked athlete profile"}</small></div><span>{a.status.replaceAll("_"," ")}</span></div>
+      {a.experience&&<p><b>Experience:</b> {a.experience}</p>}{a.motivation&&<p><b>Motivation:</b> {a.motivation}</p>}
+      {appCriteria.length>0?<div className="form-card"><h4>Coach scoring</h4>{appCriteria.map(c=>{
+       const key=a.id+":"+c.id,myScore=appScores.find(s=>s.criterion_id===c.id&&s.reviewer_id===user.id),summary=averages.find(x=>x.criterion.id===c.id);
+       return <div key={c.id}><label>{c.title} (0–{Number(c.max_score)})<input type="number" min="0" max={Number(c.max_score)} step="0.01" value={scoreDrafts[key]??(myScore?String(myScore.score):"")} onChange={e=>setScoreDrafts(current=>({...current,[key]:e.target.value}))} placeholder="Enter your score"/></label><small>{summary.count} coach score(s) · average {summary.average===null?"Not scored":summary.average.toFixed(2)}</small><button type="button" className="btn secondary" onClick={()=>saveScore(a,c)}>Save score</button></div>;
+      })}{complete&&<p className="admin-notice">Average total: {totalAverage.toFixed(2)} / {totalMaximum.toFixed(2)} ({((totalAverage/totalMaximum)*100).toFixed(1)}%)</p>}</div>:<p className="muted">Add evaluation criteria above before scoring applicants.</p>}
+      <label>Private coach evaluation notes<textarea rows="2" value={notes[a.id]??a.coach_notes??""} onChange={e=>setNotes(current=>({...current,[a.id]:e.target.value}))} placeholder="Private notes for the selection record"/></label>
+      <div className="review-actions"><button className="btn secondary" onClick={()=>reviewApplication(a,"shortlisted")}>Shortlist</button><button className="btn primary" onClick={()=>reviewApplication(a,"selected")}>Select</button><button className="btn secondary" onClick={()=>reviewApplication(a,"not_selected")}>Not selected</button></div>
+      {a.status==="selected"&&a.athlete_id&&<div className="form-card"><h4>Squad allocation</h4><label>Assign to team<select value={teamAssignments[a.id]||""} onChange={e=>setTeamAssignments(current=>({...current,[a.id]:e.target.value}))}><option value="">Choose team</option>{linkedTeams.map(t=><option key={t.id} value={t.id}>{t.name}</option>)}</select></label><button type="button" className="btn primary" onClick={()=>allocateTeam(a)}>Save team allocation</button></div>}
+      {a.status==="selected"&&!a.athlete_id&&<p className="muted">To allocate this selected applicant, first link their application to an approved athlete profile.</p>}
+     </div>;
+    }):<Empty title="No applications received" body="Applications submitted to this opportunity will appear here."/>}
+   </article>;
+  }):<Empty title="No opportunities created" body="Create a trial opportunity above. It will only be visible publicly when published as open."/>}</Section>
  </main></>;
 }
-
 function AdminAthletes({roles,user}) {
  const allowed=roles.some(r=>["sport_admin","super_admin","coach"].includes(r));
  const superAdmin=roles.includes("super_admin");
