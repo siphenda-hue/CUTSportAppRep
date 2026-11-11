@@ -1,6 +1,6 @@
--- Record the 2024 USSA Cross Country Championships event and audit outcome.
--- Do not create athlete result rows unless the athlete already exists in the CUT
--- athlete database and the official result independently confirms the placing.
+-- Record the 2024 USSA Cross Country Championships event and verified CUT team result.
+-- Individual athlete rows are intentionally excluded unless the athlete already
+-- exists in the CUT athlete/statistics database and the official result matches.
 insert into public.competitions
   (id, sport_id, name, season, start_date, end_date, venue, description, status)
 values
@@ -9,9 +9,31 @@ values
    'USSA Cross Country Championships',
    '2024', '2024-09-13', '2024-09-14',
    'Nelson Mandela University, South Campus, Gqeberha, Eastern Cape, South Africa',
-   'Event date and venue verified by Athletics South Africa event listing and University of Cape Town Athletics Club archive. The competition was held 13–14 September 2024 at Nelson Mandela University, Gqeberha. Official result PDFs are linked from the UCT Athletics Club 2024 cross-country archive and include individual 4km/10km races, team competitions and short/long relays.\n\nCUT athlete matching audit: the public.athletes table currently contains zero registered athlete profiles. Therefore no individual results can be safely attributed to existing CUT athlete profiles, and no new athlete profiles or individual result rows have been created. The available 4km women results and long mixed relay results reviewed do not identify a CUT team entry; the long mixed relay published top-eight places are UPT, UJ, NWU Potch, UFS, TUT, Fort Hare, UWC and NMU. No CUT team placing is established by those published top-eight results. Other individual/team PDF files are linked in the source archive; where their contents could not be retrieved in this audit, no claim of a complete CUT absence is made.\n\nAdditional results audit (11 November 2026): The UCT Athletics Club archive exposes the complete 4km women individual result PDF (58 finishers). No CUT university entry appears; the only Free State university entry in the result list is University of the Free State athlete Lizandre Mulder, placed 5th (this is UFS, not CUT). The published long mixed relay top-eight team standings are: 1 Tuks, 2 UJ, 3 NWU Potch, 4 UFS, 5 TUT, 6 Fort Hare, 7 UWC, 8 NMU. All 58 names in the 4km women results were checked by exact case-insensitive name matching against existing CUT competition-player records; zero matches were returned. The result sheet identifies every athlete's university, and none is CUT. The 4km men, both 10km individual sheets, three team competition sheets and short relay PDF remain inaccessible through the archive fetch, so the overall CUT participation audit is still incomplete. No individual or team results have been inserted.\n\nSources: ASA event listing https://athleticssa.org.za/Events/Details?id=198 ; UCT Athletics Club archive https://sport.uct.ac.za/athletics-club/cross-country-2024 ; female 4km result PDF https://sport.uct.ac.za/media/640488 ; long mixed relay PDF https://sport.uct.ac.za/media/640511',
+   'Event date and venue verified by Athletics South Africa event listing and University of Cape Town Athletics Club archive. The competition was held 13–14 September 2024 at Nelson Mandela University, Gqeberha.
+
+CUT participation is confirmed by the official individual result PDFs. In the men''s 4km, CUT athletes placed 42nd (Mmiseni Ngcobo, 13:25), 59th (Bothlale Moncho, 14:44), 68th (Mpho Litaba, 16:19) and 70th (Bongani Yawa, 16:43). In the men''s 10km, CUT athletes placed 7th (Thabang Masihlelo, 32:35), 22nd (Ubabalwe Ndima, 34:40) and 31st (Avela Qutu, 37:02). The official men''s 10km university team competition placed CUT 6th with 60 points. The 4km men''s team competition PDF remained inaccessible during this audit, so no 4km team placing is recorded.
+
+Athlete import restriction: the public.athletes registry currently contains zero profiles. Exact case-insensitive, trimmed-name matching of all seven CUT names from the individual PDFs against existing public.competition_player_statistics records returned zero matches. In accordance with the CUT-only matching rule, no individual athlete statistics or profiles have been created. The verified CUT men''s 10km team placing is recorded separately as a team standing.
+
+The women''s 4km individual results and women''s team sheets reviewed do not show a CUT team entry. The women''s 10km individual PDF timed out during retrieval; its team sheet lists no CUT team. The long mixed relay top-eight teams are Tuks, UJ, NWU Potch, UFS, TUT, Fort Hare, UWC and NMU; CUT is not in that top eight. The short relay result sheet was retrieved, but the visible pages reviewed do not establish a CUT placing.
+
+Sources: UCT Athletics Club archive https://sport.uct.ac.za/athletics-club/cross-country-2024 ; men''s 4km PDF https://sport.uct.ac.za/media/640504 ; men''s 10km PDF https://sport.uct.ac.za/media/640482 ; men''s 10km team competition PDF https://sport.uct.ac.za/media/640481 ; women''s 4km team PDF https://sport.uct.ac.za/media/640487 ; women''s 10km team PDF https://sport.uct.ac.za/media/640480 ; short relay PDF https://sport.uct.ac.za/media/640509 ; long relay PDF https://sport.uct.ac.za/media/640511',
    'completed')
 on conflict (id) do update set
   name=excluded.name, season=excluded.season, start_date=excluded.start_date,
   end_date=excluded.end_date, venue=excluded.venue,
   description=excluded.description, status=excluded.status;
+
+insert into public.competition_standings
+  (competition_id, team_name, group_name, position, points, source_url, source_checked_at)
+values
+  ('a43e3a9b-7c4e-4d7e-9f7c-2024c0550001',
+   'CUT', 'Men 10km Team', 6, 60,
+   'https://sport.uct.ac.za/media/640481', now())
+on conflict (competition_id, team_name, group_name)
+do update set
+  position = excluded.position,
+  points = excluded.points,
+  source_url = excluded.source_url,
+  source_checked_at = excluded.source_checked_at,
+  updated_at = now();
