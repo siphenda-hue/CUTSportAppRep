@@ -1914,7 +1914,7 @@ function AdminMatchStatistics({roles,user}) {
  const allowed=roles.some(r=>["sport_admin","super_admin","coach"].includes(r));
  const [sports,setSports]=useState([]),[teams,setTeams]=useState([]),[competitions,setCompetitions]=useState([]),[fixtures,setFixtures]=useState([]),[players,setPlayers]=useState([]),[records,setRecords]=useState([]);
  const localDate=()=>{const d=new Date();return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10)};
- const [sportId,setSportId]=useState(""),[teamId,setTeamId]=useState(""),[competitionId,setCompetitionId]=useState(""),[fixtureId,setFixtureId]=useState(""),[playerId,setPlayerId]=useState(""),[opponent,setOpponent]=useState(""),[matchDate,setMatchDate]=useState(localDate),[sourceUrl,setSourceUrl]=useState(""),[metrics,setMetrics]=useState([{key:"",value:""}]);
+ const [sportId,setSportId]=useState(""),[teamId,setTeamId]=useState(""),[teamName,setTeamName]=useState(""),[competitionId,setCompetitionId]=useState(""),[fixtureId,setFixtureId]=useState(""),[playerId,setPlayerId]=useState(""),[opponent,setOpponent]=useState(""),[matchDate,setMatchDate]=useState(localDate),[sourceUrl,setSourceUrl]=useState(""),[metrics,setMetrics]=useState([{key:"",value:""}]);
  const [busy,setBusy]=useState(false),[error,setError]=useState(""),[message,setMessage]=useState("");
  async function load(){
   if(!supabase||!allowed)return;
@@ -1942,14 +1942,14 @@ function AdminMatchStatistics({roles,user}) {
   e.preventDefault();
   if(!supabase||!user?.id)return;
   if(!selectedPlayer){setError("Choose a player profile.");return}
-  if(!sportId||!teamId||!opponent.trim()||!matchDate||!sourceUrl.trim()){setError("Complete the sport, team, opponent, match date and source URL.");return}
+  if(!sportId||!(teamName.trim()||selectedTeam?.name)||!opponent.trim()||!matchDate||!sourceUrl.trim()){setError("Complete the sport, CUT team name, opponent, match date and source URL.");return}
   let parsed;
   try{parsed=Object.fromEntries(metrics.filter(x=>x.key.trim()&&x.value!=="").map(x=>[x.key.trim().toLowerCase().replace(/[^a-z0-9_]+/g,"_"),Number(x.value)]));}
   catch{setError("Check the statistics values.");return}
   if(metrics.some(x=>x.key.trim()&&(!Number.isFinite(Number(x.value))||x.value===""))){setError("Every statistic needs a valid numeric value.");return}
   if(!Object.keys(parsed).length){setError("Add at least one numeric statistic. Use a value of 0 only when a zero is verified.");return}
   setBusy(true);setError("");setMessage("");
-  const payload={player_name:selectedPlayer.full_name,player_profile_id:selectedPlayer.id,sport_id:sportId,team_id:teamId,competition_id:competitionId||null,fixture_id:fixtureId||null,team_name:selectedTeam?.name||"CUT",opponent:opponent.trim(),match_date:matchDate,metrics:parsed,source_url:sourceUrl.trim(),approval_status:"pending",recorded_by:user.id};
+  const payload={player_name:selectedPlayer.full_name,player_profile_id:selectedPlayer.id,sport_id:sportId,team_id:teamId||null,competition_id:competitionId||null,fixture_id:fixtureId||null,team_name:teamName.trim()||selectedTeam?.name||"CUT",opponent:opponent.trim(),match_date:matchDate,metrics:parsed,source_url:sourceUrl.trim(),approval_status:"pending",recorded_by:user.id};
   const {error}=await supabase.from("player_match_statistics").insert(payload);
   if(error)setError(error.message);else{setMessage("Match record submitted for review. It will appear on the public player profile after approval.");setPlayerId("");setFixtureId("");setOpponent("");setSourceUrl("");setMetrics([{key:"",value:""}]);await load()}
   setBusy(false);
@@ -1971,7 +1971,7 @@ function AdminMatchStatistics({roles,user}) {
   <form className="form-card" onSubmit={submit}>
    <h3>Record a match appearance</h3>
    <label>Sport<select required value={sportId} onChange={e=>{setSportId(e.target.value);setTeamId("");setCompetitionId("");setFixtureId("");}}><option value="">Choose sport</option>{sports.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select></label>
-   <label>Team<select required value={teamId} onChange={e=>{setTeamId(e.target.value);setFixtureId("");}}><option value="">Choose CUT team</option>{availableTeams.map(t=><option key={t.id} value={t.id}>{t.name}</option>)}</select></label>
+   <label>Existing team (optional link)<select value={teamId} onChange={e=>{const v=e.target.value;setTeamId(v);setFixtureId("");const t=teams.find(x=>x.id===v);if(t)setTeamName(t.name)}}><option value="">Enter team name manually</option>{availableTeams.map(t=><option key={t.id} value={t.id}>{t.name}</option>)}</select></label><label>CUT team name<input required maxLength="160" value={teamName} onChange={e=>setTeamName(e.target.value)} placeholder="e.g. CUT Ixias"/></label>
    <label>Player profile<select required value={playerId} onChange={e=>setPlayerId(e.target.value)}><option value="">Choose player</option>{players.map(p=><option key={p.id} value={p.id}>{p.display_name||p.full_name}</option>)}</select></label>
    <label>Competition (optional)<select value={competitionId} onChange={e=>setCompetitionId(e.target.value)}><option value="">Not linked to a competition</option>{availableComps.map(c=><option key={c.id} value={c.id}>{c.name}{c.season?" · "+c.season:""}</option>)}</select></label>
    <label>Existing fixture (optional)<select value={fixtureId} onChange={e=>{const v=e.target.value;setFixtureId(v);const match=fixtures.find(f=>f.id===v);if(match){setOpponent(match.opponent);setMatchDate(()=>{const d=new Date(match.starts_at);return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10)});if(match.competition_id)setCompetitionId(match.competition_id)}}}><option value="">Enter match details manually</option>{availableFixtures.map(f=><option key={f.id} value={f.id}>{f.opponent} · {new Date(f.starts_at).toLocaleDateString("en-ZA")} · {f.status}</option>)}</select></label>
