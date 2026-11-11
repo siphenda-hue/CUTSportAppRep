@@ -580,7 +580,8 @@ function AdminDashboard({sports,teams,competitions,fixtures,articles,events,spon
  const modules=[
   ...(sportAdmin?[{title:"Sport codes",description:"Manage the official sport directory; create new codes or edit/archive assigned sports.",to:"/admin/sports",icon:Settings2,state:"Available"},{title:"Sponsor directory",description:"Create, update and archive official partner profiles.",to:"/admin/sponsors",icon:Handshake,state:"Available"},{title:"Sport operations",description:"Team, competition and fixture publishing tools.",to:"/admin/operations",icon:CalendarClock,state:"Available"},{title:"News & events",description:"Editorial publishing and event management.",to:"/admin/editorial",icon:FileText,state:"Available"}]:[]),
   ...((sportAdmin||coach)?[{title:"Athlete profiles",description:"Register and update profiles within your assigned sport or team scope.",to:"/admin/athletes",icon:Users,state:"Available"},{title:"Performance dashboards",description:"Compare approved athlete statistics by sport, athlete, season and metric.",to:"/admin/performance",icon:Trophy,state:"Available"}]:[]),
-  ...((sportAdmin||coach)?[{title:"Trials & recruitment",description:"Publish trials, review applications and record squad selection decisions.",to:"/admin/recruitment",icon:ClipboardList,state:"Available"}]:[]),\n  ...(sportAdmin?[{title:"Athlete approvals",description:"Review athlete profiles before publication.",to:"/admin/approvals",icon:ShieldCheck,state:"Available"},{title:"Athlete communication",description:"Send correction guidance and direct messages to registered athletes.",to:"/admin/messages",icon:MessageSquare,state:"Available"},{title:"Event ticket gate",description:"Validate and redeem paid event tickets at entry.",to:"/admin/ticket-gate",icon:Ticket,state:"Available"},{title:"Event sales & attendees",description:"Review ticket sales, revenue, attendee registers and check-ins.",to:"/admin/event-reports",icon:ClipboardList,state:"Available"}]:[]),
+  ...((sportAdmin||coach)?[{title:"Trials & recruitment",description:"Publish trials, review applications and record squad selection decisions.",to:"/admin/recruitment",icon:ClipboardList,state:"Available"}]:[]),
+  ...(sportAdmin?[{title:"Athlete approvals",description:"Review athlete profiles before publication.",to:"/admin/approvals",icon:ShieldCheck,state:"Available"},{title:"Athlete communication",description:"Send correction guidance and direct messages to registered athletes.",to:"/admin/messages",icon:MessageSquare,state:"Available"},{title:"Event ticket gate",description:"Validate and redeem paid event tickets at entry.",to:"/admin/ticket-gate",icon:Ticket,state:"Available"},{title:"Event sales & attendees",description:"Review ticket sales, revenue, attendee registers and check-ins.",to:"/admin/event-reports",icon:ClipboardList,state:"Available"}]:[]),
   ...((shopAdmin||roles.includes("super_admin"))?[{title:"Shop catalogue",description:"Create, update and archive products and manage published stock.",to:"/admin/products",icon:ShoppingBag,state:"Available"},{title:"Shop orders",description:"Review paid shop orders, line items and fulfilment status.",to:"/admin/shop-orders",icon:Package,state:"Available"}]:[])
  ];
  if(!allowed)return <><Header title="Admin access required" back/><main className="page"><Empty title="Restricted area" body="A CUT Sport administrator, coach or shop administrator role is required."/></main></>;
@@ -591,7 +592,7 @@ function AdminDashboard({sports,teams,competitions,fixtures,articles,events,spon
 function Trials({user,profile}) {
  const [opportunities,setOpportunities]=useState([]),[applications,setApplications]=useState([]),[athlete,setAthlete]=useState(null);
  const [selected,setSelected]=useState(""),[applicantName,setApplicantName]=useState(profile?.full_name||""),[position,setPosition]=useState(""),[experience,setExperience]=useState(""),[motivation,setMotivation]=useState("");
- const [busy,setBusy]=useState(false),[error,setError]=useState(""),[notice,setNotice]=useState(""),[notes,setNotes]=useState({});
+ const [busy,setBusy]=useState(false),[error,setError]=useState(""),[notice,setNotice]=useState("");
  useEffect(()=>{
   let active=true;
   async function load(){
@@ -630,7 +631,8 @@ function Trials({user,profile}) {
   }
   setBusy(false);
  }
- useEffect(()=>{if(profile?.full_name)setApplicantName(profile.full_name);else if(athlete?.full_name)setApplicantName(athlete.full_name)},[profile?.full_name,athlete?.full_name]);\n const statusLabel={submitted:"Submitted",shortlisted:"Shortlisted",selected:"Selected",not_selected:"Not selected"};
+ useEffect(()=>{if(profile?.full_name)setApplicantName(profile.full_name);else if(athlete?.full_name)setApplicantName(athlete.full_name)},[profile?.full_name,athlete?.full_name]);
+ const statusLabel={submitted:"Submitted",shortlisted:"Shortlisted",selected:"Selected",not_selected:"Not selected"};
  return <><Header title="Trials & recruitment" back/><main className="page">
   <div className="page-intro"><span className="eyebrow">YOUR NEXT OPPORTUNITY</span><h1>Earn your blue.</h1><p>Find open CUT Sport trials and put your name forward. Coaches will update your application when decisions are made.</p></div>
   {error&&<p className="form-error" role="alert">{error}</p>}{notice&&<p className="admin-notice">{notice}</p>}
@@ -1185,7 +1187,8 @@ function AdminPerformance({roles}) {
  const filtered=records.filter(r=>(!sportId||r.athletes?.sport_id===sportId)&&(!season||r.season===season)&&(!athleteId||r.athlete_id===athleteId)&&(!competitionId||r.competition_id===competitionId));
  const sportOptions=[...new Map(records.filter(r=>r.athletes?.sport_id).map(r=>[r.athletes.sport_id,{id:r.athletes.sport_id,name:r.athletes.sports?.name||"Sport"}])).values()].sort((a,b)=>a.name.localeCompare(b.name));
  const seasonOptions=[...new Set(records.map(r=>r.season).filter(Boolean))].sort().reverse();
- const athleteOptions=[...new Map(records.filter(r=>r.athletes).map(r=>[r.athlete_id,{id:r.athlete_id,name:r.athletes.preferred_name||r.athletes.full_name}])).values()].sort((a,b)=>a.name.localeCompare(b.name));\n const competitionOptions=[...new Map(records.filter(r=>r.competition_id).map(r=>[r.competition_id,{id:r.competition_id,name:r.competitions?.name||"Competition"}])).values()].sort((a,b)=>a.name.localeCompare(b.name));
+ const athleteOptions=[...new Map(records.filter(r=>r.athletes).map(r=>[r.athlete_id,{id:r.athlete_id,name:r.athletes.preferred_name||r.athletes.full_name}])).values()].sort((a,b)=>a.name.localeCompare(b.name));
+ const competitionOptions=[...new Map(records.filter(r=>r.competition_id).map(r=>[r.competition_id,{id:r.competition_id,name:r.competitions?.name||"Competition"}])).values()].sort((a,b)=>a.name.localeCompare(b.name));
  const metricKeys=[...new Set(filtered.flatMap(r=>Object.entries(r.metrics||{}).filter(([,v])=>typeof v==="number"&&Number.isFinite(v)).map(([k])=>k)))].sort();
  const selectedMetric=metricKeys.includes(metricKey)?metricKey:(metricKeys[0]||"");
  const metricRows=filtered.filter(r=>typeof r.metrics?.[selectedMetric]==="number").slice(0,12).reverse();
@@ -1198,7 +1201,8 @@ function AdminPerformance({roles}) {
   <div className="performance-filters">
    <label>Sport<select value={sportId} onChange={e=>setSportId(e.target.value)}><option value="">All assigned sports</option>{sportOptions.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</select></label>
    <label>Season<select value={season} onChange={e=>setSeason(e.target.value)}><option value="">All seasons</option>{seasonOptions.map(x=><option key={x} value={x}>{x}</option>)}</select></label>
-   <label>Athlete<select value={athleteId} onChange={e=>setAthleteId(e.target.value)}><option value="">All athletes</option>{athleteOptions.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</select></label>\n   <label>Competition<select value={competitionId} onChange={e=>setCompetitionId(e.target.value)}><option value="">All competitions</option>{competitionOptions.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</select></label>
+   <label>Athlete<select value={athleteId} onChange={e=>setAthleteId(e.target.value)}><option value="">All athletes</option>{athleteOptions.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</select></label>
+   <label>Competition<select value={competitionId} onChange={e=>setCompetitionId(e.target.value)}><option value="">All competitions</option>{competitionOptions.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</select></label>
   </div>
   {error&&<p className="form-error">{error}</p>}
   <div className="admin-stats"><div><b>{filtered.length}</b><small>Approved records</small></div><div><b>{new Set(filtered.map(r=>r.athlete_id)).size}</b><small>Athletes tracked</small></div><div><b>{metricKeys.length}</b><small>Numeric metrics</small></div><div><b>{selectedMetric?average.toFixed(1):"—"}</b><small>{selectedMetric?selectedMetric.replaceAll("_"," ")+" average":"No metric selected"}</small></div></div>
