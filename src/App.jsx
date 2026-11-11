@@ -291,7 +291,7 @@ function PlayerProfilePage({user,roles=[]}) {
   }else setClaim(null);
   if(isSuper){
    const {data,error:pe}=await supabase.from("player_profile_claims").select("id,player_profile_id,user_id,evidence_note,created_at,player_profiles(full_name)").eq("status","pending").order("created_at",{ascending:true}).limit(50);
-   if(error===null&&pe)setError(pe.message);setPending(data||[]);
+   if(pe)setError(pe.message);setPending(data||[]);
   }
   setBusy(false);
  }
