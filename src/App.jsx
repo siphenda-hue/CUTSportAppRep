@@ -186,10 +186,12 @@ function HockeyCompetitionData({competition}) {
  </div>;
 }
 function CompetitionData({competition,sport}) {
- const matches=[...(competition.competition_matches||[])].sort((a,b)=>new Date(a.starts_at||"9999-12-31")-new Date(b.starts_at||"9999-12-31"));
+ const matches=[...(competition.competition_matches||[])].sort((a,b)=>new Date(a.starts_at||a.statistics?.match_date||"9999-12-31")-new Date(b.starts_at||b.statistics?.match_date||"9999-12-31"));
  const teamStats=competition.competition_team_statistics||[];
  const playerStats=competition.competition_player_statistics||[];
- const fmtDate=value=>value?new Intl.DateTimeFormat("en-ZA",{day:"numeric",month:"short",year:"numeric",timeZone:"Africa/Johannesburg"}).format(new Date(value)):"Date TBC";\n const matchDateLabel=m=>fmtDate(m.starts_at||m.statistics?.match_date);\n const matchScoreLabel=m=>m.statistics?.cut_innings&&m.statistics?.opposition_innings?m.statistics.cut_innings+" – "+m.statistics.opposition_innings:(m.home_score??"—")+" – "+(m.away_score??"—");
+ const fmtDate=value=>value?new Intl.DateTimeFormat("en-ZA",{day:"numeric",month:"short",year:"numeric",timeZone:"Africa/Johannesburg"}).format(new Date(value)):"Date TBC";
+ const matchDateLabel=m=>fmtDate(m.starts_at||m.statistics?.match_date);
+ const matchScoreLabel=m=>m.statistics?.cut_innings&&m.statistics?.opposition_innings?m.statistics.cut_innings+" – "+m.statistics.opposition_innings:(m.home_score??"—")+" – "+(m.away_score??"—");
  const metricLabels={wickets:"Wickets",runs:"Runs",batting_average:"Batting average",strike_rate:"Strike rate",economy:"Bowling economy",overs:"Overs",maidens:"Maidens",catches:"Catches",run_outs:"Run-outs",stumpings:"Stumpings",highest_score:"Highest score",not_outs:"Not-outs",tournament_wicket_taker_rank:"Tournament wicket-taker rank",tournament_run_scorer_rank:"Tournament run-scorer rank"};
  const label=k=>metricLabels[k]||String(k).replaceAll("_"," ").replace(/\b\w/g,x=>x.toUpperCase());
  const formatMetricValue=v=>Array.isArray(v)?v.map(formatMetricValue).join(" · "):v&&typeof v==="object"?Object.entries(v).map(([k,val])=>label(k)+": "+formatMetricValue(val)).join("; "):String(v);
