@@ -19,7 +19,7 @@ export const api = {
   fixtures: (sportId) => query('fixtures', 'id,opponent,venue,starts_at,status,home_score,away_score,result_summary,sport_id,team_id,competition_id,teams(name),sports(name)', { eq: sportId ? { sport_id: sportId } : {}, order: 'starts_at', ascending: true, limit: 30 }),
   articles: () => query('articles', 'id,title,slug,excerpt,body,cover_image_url,published_at,sport_id,sports(name)', { eq: { status: 'published' }, order: 'published_at', ascending: false, limit: 12 }),
   products: () => query('products', 'id,name,slug,description,category,price_cents,image_url,stock_quantity', { eq: { is_active: true }, order: 'created_at', ascending: false, limit: 30 }),
-  events: () => query('events', 'id,title,description,venue,starts_at,ends_at,ticketed,published', { eq: { published: true, archived_at: null }, order: 'starts_at', limit: 20 }),
+  events: () => query('events', 'id,title,description,venue,starts_at,ends_at,ticketed,published,sport_id', { eq: { published: true, archived_at: null }, order: 'starts_at', limit: 20 }),
   sponsors: () => query('sponsors', 'id,name,slug,description,logo_url,website_url,sponsorship_tier,display_order', { eq: { is_active: true }, order: 'display_order' }),
   profile: async (userId) => {
     if (!supabase) return { data: null, error: null };
