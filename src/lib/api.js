@@ -33,6 +33,10 @@ export const api = {
     if (!supabase) return empty([]);
     return supabase.from('notifications').select('id,title,body,read_at,created_at,category,action_url,related_record_type,related_record_id').eq('user_id', userId).order('created_at', { ascending: false }).limit(30);
   },
+  messages: async (userId) => {
+    if (!supabase || !userId) return empty([]);
+    return supabase.from('athlete_messages').select('id,athlete_id,sender_id,recipient_id,parent_message_id,subject,body,message_type,read_at,created_at').or('sender_id.eq.' + userId + ',recipient_id.eq.' + userId).order('created_at', { ascending: false }).limit(100);
+  },
   tickets: async () => {
     if (!supabase) return empty([]);
     const { data, error } = await supabase.functions.invoke('my-tickets', { body: {} });
