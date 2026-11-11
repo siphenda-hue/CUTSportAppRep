@@ -92,7 +92,40 @@ function Hub({sports,teams,competitions,fixtures,articles,athletes}) {const {slu
 function News({articles}) {return <><Header title="Articles & news"/><main className="page"><h1>Stories that move us.</h1>{articles.length?articles.map(a=><StoryCard key={a.id} a={a}/>):<Empty title="No stories published yet" body="The latest CUT Sport news will appear here."/>}</main></>}
 function Story({articles}) {const {slug}=useParams();const a=articles.find(x=>x.slug===slug);return <><Header title="Article" back/><main className="page">{a?<article><small>{dateLabel(a.published_at)}</small><h1>{a.title}</h1>{a.cover_image_url&&<img className="article-cover" src={a.cover_image_url} alt=""/>}<p>{a.excerpt}</p><div className="article-body">{a.body}</div></article>:<Empty title="Story not found" body="This story is no longer available."/>}</main></>}
 function Sponsors({sponsors}) {return <><Header title="Our sponsors" back/><main className="page"><h1>Stronger together.</h1>{sponsors.length?sponsors.map(s=><div className="sponsor-card" key={s.id}><b>{s.name}</b><p>{s.description}</p>{s.website_url&&<a href={s.website_url} target="_blank" rel="noreferrer">Visit partner</a>}</div>):<Empty title="Partner directory coming soon" body="Official sponsor profiles will be published here."/>}</main></>}
-function Profile({user,profile,roles}) {const [mode,setMode]=useState('login'),[email,setEmail]=useState(''),[password,setPassword]=useState(''),[name,setName]=useState(profile?.full_name||''),[message,setMessage]=useState('');useEffect(()=>setName(profile?.full_name||''),[profile]);async function submit(e){e.preventDefault();if(!supabase){setMessage('Connect Supabase environment variables first.');return}const r=mode==='login'?await supabase.auth.signInWithPassword({email,password}):await supabase.auth.signUp({email,password,options:{data:{full_name:name}}});setMessage(r.error?.message||'Request submitted. Check your email if confirmation is required.')}async function save(e){e.preventDefault();const {error}=await supabase.from('profiles').upsert({id:user.id,full_name:name,email:user.email},{onConflict:'id'});setMessage(error?.message||'Profile updated.')}return <><Header title="Profile"/><main className="page">{user?<><h1>{profile?.full_name||user.email}</h1><form className="form-card" onSubmit={save}><label>Full name<input value={name} onChange={e=>setName(e.target.value)}/></label><label>Email<input value={user.email||''} disabled/></label><button className="btn primary">Save profile</button></form><div className="account-links"><Link to="/orders"><Package/> My orders</Link><Link to="/tickets"><Ticket/> My tickets</Link><Link to="/notifications"><Bell/> Notifications</Link>{roles.some(r=>["sport_admin","super_admin","coach","shop_admin"].includes(r))&&<Link to="/admin">CUT Sport admin dashboard</Link>}{roles.some(r=>["sport_admin","super_admin","coach"].includes(r))&&<Link to="/admin/athletes">Athlete profiles</Link>}<p>Roles: {roles.join(', ')||'Member'}</p><button onClick={()=>supabase.auth.signOut()}><LogOut/> Sign out</button></div></>:<><h1>Join the Blues.</h1><div className="tabs"><button onClick={()=>setMode('login')}>Log in</button><button onClick={()=>setMode('signup')}>Create account</button></div><form className="form-card" onSubmit={submit}>{mode==='signup'&&<label>Full name<input required value={name} onChange={e=>setName(e.target.value)}/></label>}<label>Email<input type="email" required value={email} onChange={e=>setEmail(e.target.value)}/></label><label>Password<input type="password" minLength="8" required value={password} onChange={e=>setPassword(e.target.value)}/></label><button className="btn primary">Continue</button>{message&&<p>{message}</p>}</form><p className="muted">Student and staff discounts require verified institutional eligibility.</p></>}</main></>}
+function Profile({user,profile,roles}) {
+ const [mode,setMode]=useState("login"),[email,setEmail]=useState(""),[password,setPassword]=useState(""),[newPassword,setNewPassword]=useState(""),[name,setName]=useState(profile?.full_name||""),[message,setMessage]=useState(""),[busy,setBusy]=useState(false);
+ useEffect(()=>setName(profile?.full_name||""),[profile]);
+ async function submit(e){
+  e.preventDefault();if(!supabase){setMessage("Connect Supabase environment variables first.");return}
+  setBusy(true);setMessage("");
+  const r=mode==="login"
+   ?await supabase.auth.signInWithPassword({email,password})
+   :await supabase.auth.signUp({email,password,options:{data:{full_name:name}}});
+  setMessage(r.error?.message||(mode==="signup"?"Account request submitted. Check your email if confirmation is required.":"Signed in successfully."));
+  setBusy(false);
+ }
+ async function requestPasswordReset(){
+  if(!supabase||!email.trim()){setMessage("Enter your account email address first.");return}
+  setBusy(true);setMessage("");
+  const {error}=await supabase.auth.resetPasswordForEmail(email.trim(),{redirectTo:window.location.origin+"/profile"});
+  setMessage(error?.message||"If an account exists for that email, a password reset link will be sent.");
+  setBusy(false);
+ }
+ async function updatePassword(e){
+  e.preventDefault();if(!supabase||newPassword.length<8){setMessage("Choose a password with at least 8 characters.");return}
+  setBusy(true);setMessage("");
+  const {error}=await supabase.auth.updateUser({password:newPassword});
+  setMessage(error?.message||"Your password has been updated.");
+  if(!error)setNewPassword("");
+  setBusy(false);
+ }
+ async function save(e){
+  e.preventDefault();if(!supabase||!user)return;
+  setBusy(true);const {error}=await supabase.from("profiles").upsert({id:user.id,full_name:name,email:user.email},{onConflict:"id"});
+  setMessage(error?.message||"Profile updated.");setBusy(false);
+ }
+ return <><Header title="Profile"/><main className="page">{user?<><h1>{profile?.full_name||user.email}</h1><form className="form-card" onSubmit={save}><label>Full name<input value={name} onChange={e=>setName(e.target.value)}/></label><label>Email<input value={user.email||""} disabled/></label><button className="btn primary" disabled={busy}>{busy?"Saving…":"Save profile"}</button></form><form className="form-card" onSubmit={updatePassword}><h3>Change password</h3><label>New password<input type="password" minLength="8" required value={newPassword} onChange={e=>setNewPassword(e.target.value)} autoComplete="new-password"/></label><button className="btn secondary" disabled={busy||newPassword.length<8}>{busy?"Updating…":"Update password"}</button></form>{message&&<p>{message}</p>}<div className="account-links"><Link to="/orders"><Package/> My orders</Link><Link to="/tickets"><Ticket/> My tickets</Link><Link to="/notifications"><Bell/> Notifications</Link>{roles.some(r=>["sport_admin","super_admin","coach","shop_admin"].includes(r))&&<Link to="/admin">CUT Sport admin dashboard</Link>}{roles.some(r=>["sport_admin","super_admin","coach"].includes(r))&&<Link to="/admin/athletes">Athlete profiles</Link>}<p>Roles: {roles.join(", ")||"Member"}</p><button onClick={()=>supabase.auth.signOut()}><LogOut/> Sign out</button></div></>:<><h1>Join the Blues.</h1><div className="tabs"><button type="button" onClick={()=>{setMode("login");setMessage("")}}>Log in</button><button type="button" onClick={()=>{setMode("signup");setMessage("")}}>Create account</button></div><form className="form-card" onSubmit={submit}>{mode==="signup"&&<label>Full name<input required value={name} onChange={e=>setName(e.target.value)}/></label>}<label>Email<input type="email" required value={email} onChange={e=>setEmail(e.target.value)} autoComplete="email"/></label><label>Password<input type="password" minLength="8" required value={password} onChange={e=>setPassword(e.target.value)} autoComplete={mode==="login"?"current-password":"new-password"}/></label><button className="btn primary" disabled={busy}>{busy?"Please wait…":"Continue"}</button>{mode==="login"&&<button type="button" className="btn secondary" disabled={busy} onClick={requestPasswordReset}>Forgot password?</button>}{message&&<p>{message}</p>}</form><p className="muted">Student and staff discounts require verified institutional eligibility.</p></>}</main></>;
+}
 let cutQrCodeLoader=null;
 function loadCutQrCode(){
  if(window.QRCode)return Promise.resolve();
