@@ -310,3 +310,12 @@ body{background:var(--cut-cream);color:var(--ink)}
 
 /* Keep the same approved horizontal stripe across the brand seal, section markers and footer. */
 .brand-mark:after,.section-head:after,.footer:before{background:var(--cut-heritage-stripe)}
+
+.launch-priority-grid{display:grid;gap:8px;margin-top:12px}
+.launch-priority{display:grid;grid-template-columns:34px minmax(0,1fr) 18px;align-items:center;gap:10px;padding:12px;border:1px solid #e2eaf4;border-radius:12px;background:#fff;color:var(--cut-deep-navy)}
+.launch-priority>span{display:grid;place-items:center;width:32px;height:32px;border-radius:9px;background:#eaf1fc;color:var(--cut-blue);font-size:10px;font-weight:800}
+.launch-priority>div{display:grid;gap:4px;min-width:0}
+.launch-priority b{font-size:12px}
+.launch-priority small{font-size:11px;line-height:1.4;color:var(--muted)}
+.launch-priority>svg{color:var(--cut-blue)}
+.launch-priority:hover{border-color:var(--cut-highlight-blue);background:#fbfdff}
