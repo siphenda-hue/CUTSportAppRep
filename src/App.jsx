@@ -1941,8 +1941,8 @@ function AdminMediaLibrary({roles=[],user}) {
   const files=Array.from(event.target.files||[]);event.target.value="";
   if(!files.length||!season||season.status!=="in_progress"||!user?.id||uploading)return;
   const allowedTypes=["image/jpeg","image/png","image/webp","image/gif","video/mp4","video/quicktime","video/webm","application/pdf"];
-  const invalid=files.find(f=>!allowedTypes.includes(f.type)||f.size>157286400||f.size===0);
-  if(invalid){setError("Unsupported file or file over 150 MB: "+invalid.name);return;}
+  const invalid=files.find(f=>!allowedTypes.includes(f.type)||f.size>52428800||f.size===0);
+  if(invalid){setError("Unsupported file or file over 50 MB: "+invalid.name);return;}
   setUploading(true);setError("");setNotice("");
   let saved=0;
   for(const file of files){
@@ -1987,7 +1987,7 @@ function AdminMediaLibrary({roles=[],user}) {
     <p className="muted">Upload photographs, graphics, match videos or PDF campaign documents. Files are stored in a private bucket; previews use short-lived signed links.</p>
     <label>Asset notes (optional)<textarea rows={2} maxLength={1200} value={description} onChange={e=>setDescription(e.target.value)} placeholder="Add context, campaign name, event or usage notes."/></label>
     <label>Choose files<input type="file" multiple accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/quicktime,video/webm,application/pdf" onChange={uploadFiles} disabled={uploading}/></label>
-    <small className="muted">Maximum 150 MB per file. Accepted: JPG, PNG, WebP, GIF, MP4, MOV, WebM and PDF.</small>
+    <small className="muted">Maximum 50 MB per file. Accepted: JPG, PNG, WebP, GIF, MP4, MOV, WebM and PDF.</small>
     {uploading&&<p className="muted">Uploading or removing media… please keep this page open.</p>}
    </div>:<div className="admin-notice"><ShieldCheck/><div><b>Archived season</b><p>This season's media can be viewed and downloaded, but uploads and removals are disabled.</p></div></div>}
   </Section>
