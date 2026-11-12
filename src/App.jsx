@@ -981,6 +981,7 @@ function AdminVerificationCentre({roles}) {
  const isSuper=roles.includes("super_admin");
  const [athletes,setAthletes]=useState([]),[claims,setClaims]=useState([]);
  const [loading,setLoading]=useState(false),[error,setError]=useState("");
+ const [matches,setMatches]=useState({}),[matchingId,setMatchingId]=useState(""),[linkingId,setLinkingId]=useState(""),[linkMessage,setLinkMessage]=useState("");
  async function load(){
   if(!supabase||!allowed)return;
   setLoading(true);setError("");
@@ -999,6 +1000,33 @@ function AdminVerificationCentre({roles}) {
   setLoading(false);
  }
  useEffect(()=>{load()},[allowed,isSuper]);
+ async function findExactProfile(a){
+  if(!supabase||!allowed||a.player_profile_id)return;
+  setMatchingId(a.id);setLinkMessage("");setError("");
+  const {data,error:matchError}=await supabase.from("player_profiles")
+   .select("id,full_name,display_name,profile_visibility,claimed_at")
+   .eq("full_name",a.full_name).limit(20);
+  if(matchError)setError(matchError.message);
+  else setMatches(current=>({...current,[a.id]:data||[]}));
+  setMatchingId("");
+ }
+ async function linkExactProfile(a,p){
+  if(!supabase||!allowed||a.player_profile_id||p.full_name!==a.full_name)return;
+  const confirmed=window.confirm("Link this athlete record to the canonical player profile for the exact same full name? Check the supporting evidence and profile ownership first. This action changes the identity link.");
+  if(!confirmed)return;
+  setLinkingId(a.id);setError("");setLinkMessage("");
+  const {data,error:linkError}=await supabase.from("athletes")
+   .update({player_profile_id:p.id}).eq("id",a.id).is("player_profile_id",null).select("id").maybeSingle();
+  if(linkError)setError(linkError.message);
+  else if(!data)setError("The link was not saved. The athlete may already have been linked, or your assigned sport/team permissions may not allow this change.");
+  else{
+   setLinkMessage("Canonical profile link saved. The athlete record has been refreshed.");
+   setMatches(current=>{const next={...current};delete next[a.id];return next;});
+   await load();
+  }
+  setLinkingId("");
+ }
+
  const pendingAthletes=athletes.filter(x=>x.approval_status==="pending");
  const missingCanonical=athletes.filter(x=>!x.player_profile_id);
  const linked=athletes.filter(x=>Boolean(x.player_profile_id));
@@ -1026,8 +1054,18 @@ function AdminVerificationCentre({roles}) {
    <p className="muted">A canonical player profile is distinct from a CUT Sport account link. This page never auto-matches names or changes identity links.</p>
    {loading?<p className="muted">Loading athlete links…</p>:missingCanonical.length?missingCanonical.slice(0,50).map(a=><article className="performance-record" key={a.id}>
     <div className="performance-record-head"><div><b>{a.full_name}</b><small>{a.sports?.name||"Sport not recorded"}{a.teams?.name?" · "+a.teams.name:""}</small></div><span className="status-pill">Not linked</span></div>
-    <p>Review the source record and exact full-name identity before linking a canonical player profile.</p>
-    <Link className="btn secondary" to="/admin/athletes">Review athlete record</Link>
+    <p>Search for an exact, case-sensitive full-name match in canonical player profiles. A match is only a candidate; review the evidence before linking.</p>
+    <div className="review-actions">
+     <button className="btn secondary" disabled={matchingId===a.id} onClick={()=>findExactProfile(a)}>{matchingId===a.id?"Searching…":"Find exact-name candidates"}</button>
+     <Link className="btn secondary" to="/admin/athletes">Review athlete record</Link>
+    </div>
+    {matches[a.id]&&<div className="review-history">
+     <b>{matches[a.id].length} exact-name candidate{matches[a.id].length===1?"":"s"}</b>
+     {matches[a.id].length?matches[a.id].map(p=><div key={p.id}>
+      <p><b>{p.full_name}</b>{p.display_name&&p.display_name!==p.full_name?" · Display name: "+p.display_name:""}<br/><small>{p.profile_visibility||"Visibility not recorded"} · {p.claimed_at?"Claimed profile":"Unclaimed profile"}</small></p>
+      <button className="btn primary" disabled={Boolean(linkingId)} onClick={()=>linkExactProfile(a,p)}>{linkingId===a.id?"Linking…":"Verify and link this profile"}</button>
+     </div>):<p className="muted">No exact full-name candidate is visible under your current profile access permissions. Do not use a fuzzy match as a substitute.</p>}
+    </div>}
    </article>):<Empty title="All visible athletes have a canonical link" body="No missing player-profile links were found in the records visible to your account."/>}
   </Section>
   {isSuper&&<Section title="Player ownership claims">
@@ -1038,6 +1076,7 @@ function AdminVerificationCentre({roles}) {
     <Link className="btn primary" to={"/players/"+c.player_profile_id}>Review claim <ChevronRight size={15}/></Link>
    </article>):<Empty title="No pending ownership claims" body="New player-profile ownership requests will appear here."/>}
   </Section>}
+  {linkMessage&&<p className="success-message" role="status">{linkMessage}</p>}
   <div className="admin-notice"><ShieldCheck size={18}/><div><b>Identity protection</b><p>Exact full-name matches only. No fuzzy matching, automatic merges, profile reassignment or approval changes are performed by this dashboard.</p></div></div>
  </main></>;
 }
