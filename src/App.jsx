@@ -576,14 +576,14 @@ function AdminTeamSeasons({roles=[],user}) {
   setSocialSaving(false);
  }
  function copySocialPlan(){
-  const content=socialPlan.map((item,i)=>(i+1)+". "+item.date+" "+item.time+" · "+item.platform+" · "+item.format+" · "+item.status+"\\n"+item.idea+"\\n"+item.caption).join("\\n\\n");
+  const content=socialPlan.map((item,i)=>(i+1)+". "+item.date+" "+item.time+" · "+item.platform+" · "+item.format+" · "+item.status+"\n"+item.idea+"\n"+item.caption).join("\n\n");
   if(!content)return;
   navigator.clipboard.writeText(content).then(()=>setNotice("Saved social media calendar copied." )).catch(()=>setError("Copy is unavailable in this browser. Use Print to export the schedule."));
  }
  function printSocialPlan(){
   if(!socialPlan.length)return;
   const esc=escapeAnnouncementHtml;
-  const rows=socialPlan.map((item,i)=>'<tr><td>'+(i+1)+'</td><td>'+esc(item.date)+' · '+esc(item.time)+'</td><td>'+esc(item.platform)+'</td><td>'+esc(item.format)+'</td><td>'+esc(item.idea)+'</td><td>'+esc(item.caption).replace(/\\n/g,"<br>")+'</td></tr>').join("");
+  const rows=socialPlan.map((item,i)=>'<tr><td>'+(i+1)+'</td><td>'+esc(item.date)+' · '+esc(item.time)+'</td><td>'+esc(item.platform)+'</td><td>'+esc(item.format)+'</td><td>'+esc(item.idea)+'</td><td>'+esc(item.caption).replace(/\n/g,"<br>")+'</td></tr>').join("");
   const content='<p><b>'+esc(announcementTeamName)+'</b> · Season '+esc(season?.season_label||"—")+'</p><p>Prepared content items: '+socialPlan.length+'</p><table><thead><tr><th>#</th><th>Publish date / time</th><th>Platform</th><th>Format</th><th>Content idea</th><th>Caption</th></tr></thead><tbody>'+rows+'</tbody></table><p class="muted">Planning document only. Posts are not scheduled or published automatically.</p>';
   if(!openCutPrintableReport(announcementTeamName+" · Social media content plan","CUT SPORT · SOCIAL MEDIA PLANNER",content,false))setError("Allow pop-ups for CUT Sport to print the content plan.");
  }
