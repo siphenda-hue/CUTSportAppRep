@@ -2016,6 +2016,9 @@ function AdminRecruitment({roles,user}) {
   if(!teamId||!opportunity){setError("Choose a team for this selected applicant.");return;}
   const team=teams.find(t=>t.id===teamId);
   if(!team){setError("Choose a valid active team.");return;}
+  if(application.status!=="selected"){setError("Only applicants with a saved Selected decision can be allocated to a squad.");return;}
+  if(team.sport_id!==opportunity.sport_id){setError("The selected team must belong to the same sport as the recruitment opportunity.");return;}
+  if(opportunity.team_id&&team.id!==opportunity.team_id){setError("This opportunity is restricted to its assigned team. Choose that team to continue.");return;}
   setError("");setNotice("");
   const {data:existingRows,error:lookupError}=await supabase.from("athlete_team_memberships").select("id,is_active").eq("athlete_id",application.athlete_id).eq("team_id",team.id);
   if(lookupError){setError(lookupError.message);return;}
@@ -2064,16 +2067,19 @@ function AdminRecruitment({roles,user}) {
     <div><b>{applications.filter(a=>a.status==="selected").length}</b><small>Selected applicants</small></div>
     <div><b>{applications.filter(a=>a.status==="selected"&&!!a.athlete_id).length}</b><small>Linked athlete profiles</small></div>
     <div><b>{applications.filter(a=>a.status==="selected"&&!a.athlete_id).length}</b><small>Awaiting profile link</small></div>
-    <div><b>{applications.filter(a=>a.status==="selected"&&!!a.athlete_id&&!!teamAssignments[a.id]).length}</b><small>Ready for allocation</small></div>
+    <div><b>{applications.filter(a=>{const o=opportunities.find(x=>x.id===a.opportunity_id),t=teams.find(x=>x.id===teamAssignments[a.id]);return a.status==="selected"&&!!a.athlete_id&&!!t&&t.sport_id===o?.sport_id&&(!o?.team_id||o.team_id===t.id);}).length}</b><small>Ready for allocation</small></div>
    </div>
    <p className="muted">Only applicants already marked Selected are listed. Confirming an allocation uses the existing athlete profile and team membership; it does not create another athlete record or remove other team memberships.</p>
    {applications.filter(a=>a.status==="selected").length?applications.filter(a=>a.status==="selected").map(a=>{
     const opportunity=opportunities.find(o=>o.id===a.opportunity_id);
     const selectedTeam=teams.find(t=>t.id===teamAssignments[a.id]);
+    const eligibleTeams=teams.filter(t=>opportunity?.team_id?t.id===opportunity.team_id:(!opportunity?.sport_id||t.sport_id===opportunity.sport_id));
+    const checks=[{label:"Application decision is Selected",ok:a.status==="selected"},{label:"Approved athlete profile is linked",ok:!!a.athlete_id},{label:"Playing position is recorded",ok:!!a.playing_position},{label:"Active team is selected",ok:!!selectedTeam},{label:"Team matches opportunity scope",ok:!!selectedTeam&&selectedTeam.sport_id===opportunity?.sport_id&&(!opportunity?.team_id||selectedTeam.id===opportunity.team_id)}];
+    const ready=checks.every(x=>x.ok);
     return <article className="performance-record" key={"squad-"+a.id}>
-     <div className="performance-record-head"><div><b>{a.full_name}</b><small>{opportunity?.title||"Recruitment opportunity"} · {opportunity?.sports?.name||"Sport"}</small></div><span>{a.athlete_id?"Profile linked":"Profile required"}</span></div>
-     <p>{a.playing_position||"Position not specified"} · {a.athlete_id?"Ready for team allocation":"Link an approved athlete profile before allocation"}</p>
-     {a.athlete_id&&<><label>Final squad team<select value={teamAssignments[a.id]||""} onChange={e=>setTeamAssignments(current=>({...current,[a.id]:e.target.value}))}><option value="">Choose an active team</option>{teams.filter(t=>!opportunity?.sport_id||t.sport_id===opportunity.sport_id).map(t=><option key={t.id} value={t.id}>{t.name} — {t.sports?.name||"Sport"}</option>)}</select></label><div className="review-actions"><button type="button" className="btn primary" disabled={!selectedTeam} onClick={()=>allocateTeam(a)}>Confirm squad allocation</button></div></>}
+     <div className="performance-record-head"><div><b>{a.full_name}</b><small>{opportunity?.title||"Recruitment opportunity"} · {opportunity?.sports?.name||"Sport"}</small></div><span>{ready?"Ready for finalisation":"Readiness checks outstanding"}</span></div>
+     <div className="form-card"><h4>Readiness checklist</h4>{checks.map((check,index)=><p key={index} className="muted"><b>{check.ok?"✓":"○"}</b> {check.label}{!check.ok&&check.label==="Playing position is recorded"?" — confirm the correct position before publishing the squad":""}</p>)}</div>
+     {a.athlete_id&&<><label>Final squad team<select value={teamAssignments[a.id]||""} onChange={e=>setTeamAssignments(current=>({...current,[a.id]:e.target.value}))}><option value="">Choose an active team</option>{eligibleTeams.map(t=><option key={t.id} value={t.id}>{t.name} — {t.sports?.name||"Sport"}</option>)}</select></label><div className="review-actions"><button type="button" className="btn primary" disabled={!ready} onClick={()=>allocateTeam(a)}>Confirm squad allocation</button></div></>}
     </article>;
    }):<Empty title="No selected applicants yet" body="Applicants marked Selected will appear here for final squad allocation."/>}
   </Section>
