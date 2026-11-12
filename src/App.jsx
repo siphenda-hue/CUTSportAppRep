@@ -290,7 +290,7 @@ function PlayerProfilePage({user,roles=[]}) {
   setPlayer(p.data||null);setRecords(r.data||[]);
   if(user?.id&&p.data){
    const {data:hubRows,error:hubError}=await supabase.from("team_hub_season_members")
-    .select("season_id,player_profile_id,team_hub_seasons(id,season_label,status,teams(name,sports(name)))")
+    .select("season_id,player_profile_id,team_hub_seasons(id,season_label,status,team_name_snapshot,sports(name))")
     .eq("player_profile_id",id).order("selected_at",{ascending:false});
    if(hubError)setError(hubError.message);setHubSeasons(hubRows||[]);
   }else setHubSeasons([]);
@@ -433,7 +433,7 @@ function PlayerProfilePage({user,roles=[]}) {
    <div className="player-career-stats">
     <article><b>{appearances.size}</b><small>Match appearances</small></article><article><b>{statisticRecords}</b><small>Statistics records</small></article><article><b>{competitions}</b><small>Competitions</small></article><article><b>{internationalAppearances}</b><small>International appearances</small></article><article><b>{squadSelections}</b><small>Squad selections</small></article><article><b>{awardRecords}</b><small>Awards & honours</small></article>
    </div>
-   {hubSeasons.length>0&&<Section title="My team hubs"><div className="metric-trend">{hubSeasons.map(row=><article className="performance-record" key={row.season_id}><div className="performance-record-head"><div><b>{row.team_hub_seasons?.teams?.sports?.name||"CUT Sport"} · {row.team_hub_seasons?.teams?.name||"Team"}</b><small>Season {row.team_hub_seasons?.season_label||"—"}</small></div><span className="status-pill">{row.team_hub_seasons?.status==="in_progress"?"In progress":"Completed"}</span></div><Link className="btn secondary" to={"/team-hub/"+row.season_id}>Open team hub</Link></article>)}</div></Section>}
+   {hubSeasons.length>0&&<Section title="My team hubs"><div className="metric-trend">{hubSeasons.map(row=><article className="performance-record" key={row.season_id}><div className="performance-record-head"><div><b>{row.team_hub_seasons?.sports?.name||"CUT Sport"} · {row.team_hub_seasons?.team_name_snapshot||"Team"}</b><small>Season {row.team_hub_seasons?.season_label||"—"}</small></div><span className="status-pill">{row.team_hub_seasons?.status==="in_progress"?"In progress":"Completed"}</span></div><Link className="btn secondary" to={"/team-hub/"+row.season_id}>Open team hub</Link></article>)}</div></Section>}
    {Object.keys(totals).some(k=>totals[k]!==0)&&<Section title="Recorded career totals"><div className="player-total-grid">{Object.entries(totals).filter(([,v])=>v!==0).map(([k,v])=><article key={k}><b>{v}</b><small>{statLabels[k]||k.replaceAll("_"," ")}</small></article>)}</div><p className="muted">Totals combine available source-backed records only. They are not represented as complete career totals unless the underlying competition records are complete.</p></Section>}
    {canManageVisibility&&<section className="player-privacy-panel"><div><b>Public profile visibility</b><p>{player.profile_visibility==="public"?"Anyone can view this player dashboard.":"This player dashboard is hidden from public visitors."}</p></div><button className="btn secondary" disabled={saving} onClick={()=>changeVisibility(player.profile_visibility==="public"?"private":"public")}>{player.profile_visibility==="public"?"Hide profile":"Make profile public"}</button></section>}
    {isSuper&&<section className="player-photo-admin"><div><b>Official CUT profile photo</b><p>Upload a professional CUT photo and assign it to this player. Assigning the image approves it for public display.</p></div><label className="btn secondary">{photoBusy?"Uploading…":player.photo_path?"Replace approved photo":"Upload and approve photo"}<input type="file" accept="image/jpeg,image/png,image/webp" onChange={uploadApprovedPhoto} disabled={photoBusy} hidden/></label>{player.photo_path&&<button className="btn secondary" type="button" onClick={removeApprovedPhoto} disabled={photoBusy}>Remove photo</button>}{player.photo_approved_at&&<small>Approved {dateLabel(player.photo_approved_at)}</small>}</section>}
@@ -467,8 +467,8 @@ function AdminTeamSeasons({roles=[],user}) {
  async function loadSeasons(id=teamId){
   if(!supabase||!id){setSeasons([]);setSeasonId("");return;}
   const selectedTeam=teams.find(t=>t.id===id);if(!selectedTeam){setSeasons([]);return;}
-  const {data,error:e}=await supabase.from("team_hub_seasons").select("id,team_id,sport_id,season_label,status,starts_on,ends_on,squad_submitted_at,closed_at,teams(name,season,category)").eq("sport_id",selectedTeam.sport_id).order("created_at",{ascending:false});
-  if(e){setError(e.message);return;}const scoped=(data||[]).filter(row=>row.teams?.name===selectedTeam.name&&row.teams?.category===selectedTeam.category);setSeasons(scoped);
+  const {data,error:e}=await supabase.from("team_hub_seasons").select("id,team_id,sport_id,season_label,status,starts_on,ends_on,squad_submitted_at,closed_at,team_name_snapshot,team_category_snapshot").eq("sport_id",selectedTeam.sport_id).order("created_at",{ascending:false});
+  if(e){setError(e.message);return;}const scoped=(data||[]).filter(row=>row.team_name_snapshot===selectedTeam.name&&row.team_category_snapshot===selectedTeam.category);setSeasons(scoped);
   if(!seasonId&&data?.length)setSeasonId(data[0].id);else if(seasonId&&!data?.some(x=>x.id===seasonId))setSeasonId(data?.[0]?.id||"");
  }
  async function loadMembers(id=seasonId){
@@ -558,7 +558,7 @@ function TeamHub({user,roles=[]}) {
  async function load(){
   if(!supabase||!user?.id){setSeason(null);setMembers([]);return;}
   setBusy(true);setError("");
-  const {data:s,error:se}=await supabase.from("team_hub_seasons").select("id,team_id,sport_id,season_label,status,starts_on,ends_on,teams(name,sports(name))").eq("id",seasonId).maybeSingle();
+  const {data:s,error:se}=await supabase.from("team_hub_seasons").select("id,team_id,sport_id,season_label,status,starts_on,ends_on,team_name_snapshot,team_category_snapshot,sports(name)").eq("id",seasonId).maybeSingle();
   if(se||!s){setError(se?.message||"This team hub is unavailable or you are not authorised to view it.");setSeason(null);setBusy(false);return;}
   const [m,p,pl,prof]=await Promise.all([
    supabase.from("team_hub_season_members").select("id,athlete_id,player_profile_id,player_name,membership_status,position,squad_number").eq("season_id",seasonId).in("membership_status",["selected","retained"]),
@@ -627,7 +627,7 @@ function TeamHub({user,roles=[]}) {
  const myResponse=poll=>responses.find(r=>r.poll_id===poll.id&&r.user_id===user?.id);
  return <><Header title="Team hub" back/><main className="page">
   {!user?<Empty title="Sign in to open this team hub" body="Only claimed players selected for this season and authorised team staff can access the hub."/>:!season?<><p className="form-error">{error||"Loading team hub…"}</p></>:<>
-   <div className="page-intro"><span className="eyebrow">{season.teams?.sports?.name||"CUT SPORT"} · TEAM HUB</span><h1>{season.teams?.name||"Team"}.</h1><p>Season {season.season_label} · {season.status.replace("_"," ")}</p>{staffScope&&<Link className="btn secondary" to="/admin/team-seasons">Manage season squads</Link>}</div>
+   <div className="page-intro"><span className="eyebrow">{season.sports?.name||"CUT SPORT"} · TEAM HUB</span><h1>{season.team_name_snapshot||"Team"}.</h1><p>Season {season.season_label} · {season.status.replace("_"," ")}</p>{staffScope&&<Link className="btn secondary" to="/admin/team-seasons">Manage season squads</Link>}</div>
    {!active&&<div className="admin-notice"><ShieldCheck/><div><b>Season not currently active</b><p>This season is completed or outside its approved start/end dates. Players can review previous updates and poll responses, but cannot interact. Coaches and team managers can review the archive.</p></div></div>}
    <Section title="Season squad">{members.length?members.map(m=><div className="player-history-row" key={m.id}><div><b>{m.player_name||"Player"}</b><small>{m.position||"Position not recorded"}{m.squad_number!==null?" · #"+m.squad_number:""}</small></div></div>):<Empty title="No squad records" body="The season squad will appear here after it is submitted by the coaching staff."/ >}</Section>
    {active&&staffCanInteract&&<Section title="Team updates"><form className="form-card" onSubmit={createPost}><h3>Publish to the squad</h3><label>Update type<select value={postType} onChange={e=>setPostType(e.target.value)}><option value="practice">Practice schedule</option><option value="squad_announcement">Squad announcement</option><option value="instruction">Instructions</option></select></label><label>Title<input required minLength="3" maxLength="180" value={title} onChange={e=>setTitle(e.target.value)} placeholder="e.g. Thursday training session"/></label>{postType==="practice"&&<><label>Practice date & time<input type="datetime-local" required value={startsAt} onChange={e=>setStartsAt(e.target.value)}/></label><label>Venue<input maxLength="240" value={venue} onChange={e=>setVenue(e.target.value)} placeholder="Training venue"/></label></>}<label>Details<textarea rows={4} maxLength="5000" value={body} onChange={e=>setBody(e.target.value)} placeholder="Share the information the squad needs…"/></label><button className="btn primary" disabled={busy||!title.trim()}>Publish update</button></form>
