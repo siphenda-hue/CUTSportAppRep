@@ -1225,7 +1225,7 @@ function AdminVerificationCentre({roles}) {
 function AdminPlanningCentre({roles,user}) {
  const allowed=roles.some(r=>["sport_admin","super_admin","coach"].includes(r));
  const superAdmin=roles.includes("super_admin");
- const [teams,setTeams]=useState([]),[members,setMembers]=useState([]),[opportunities,setOpportunities]=useState([]),[applications,setApplications]=useState([]),[tasks,setTasks]=useState([]),[taskAssignees,setTaskAssignees]=useState([]);
+ const [teams,setTeams]=useState([]),[members,setMembers]=useState([]),[opportunities,setOpportunities]=useState([]),[applications,setApplications]=useState([]),[tasks,setTasks]=useState([]),[taskHistory,setTaskHistory]=useState([]),[taskAssignees,setTaskAssignees]=useState([]);
  const [taskTeam,setTaskTeam]=useState(""),[taskTitle,setTaskTitle]=useState(""),[taskDescription,setTaskDescription]=useState(""),[taskAssignee,setTaskAssignee]=useState(""),[taskDue,setTaskDue]=useState(""),[taskPriority,setTaskPriority]=useState("normal");
  const [busy,setBusy]=useState(false),[error,setError]=useState(""),[scopeNote,setScopeNote]=useState("");
  async function load(){
@@ -1250,7 +1250,7 @@ function AdminPlanningCentre({roles,user}) {
   setTeams(visibleTeams);
   if(!superAdmin&&!visibleTeams.length)setScopeNote("No active team assignment is visible for this account. A super administrator can review staff assignments in Team management & staff.");
   const ids=visibleTeams.map(t=>t.id),sportIds=[...new Set(visibleTeams.map(t=>t.sport_id).filter(Boolean))];
-  if(!ids.length){setMembers([]);setOpportunities([]);setApplications([]);setTasks([]);setTaskAssignees([]);setBusy(false);return;}
+  if(!ids.length){setMembers([]);setOpportunities([]);setApplications([]);setTasks([]);setTaskHistory([]);setTaskAssignees([]);setBusy(false);return;}
   const [memberResult,opportunityResult,taskResult,assignmentResult]=await Promise.all([
    supabase.from("athlete_team_memberships")
     .select("id,athlete_id,team_id,sport_id,position,squad_number,is_active,athletes(id,full_name,player_profile_id,approval_status,profile_visibility)")
@@ -1268,6 +1268,13 @@ function AdminPlanningCentre({roles,user}) {
    (o.team_id&&ids.includes(o.team_id))||(!o.team_id&&sportIds.includes(o.sport_id))
   );
   setMembers(memberRows);setOpportunities(scopedOpportunities);setTasks(taskResult.data||[]);
+  const taskIds=(taskResult.data||[]).map(t=>t.id);
+  if(taskIds.length){
+   const {data:historyRows,error:historyError}=await supabase.from("coach_action_task_history")
+    .select("id,task_id,action_type,previous_values,new_values,changed_by,changed_at")
+    .in("task_id",taskIds).order("changed_at",{ascending:false}).limit(150);
+   if(historyError){setError(historyError.message);setTaskHistory([]);}else setTaskHistory(historyRows||[]);
+  }else setTaskHistory([]);
   const today=new Date().toISOString().slice(0,10);
   const activeAssignments=(assignmentResult.data||[]).filter(a=>(!a.starts_on||a.starts_on<=today)&&(!a.ends_on||a.ends_on>=today)&&["coach","team_manager"].includes(a.assignment_role));
   const assigneeIds=[...new Set(activeAssignments.map(a=>a.admin_profile_id))];
@@ -1302,8 +1309,7 @@ function AdminPlanningCentre({roles,user}) {
  async function updateTaskStatus(task,status){
   if(!supabase||busy)return;
   setBusy(true);setError("");
-  const now=new Date().toISOString();
-  const {data,error:saveError}=await supabase.from("coach_action_tasks").update({status,updated_at:now,completed_at:status==="completed"?now:null}).eq("id",task.id).select("id").maybeSingle();
+  const {data,error:saveError}=await supabase.from("coach_action_tasks").update({status}).eq("id",task.id).select("id").maybeSingle();
   if(saveError)setError(saveError.message);else if(!data)setError("Task was not updated. Check your active team assignment.");else await load();
   setBusy(false);
  }
@@ -1324,6 +1330,10 @@ function AdminPlanningCentre({roles,user}) {
   return {...t,rosterCount:roster.length,complete,missing:roster.length-complete,opportunityCount:pipeline.length,applicantCount:applicants.length,pending:applicants.filter(a=>a.status==="submitted").length};
  });
  const pct=activeMembers.length?Math.round(completeMembers.length/activeMembers.length*100):0;
+ const localToday=new Date();
+ const todayKey=[localToday.getFullYear(),String(localToday.getMonth()+1).padStart(2,"0"),String(localToday.getDate()).padStart(2,"0")].join("-");
+ const soonDate=new Date(localToday.getFullYear(),localToday.getMonth(),localToday.getDate()+2);
+ const dueSoonKey=[soonDate.getFullYear(),String(soonDate.getMonth()+1).padStart(2,"0"),String(soonDate.getDate()).padStart(2,"0")].join("-");
  return <><Header title="Sport administration planning" back/><main className="page">
   <div className="page-intro"><span className="eyebrow">THE BLUES · TEAM OPERATIONS</span><h1>Planning centre.</h1><p>One view of team readiness, roster data quality and recruitment activity across the teams visible within your assigned sport or team scope.</p></div>
   {error&&<p className="form-error" role="alert">{error}</p>}{scopeNote&&<div className="admin-notice"><ShieldCheck/><div><b>Assignment scope</b><p>{scopeNote}</p></div></div>}
@@ -1357,14 +1367,17 @@ function AdminPlanningCentre({roles,user}) {
     <label>Assign to<select value={taskAssignee} onChange={e=>setTaskAssignee(e.target.value)} required><option value="">Choose assigned coach / team manager</option>{taskAssignees.filter(a=>a.team_id===taskTeam).map(a=><option key={a.id} value={a.id}>{a.profile?.full_name||a.profile?.email||"Staff member"} · {a.role==="coach"?"Coach":"Team manager"}</option>)}</select></label>
     <div className="form-grid"><label>Due date<input type="date" value={taskDue} onChange={e=>setTaskDue(e.target.value)}/></label><label>Priority<select value={taskPriority} onChange={e=>setTaskPriority(e.target.value)}><option value="low">Low</option><option value="normal">Normal</option><option value="high">High</option><option value="urgent">Urgent</option></select></label></div>
     <button className="button-primary" type="submit" disabled={busy||!taskTeam||!taskTitle.trim()||!taskAssignee}>Assign action</button>
-    {!superAdmin&&<p className="muted">Team coaches and managers can assign actions to themselves. Super administrators can assign actions to any active coach or team manager in the selected team.</p>}
+    {!superAdmin&&<p className="muted">Team coaches and managers can assign actions to themselves. Super administrators can assign actions to any active coach or team manager in the selected team. Assignment and status changes generate notifications in the personal inbox.</p>}
     {!superAdmin&&!taskAssignees.some(a=>a.team_id===taskTeam)&&taskTeam&&<p className="muted">Your account has no active coach or team-manager assignment to this team. A super administrator can assign actions here.</p>}
    </form>
-   {tasks.length?<div className="metric-trend">{tasks.map(task=>{const assignee=taskAssignees.find(a=>a.id===task.assigned_to);return <article className="performance-record" key={task.id}>
+   {tasks.length?<div className="metric-trend">{tasks.map(task=>{const assignee=taskAssignees.find(a=>a.id===task.assigned_to);const overdue=task.due_date&&task.due_date<todayKey&&!["completed","cancelled"].includes(task.status);const dueSoon=task.due_date&&task.due_date>=todayKey&&task.due_date<=dueSoonKey&&!["completed","cancelled"].includes(task.status);const history=taskHistory.filter(event=>event.task_id===task.id).slice(0,3);return <article className="performance-record" key={task.id}>
     <div className="performance-record-head"><div><b>{task.title}</b><small>{teams.find(t=>t.id===task.team_id)?.name||"Team"} · Assigned to {task.assigned_to===user?.id?"you":(assignee?.profile?.full_name||"assigned staff")}</small></div><span className="status-pill">{task.status.replace("_"," ")}</span></div>
     {task.description&&<p>{task.description}</p>}
     <div className="performance-metric-chips"><span><b>{task.priority}</b> priority</span><span><b>{task.due_date||"No due date"}</b> due</span><span><b>{task.created_at?dateLabel(task.created_at):"—"}</b> created</span></div>
+    {overdue&&<p className="form-error" role="status"><b>Overdue</b> · This action passed its due date.</p>}
+    {dueSoon&&<p className="muted" role="status"><b>Due soon</b> · Due within the next 48 hours.</p>}
     <label>Update status<select value={task.status} disabled={busy} onChange={e=>updateTaskStatus(task,e.target.value)}><option value="todo">To do</option><option value="in_progress">In progress</option><option value="blocked">Blocked</option><option value="completed">Completed</option><option value="cancelled">Cancelled</option></select></label>
+    {history.length>0&&<div className="task-history"><b>Recent activity</b>{history.map(event=>{const before=event.previous_values||{};const after=event.new_values||{};const description=event.action_type==="created"?"Task created":event.action_type==="assigned"?"Assignment changed":event.action_type==="status_changed"?"Status changed: "+String(before.status||"—").replace("_"," ")+" → "+String(after.status||"—").replace("_"," "):"Task details updated";return <small key={event.id}>{description} · {event.changed_by===user?.id?"You":"Staff member"} · {dateLabel(event.changed_at)}</small>})}</div>}
    </article>})}</div>:<Empty title="No coach actions assigned yet" body="Create the first action above. Only staff with an active coach or team-manager assignment to the selected team can be assigned."/>}
   </Section>
   <div className="admin-notice"><ShieldCheck/><div><b>Data and access safeguards</b><p>All records are read from existing Supabase tables under their current Row Level Security policies. This page creates no data, changes no squad memberships and does not treat an incomplete roster as proof of a recruitment vacancy.</p></div></div>
