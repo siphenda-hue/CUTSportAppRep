@@ -46,7 +46,7 @@ function App() {
  const add=p=>{setCart(old=>{const found=old.find(x=>x.id===p.id);return found?old.map(x=>x.id===p.id?{...x,qty:x.qty+1}:x):[...old,{id:p.id,name:p.name,price_cents:p.price_cents,image_url:p.image_url,qty:1}]});setToast('Added to your bag');setTimeout(()=>setToast(''),2200)};
  const common={sports,teams,competitions,products,fixtures,articles,events,ticketTypes,sponsors,athletes,user,profile,roles,cart,setCart,add};
  return <div className="app-shell"><div className="app-frame"><Routes>
- <Route path="/" element={<Home {...common}/>}/><Route path="/shop" element={<Shop {...common}/>}/><Route path="/shop/:slug" element={<Product {...common}/>}/><Route path="/cart" element={<Cart {...common}/>}/><Route path="/checkout" element={<Checkout cart={cart} setCart={setCart} user={user}/>}/><Route path="/payment/:result" element={<PaymentReturn user={user} result="success" cart={cart} setCart={setCart}/>}/><Route path="/events/:id" element={<EventTickets events={events} ticketTypes={ticketTypes} user={user}/>}/><Route path="/calendar" element={<CalendarPage {...common}/>}/><Route path="/sport" element={<Sport {...common}/>}/><Route path="/sport/:slug" element={<Hub {...common}/>}/><Route path="/news" element={<News {...common}/>}/><Route path="/news/:slug" element={<Story {...common}/>}/><Route path="/sponsors" element={<Sponsors {...common}/>}/><Route path="/profile" element={<Profile {...common}/>}/><Route path="/players" element={<PlayerDirectory user={user}/>}/><Route path="/players/:id" element={<PlayerProfilePage user={user} roles={roles}/>}/><Route path="/team-hub/:seasonId" element={<TeamHub user={user} roles={roles}/>}/><Route path="/admin/team-seasons" element={<AdminTeamSeasons roles={roles} user={user}/>}/><Route path="/performance" element={<AthletePerformance user={user}/>}/><Route path="/trials" element={<Trials user={user} profile={profile}/>}/><Route path="/admin/recruitment" element={<AdminRecruitment roles={roles} user={user}/>}/><Route path="/admin" element={<AdminDashboard {...common}/>}/><Route path="/admin/overview" element={<AdminOverview {...common}/>}/><Route path="/admin/sports" element={<AdminSports roles={roles} user={user} setSports={setSports}/>}/><Route path="/admin/sponsors" element={<AdminSponsors user={user} roles={roles}/>}/><Route path="/admin/products" element={<AdminProducts roles={roles} products={products} setProducts={setProducts}/>}/><Route path="/admin/shop-orders" element={<AdminShopOrders roles={roles}/>}/><Route path="/admin/athletes" element={<AdminAthletes roles={roles} user={user}/>}/><Route path="/admin/verification" element={<AdminVerificationCentre roles={roles}/>}/><Route path="/admin/rosters" element={<AdminRosters roles={roles} user={user}/>}/><Route path="/admin/teams" element={<AdminTeams roles={roles} user={user}/>}/><Route path="/admin/performance" element={<AdminPerformance roles={roles}/>}/><Route path="/admin/reports" element={<AdminReports roles={roles}/>}/><Route path="/admin/planning" element={<AdminPlanningCentre roles={roles} user={user}/>}/><Route path="/admin/match-statistics" element={<AdminMatchStatistics roles={roles} user={user}/>}/><Route path="/admin/international-appearances" element={<AdminInternationalAppearances roles={roles} user={user}/>}/><Route path="/admin/player-awards" element={<AdminPlayerAwards roles={roles} user={user}/>}/><Route path="/admin/calendar" element={<AdminCalendar roles={roles} sports={sports}/>}/><Route path="/admin/operations" element={<AdminOperations roles={roles} user={user}/>}/><Route path="/admin/approvals" element={<AdminApprovals roles={roles} user={user}/>}/><Route path="/admin/messages" element={<AdminMessages roles={roles} user={user}/>}/><Route path="/messages" element={<AthleteMessages user={user}/>}/><Route path="/admin/ticket-gate" element={<AdminTicketGate roles={roles}/>}/><Route path="/admin/event-reports" element={<AdminEventReports roles={roles}/>}/><Route path="/admin/editorial" element={<AdminEditorial roles={roles} user={user} sports={sports}/>}/><Route path="/notifications" element={<Personal title="Notifications" user={user} kind="notifications"/>}/><Route path="/tickets" element={<Personal title="My tickets" user={user} kind="tickets"/>}/><Route path="/orders" element={<Personal title="My orders" user={user} kind="orders"/>}/><Route path="*" element={<Home {...common}/>}/>
+ <Route path="/" element={<Home {...common}/>}/><Route path="/shop" element={<Shop {...common}/>}/><Route path="/shop/:slug" element={<Product {...common}/>}/><Route path="/cart" element={<Cart {...common}/>}/><Route path="/checkout" element={<Checkout cart={cart} setCart={setCart} user={user}/>}/><Route path="/payment/:result" element={<PaymentReturn user={user} result="success" cart={cart} setCart={setCart}/>}/><Route path="/events/:id" element={<EventTickets events={events} ticketTypes={ticketTypes} user={user}/>}/><Route path="/calendar" element={<CalendarPage {...common}/>}/><Route path="/sport" element={<Sport {...common}/>}/><Route path="/sport/:slug" element={<Hub {...common}/>}/><Route path="/news" element={<News {...common}/>}/><Route path="/news/:slug" element={<Story {...common}/>}/><Route path="/sponsors" element={<Sponsors {...common}/>}/><Route path="/profile" element={<Profile {...common}/>}/><Route path="/players" element={<PlayerDirectory user={user}/>}/><Route path="/players/:id" element={<PlayerProfilePage user={user} roles={roles}/>}/><Route path="/team-hub/:seasonId" element={<TeamHub user={user} roles={roles}/>}/><Route path="/admin/team-seasons" element={<AdminTeamSeasons roles={roles} user={user}/>}/><Route path="/performance" element={<AthletePerformance user={user}/>}/><Route path="/trials" element={<Trials user={user} profile={profile}/>}/><Route path="/admin/recruitment" element={<AdminRecruitment roles={roles} user={user}/>}/><Route path="/admin" element={<AdminDashboard {...common}/>}/><Route path="/admin/overview" element={<AdminOverview {...common}/>}/><Route path="/admin/media-library" element={<AdminMediaLibrary roles={roles} user={user}/>}/><Route path="/admin/sports" element={<AdminSports roles={roles} user={user} setSports={setSports}/>}/><Route path="/admin/sponsors" element={<AdminSponsors user={user} roles={roles}/>}/><Route path="/admin/products" element={<AdminProducts roles={roles} products={products} setProducts={setProducts}/>}/><Route path="/admin/shop-orders" element={<AdminShopOrders roles={roles}/>}/><Route path="/admin/athletes" element={<AdminAthletes roles={roles} user={user}/>}/><Route path="/admin/verification" element={<AdminVerificationCentre roles={roles}/>}/><Route path="/admin/rosters" element={<AdminRosters roles={roles} user={user}/>}/><Route path="/admin/teams" element={<AdminTeams roles={roles} user={user}/>}/><Route path="/admin/performance" element={<AdminPerformance roles={roles}/>}/><Route path="/admin/reports" element={<AdminReports roles={roles}/>}/><Route path="/admin/planning" element={<AdminPlanningCentre roles={roles} user={user}/>}/><Route path="/admin/match-statistics" element={<AdminMatchStatistics roles={roles} user={user}/>}/><Route path="/admin/international-appearances" element={<AdminInternationalAppearances roles={roles} user={user}/>}/><Route path="/admin/player-awards" element={<AdminPlayerAwards roles={roles} user={user}/>}/><Route path="/admin/calendar" element={<AdminCalendar roles={roles} sports={sports}/>}/><Route path="/admin/operations" element={<AdminOperations roles={roles} user={user}/>}/><Route path="/admin/approvals" element={<AdminApprovals roles={roles} user={user}/>}/><Route path="/admin/messages" element={<AdminMessages roles={roles} user={user}/>}/><Route path="/messages" element={<AthleteMessages user={user}/>}/><Route path="/admin/ticket-gate" element={<AdminTicketGate roles={roles}/>}/><Route path="/admin/event-reports" element={<AdminEventReports roles={roles}/>}/><Route path="/admin/editorial" element={<AdminEditorial roles={roles} user={user} sports={sports}/>}/><Route path="/notifications" element={<Personal title="Notifications" user={user} kind="notifications"/>}/><Route path="/tickets" element={<Personal title="My tickets" user={user} kind="tickets"/>}/><Route path="/orders" element={<Personal title="My orders" user={user} kind="orders"/>}/><Route path="*" element={<Home {...common}/>}/>
  </Routes><BottomNav/><Link className="cart-fab" to="/cart"><ShoppingBag size={18}/>{cart.reduce((n,x)=>n+x.qty,0)>0&&<span>{cart.reduce((n,x)=>n+x.qty,0)}</span>}</Link>{toast&&<div className="toast">{toast}</div>}</div></div>;
 }
 function Home({sports,products,fixtures,articles,events,sponsors}) {
@@ -1894,6 +1894,119 @@ function AdminPlanningCentre({roles,user}) {
  </main></>;
 }
 
+
+function AdminMediaLibrary({roles=[],user}) {
+ const [teams,setTeams]=useState([]),[seasons,setSeasons]=useState([]),[assets,setAssets]=useState([]);
+ const [teamId,setTeamId]=useState(""),[seasonId,setSeasonId]=useState("");
+ const [description,setDescription]=useState(""),[search,setSearch]=useState(""),[typeFilter,setTypeFilter]=useState("all");
+ const [loading,setLoading]=useState(false),[uploading,setUploading]=useState(false),[error,setError]=useState(""),[notice,setNotice]=useState("");
+ const superAdmin=roles.includes("super_admin"),sportAdmin=roles.includes("sport_admin");
+ const allowed=roles.some(r=>["coach","sport_admin","super_admin"].includes(r));
+ const team=teams.find(t=>t.id===teamId),season=seasons.find(x=>x.id===seasonId);
+ async function loadTeams(){
+  if(!supabase||!user?.id||!allowed)return;
+  const [t,a]=await Promise.all([
+   supabase.from("teams").select("id,name,sport_id,category,sports(name)").eq("is_active",true).order("name"),
+   supabase.from("sport_admin_assignments").select("team_id,sport_id,assignment_role,is_active,starts_on,ends_on").eq("admin_profile_id",user.id).eq("is_active",true)
+  ]);
+  if(t.error||a.error){setError(t.error?.message||a.error?.message);return;}
+  const today=new Date().toISOString().slice(0,10),assignments=a.data||[];
+  const visible=superAdmin?(t.data||[]):(t.data||[]).filter(x=>assignments.some(v=>(sportAdmin&&v.sport_id===x.sport_id&&(!v.team_id||v.team_id===x.id)||v.team_id===x.id&&["coach","team_manager"].includes(v.assignment_role))&&(!v.starts_on||v.starts_on<=today)&&(!v.ends_on||v.ends_on>=today)));
+  setTeams(visible);
+  if(!teamId&&visible.length)setTeamId(visible[0].id);
+ }
+ async function loadSeasons(id=teamId){
+  if(!supabase||!id){setSeasons([]);setSeasonId("");return;}
+  const selected=teams.find(x=>x.id===id);if(!selected){setSeasons([]);return;}
+  const {data,error:e}=await supabase.from("team_hub_seasons").select("id,team_id,sport_id,season_label,status,starts_on,ends_on,created_at,team_name_snapshot").eq("team_id",selected.id).eq("sport_id",selected.sport_id).order("created_at",{ascending:false});
+  if(e){setError(e.message);setSeasons([]);return;}
+  const rows=data||[];setSeasons(rows);
+  if(!rows.some(x=>x.id===seasonId))setSeasonId((rows.find(x=>x.status==="in_progress")||rows[0])?.id||"");
+ }
+ async function loadAssets(id=seasonId){
+  if(!supabase||!id){setAssets([]);return;}
+  setLoading(true);setError("");
+  const {data,error:e}=await supabase.from("team_hub_media_assets").select("id,season_id,storage_path,title,description,asset_type,original_filename,mime_type,size_bytes,uploaded_by,created_at").eq("season_id",id).order("created_at",{ascending:false});
+  if(e){setError("Could not load the media library: "+e.message);setAssets([]);setLoading(false);return;}
+  const signed=await Promise.all((data||[]).map(async item=>{
+   const {data:link,error:linkError}=await supabase.storage.from("cut-sport-media").createSignedUrl(item.storage_path,600);
+   return {...item,signedUrl:linkError?null:link?.signedUrl||null};
+  }));
+  setAssets(signed);setLoading(false);
+ }
+ useEffect(()=>{loadTeams()},[user?.id,roles.join("|")]);
+ useEffect(()=>{if(teamId){setSeasonId("");loadSeasons(teamId)}else{setSeasons([]);setSeasonId("");setAssets([])}},[teamId,teams.length]);
+ useEffect(()=>{if(seasonId)loadAssets(seasonId);else setAssets([])},[seasonId]);
+ async function uploadFiles(event){
+  const files=Array.from(event.target.files||[]);event.target.value="";
+  if(!files.length||!season||season.status!=="in_progress"||!user?.id||uploading)return;
+  const allowedTypes=["image/jpeg","image/png","image/webp","image/gif","video/mp4","video/quicktime","video/webm","application/pdf"];
+  const invalid=files.find(f=>!allowedTypes.includes(f.type)||f.size>157286400||f.size===0);
+  if(invalid){setError("Unsupported file or file over 150 MB: "+invalid.name);return;}
+  setUploading(true);setError("");setNotice("");
+  let saved=0;
+  for(const file of files){
+   const safeName=file.name.replace(/[^\w.\-]+/g,"_").slice(-180)||"asset";
+   const path=season.id+"/"+user.id+"/"+crypto.randomUUID()+"-"+safeName;
+   const {error:uploadError}=await supabase.storage.from("cut-sport-media").upload(path,file,{cacheControl:"3600",contentType:file.type,upsert:false});
+   if(uploadError){setError("Upload failed for "+file.name+": "+uploadError.message);continue;}
+   const assetType=file.type.startsWith("image/")?"image":file.type.startsWith("video/")?"video":"document";
+   const title=file.name.replace(/\.[^.]+$/,"").slice(0,180)||file.name.slice(0,180);
+   const {error:rowError}=await supabase.from("team_hub_media_assets").insert({season_id:season.id,storage_path:path,title,description:description.trim(),asset_type:assetType,original_filename:file.name.slice(0,255),mime_type:file.type,size_bytes:file.size,uploaded_by:user.id});
+   if(rowError){await supabase.storage.from("cut-sport-media").remove([path]);setError("File uploaded but its library record could not be saved: "+rowError.message);continue;}
+   saved++;
+  }
+  if(saved)setNotice(saved+" media asset(s) saved to the private team library.");
+  setUploading(false);await loadAssets(season.id);
+ }
+ async function deleteAsset(item){
+  if(!season||season.status!=="in_progress"||uploading)return;
+  if(!window.confirm("Remove "+item.original_filename+" from this team media library?"))return;
+  setUploading(true);setError("");setNotice("");
+  const {error:storageError}=await supabase.storage.from("cut-sport-media").remove([item.storage_path]);
+  if(storageError){setError("Could not remove the stored file: "+storageError.message);setUploading(false);return;}
+  const {error:rowError}=await supabase.from("team_hub_media_assets").delete().eq("id",item.id).eq("season_id",season.id);
+  if(rowError)setError("The file was removed but its metadata could not be deleted: "+rowError.message);
+  else{setAssets(current=>current.filter(x=>x.id!==item.id));setNotice("Media asset removed.");}
+  setUploading(false);
+ }
+ const filtered=assets.filter(x=>(typeFilter==="all"||x.asset_type===typeFilter)&&[x.title,x.original_filename,x.description].join(" ").toLowerCase().includes(search.toLowerCase()));
+ const formatSize=n=>n>=1048576?(n/1048576).toFixed(1)+" MB":Math.max(1,Math.round(n/1024))+" KB";
+ if(!allowed)return <><Header title="Media library" back/><main className="page"><Empty title="Staff access required" body="Only authorised CUT Sport coaches, team managers and administrators can access team media."/></main></>;
+ return <><Header title="Media asset library" back/><main className="page">
+  <div className="page-intro"><span className="eyebrow">CUT SPORT · THE BLUES</span><h1>Media asset<br/><em>library.</em></h1><p>One secure workspace for team photography, match footage, graphics and campaign files. Assets are private to authorised staff for the selected team season.</p></div>
+  {error&&<p className="form-error">{error}</p>}{notice&&<div className="admin-notice"><ShieldCheck/><div><b>Library update</b><p>{notice}</p></div></div>}
+  <Section title="Choose team and season">
+   <div className="form-card"><div className="form-grid">
+    <label>Team<select value={teamId} onChange={e=>setTeamId(e.target.value)}><option value="">Select a team</option>{teams.map(x=><option key={x.id} value={x.id}>{x.name} · {x.sports?.name||"Sport"}</option>)}</select></label>
+    <label>Season<select value={seasonId} onChange={e=>setSeasonId(e.target.value)} disabled={!seasons.length}><option value="">Select a season</option>{seasons.map(x=><option key={x.id} value={x.id}>{x.season_label} · {x.status==="in_progress"?"Active":x.status==="completed"?"Completed":"Draft"}</option>)}</select></label>
+   </div>{team&&!seasons.length&&<p className="muted">No team seasons have been created for this team yet. Create a season in Team Seasons first.</p>}</div>
+  </Section>
+  {season&&<><Section title="Add media">
+   {season.status==="in_progress"?<div className="form-card">
+    <p className="muted">Upload photographs, graphics, match videos or PDF campaign documents. Files are stored in a private bucket; previews use short-lived signed links.</p>
+    <label>Asset notes (optional)<textarea rows={2} maxLength={1200} value={description} onChange={e=>setDescription(e.target.value)} placeholder="Add context, campaign name, event or usage notes."/></label>
+    <label>Choose files<input type="file" multiple accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/quicktime,video/webm,application/pdf" onChange={uploadFiles} disabled={uploading}/></label>
+    <small className="muted">Maximum 150 MB per file. Accepted: JPG, PNG, WebP, GIF, MP4, MOV, WebM and PDF.</small>
+    {uploading&&<p className="muted">Uploading or removing media… please keep this page open.</p>}
+   </div>:<div className="admin-notice"><ShieldCheck/><div><b>Archived season</b><p>This season's media can be viewed and downloaded, but uploads and removals are disabled.</p></div></div>}
+  </Section>
+  <Section title="Saved media">
+   <div className="form-grid"><label>Search library<input type="search" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search title, filename or notes…"/></label><label>Asset type<select value={typeFilter} onChange={e=>setTypeFilter(e.target.value)}><option value="all">All media</option><option value="image">Photographs & graphics</option><option value="video">Videos</option><option value="document">PDF documents</option></select></label></div>
+   <div className="performance-record-head"><div><b>{team?.name} · {season.season_label}</b><small>{filtered.length} of {assets.length} asset(s) · private team library</small></div><button className="btn secondary" type="button" onClick={()=>loadAssets(season.id)} disabled={loading}>{loading?"Refreshing…":"Refresh"}</button></div>
+   {loading?<p className="muted">Loading saved media…</p>:filtered.length?<div className="admin-module-grid">{filtered.map(item=><article className="admin-module" key={item.id} style={{display:"block"}}>
+    {item.asset_type==="image"&&item.signedUrl&&<img src={item.signedUrl} alt={item.title} loading="lazy" style={{width:"100%",maxHeight:230,objectFit:"cover",borderRadius:10,marginBottom:10}}/>}
+    {item.asset_type==="video"&&item.signedUrl&&<video src={item.signedUrl} controls preload="metadata" style={{width:"100%",maxHeight:230,borderRadius:10,marginBottom:10}}/>}
+    <div className="admin-module-copy"><b>{item.title}</b><p>{item.original_filename}</p><small>{item.asset_type.toUpperCase()} · {formatSize(item.size_bytes)} · {dateTimeLabel(item.created_at)}</small>{item.description&&<p>{item.description}</p>}</div>
+    {item.signedUrl&&<a className="btn secondary" href={item.signedUrl} target="_blank" rel="noreferrer">Open / download</a>}
+    {season.status==="in_progress"&&<button className="btn secondary" type="button" onClick={()=>deleteAsset(item)} disabled={uploading}>Remove asset</button>}
+    {!item.signedUrl&&<small className="muted">Preview unavailable. Refresh the library to request a new secure link.</small>}
+   </article>)}</div>:<Empty title="No media in this season yet" body="Upload the first team photo, match video, graphic or campaign document to start building the library."/>}
+  </Section></>}
+  <div className="admin-notice"><ShieldCheck/><div><b>Privacy and access</b><p>The storage bucket is private. Access is restricted by database policies to staff assigned to the exact team season. Public visitors and other teams cannot browse these files. Signed preview links expire after 10 minutes.</p></div></div>
+ </main></>;
+}
+
 function AdminOverview({sports,teams,competitions,fixtures,articles,events,sponsors,athletes,roles}) {
  const allowed=roles.some(r=>["sport_admin","super_admin"].includes(r));
  const [live,setLive]=useState({seasons:null,opportunities:null,applications:null});
@@ -1943,7 +2056,7 @@ function AdminDashboard({sports,teams,competitions,fixtures,articles,events,spon
  const allowed=sportAdmin||coach||shopAdmin;
  const modules=[
   ...(sportAdmin?[{title:"Management overview",description:"Live operational snapshot of teams, athletes, fixtures, events, recruitment and active team seasons.",to:"/admin/overview",icon:CalendarClock,state:"Available"},{title:"Sport codes",description:"Manage the official sport directory; create new codes or edit/archive assigned sports.",to:"/admin/sports",icon:Settings2,state:"Available"},{title:"Team management & staff",description:"Create squads, manage seasons and categories, and assign coaches or team managers.",to:"/admin/teams",icon:Users,state:"Available"},{title:"Sponsor directory",description:"Create, update and archive official partner profiles.",to:"/admin/sponsors",icon:Handshake,state:"Available"},{title:"Sport operations",description:"Team, competition and fixture publishing tools.",to:"/admin/operations",icon:CalendarClock,state:"Available"},{title:"News & events",description:"Editorial publishing and event management.",to:"/admin/editorial",icon:FileText,state:"Available"}]:[]),
-  ...((sportAdmin||coach)?[{title:"Calendar administration",description:"Review the combined sporting calendar and jump to the correct publishing workspace for fixtures, competitions, events and trials.",to:"/admin/calendar",icon:CalendarDays,state:"Available"},{title:"Athlete Verification Centre",description:"Unified view of athlete approval, canonical profile links and player ownership claims.",to:"/admin/verification",icon:ShieldCheck,state:"Available"},{title:"Athlete profiles",description:"Register and update profiles within your assigned sport or team scope.",to:"/admin/athletes",icon:Users,state:"Available"},{title:"Team rosters",description:"View squads, add approved athletes, update positions and squad numbers, and retain membership history.",to:"/admin/rosters",icon:Users,state:"Available"},{title:"Performance dashboards",description:"Compare approved athlete statistics by sport, athlete, season and metric.",to:"/admin/performance",icon:Trophy,state:"Available"},{title:"Reports & downloads",description:"Open the central library for printable team sheets, squad announcements, season reports and verified statistics.",to:"/admin/reports",icon:FileText,state:"Available"},{title:"Sport administration planning",description:"Review team readiness, squad data completeness and recruitment pipeline activity within your assigned scope.",to:"/admin/planning",icon:ClipboardList,state:"Available"}, {title:"Match statistics & appearances",description:"Record, verify and publish match-by-match player appearances and sport-specific statistics.",to:"/admin/match-statistics",icon:ClipboardList,state:"Available"},{title:"International appearances",description:"Record national-team appearances and country representation, with source verification and approval.",to:"/admin/international-appearances",icon:Trophy,state:"Available"}, {title:"Player awards & honours",description:"Record verified league and tournament awards and publish them to player career histories.",to:"/admin/player-awards",icon:Trophy,state:"Available"}]:[]),
+  ...((sportAdmin||coach)?[{title:"Calendar administration",description:"Review the combined sporting calendar and jump to the correct publishing workspace for fixtures, competitions, events and trials.",to:"/admin/calendar",icon:CalendarDays,state:"Available"},{title:"Athlete Verification Centre",description:"Unified view of athlete approval, canonical profile links and player ownership claims.",to:"/admin/verification",icon:ShieldCheck,state:"Available"},{title:"Athlete profiles",description:"Register and update profiles within your assigned sport or team scope.",to:"/admin/athletes",icon:Users,state:"Available"},{title:"Team rosters",description:"View squads, add approved athletes, update positions and squad numbers, and retain membership history.",to:"/admin/rosters",icon:Users,state:"Available"},{title:"Performance dashboards",description:"Compare approved athlete statistics by sport, athlete, season and metric.",to:"/admin/performance",icon:Trophy,state:"Available"},{title:"Reports & downloads",description:"Open the central library for printable team sheets, squad announcements, season reports and verified statistics.",to:"/admin/reports",icon:FileText,state:"Available"}, {title:"Media asset library",description:"Securely store and organise team photos, match footage, graphics and campaign files by team season.",to:"/admin/media-library",icon:FileText,state:"Available"},{title:"Sport administration planning",description:"Review team readiness, squad data completeness and recruitment pipeline activity within your assigned scope.",to:"/admin/planning",icon:ClipboardList,state:"Available"}, {title:"Match statistics & appearances",description:"Record, verify and publish match-by-match player appearances and sport-specific statistics.",to:"/admin/match-statistics",icon:ClipboardList,state:"Available"},{title:"International appearances",description:"Record national-team appearances and country representation, with source verification and approval.",to:"/admin/international-appearances",icon:Trophy,state:"Available"}, {title:"Player awards & honours",description:"Record verified league and tournament awards and publish them to player career histories.",to:"/admin/player-awards",icon:Trophy,state:"Available"}]:[]),
   ...((sportAdmin||coach)?[{title:"Trials & recruitment",description:"Configure sport-specific evaluation, score applicants, select candidates and allocate squad places.",to:"/admin/recruitment",icon:ClipboardList,state:"Available"}]:[]),
   ...(sportAdmin?[{title:"Athlete approvals",description:"Review athlete profiles before publication.",to:"/admin/approvals",icon:ShieldCheck,state:"Available"},{title:"Athlete communication",description:"Send correction guidance and direct messages to registered athletes.",to:"/admin/messages",icon:MessageSquare,state:"Available"},{title:"Event ticket gate",description:"Validate and redeem paid event tickets at entry.",to:"/admin/ticket-gate",icon:Ticket,state:"Available"},{title:"Event sales & attendees",description:"Review ticket sales, revenue, attendee registers and check-ins.",to:"/admin/event-reports",icon:ClipboardList,state:"Available"}]:[]),
   ...((shopAdmin||roles.includes("super_admin"))?[{title:"Shop catalogue",description:"Create, update and archive products and manage published stock.",to:"/admin/products",icon:ShoppingBag,state:"Available"},{title:"Shop orders",description:"Review paid shop orders, line items and fulfilment status.",to:"/admin/shop-orders",icon:Package,state:"Available"}]:[])
