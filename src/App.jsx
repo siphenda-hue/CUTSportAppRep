@@ -250,7 +250,7 @@ function PlayerDirectory({user}) {
   let active=true;
   async function load(){
    if(!supabase){setBusy(false);return;}
-   const {data,error}=await supabase.from("player_profiles").select("id,full_name,display_name,claimed_at,photo_path,profile_visibility").order("full_name").limit(500);
+   const {data,error}=await supabase.from("player_profiles").select("id,full_name,display_name,claimed_at,photo_path,photo_approved_at,profile_visibility").eq("profile_visibility","public").order("full_name").limit(500);
    if(!active)return;
    if(error)setError(error.message);
    setPlayers(data||[]);
@@ -260,14 +260,14 @@ function PlayerDirectory({user}) {
  },[]);
  const term=search.trim().toLocaleLowerCase();
  const visible=players.filter(p=>(p.display_name||p.full_name).toLocaleLowerCase().includes(term));
- const photoUrl=path=>path&&supabase?.storage.from("player-profile-photos").getPublicUrl(path).data.publicUrl;
+ const photoUrl=(path,approvedAt)=>path&&approvedAt&&supabase?.storage.from("player-profile-photos").getPublicUrl(path).data.publicUrl;
  return <><Header title="Player directory" back/><main className="page">
   <div className="page-intro"><span className="eyebrow">THE BLUES · PLAYER ARCHIVE</span><h1>Every player.<br/><em>Every season.</em></h1><p>One player identity across CUT teams, sport codes and competition years. Explore career history, verified statistics and appearances.</p></div>
   <label className="player-search">Search players<input type="search" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search player name…"/></label>
   {error&&<p className="form-error">{error}</p>}
   <div className="player-directory-count">{visible.length} of {players.length} player profiles</div>
   {busy?<p className="muted">Loading the CUT player archive…</p>:visible.length?<div className="player-directory-grid">{visible.map(p=><Link className="player-directory-card" to={"/players/"+p.id} key={p.id}>
-   <span className="player-directory-avatar">{photoUrl(p.photo_path)?<img src={photoUrl(p.photo_path)} alt=""/>:(p.display_name||p.full_name).slice(0,1)}</span><span className="player-directory-copy"><b>{p.display_name||p.full_name}</b><small>{p.profile_visibility==="private"?"Private player profile":"Public player profile"} · {p.claimed_at?"Claim verified":"Unclaimed profile"}</small></span><ChevronRight size={18}/>
+   <span className="player-directory-avatar">{photoUrl(p.photo_path,p.photo_approved_at)?<img src={photoUrl(p.photo_path,p.photo_approved_at)} alt=""/>:(p.display_name||p.full_name).slice(0,1)}</span><span className="player-directory-copy"><b>{p.display_name||p.full_name}</b><small>Public player profile · {p.claimed_at?"Claim verified":"Unclaimed profile"}</small></span><ChevronRight size={18}/>
   </Link>)}</div>:<Empty title="No players found" body="Try another name or search term."/>}
   <p className="muted">Profiles are grouped only when recorded names match exactly, including spelling, order and capitalisation. Similar-looking names remain separate until verified.</p>
   {!user&&<p className="muted">Sign in to request ownership of your player profile.</p>}
@@ -419,7 +419,7 @@ function PlayerProfilePage({user,roles=[]}) {
  });
  const competitions=new Set(records.map(x=>x.competition_id).filter(Boolean)).size;
  const statLabels={total_goals:"Goals",goals:"Goals",field_goals:"Field goals",penalty_corner_goals:"Penalty-corner goals",penalty_stroke_goals:"Penalty-stroke goals",tries:"Tries",wickets:"Wickets",runs:"Runs",assists:"Assists",tackles:"Tackles",saves:"Saves",points:"Points",yellow_cards:"Yellow cards",red_cards:"Red cards",clean_sheets:"Clean sheets"};
- const photoUrl=player?.photo_path&&supabase?supabase.storage.from("player-profile-photos").getPublicUrl(player.photo_path).data.publicUrl:null;
+ const photoUrl=player?.photo_path&&player?.photo_approved_at&&supabase?supabase.storage.from("player-profile-photos").getPublicUrl(player.photo_path).data.publicUrl:null;
  const canManageVisibility=isSuper||claim?.status==="approved";
  return <><Header title="Player profile" back/><main className="page">
   {busy?<p className="muted">Loading player history…</p>:!player?<Empty title="Player profile not found" body="This player profile may have been removed or the link is incorrect."/>:<>
