@@ -591,6 +591,8 @@ function TeamHub({user,roles=[]}) {
    .on("postgres_changes",{event:"*",schema:"public",table:"team_hub_seasons",filter:"id=eq."+seasonId},()=>load())
    .on("postgres_changes",{event:"*",schema:"public",table:"team_hub_posts",filter:"season_id=eq."+seasonId},()=>load())
    .on("postgres_changes",{event:"*",schema:"public",table:"team_hub_polls",filter:"season_id=eq."+seasonId},()=>load())
+   .on("postgres_changes",{event:"*",schema:"public",table:"team_hub_season_members",filter:"season_id=eq."+seasonId},()=>load())
+   .on("postgres_changes",{event:"*",schema:"public",table:"team_hub_poll_options"},()=>load())
    .on("postgres_changes",{event:"*",schema:"public",table:"team_hub_poll_responses",filter:"season_id=eq."+seasonId},()=>load())
    .subscribe();
   return()=>{supabase.removeChannel(channel);};
