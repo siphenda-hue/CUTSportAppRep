@@ -583,7 +583,7 @@ function TeamHub({user,roles=[]}) {
  }
  useEffect(()=>{load()},[seasonId,user?.id,roles.join("|")]);
  const myMember=members.find(m=>myProfiles.includes(m.player_profile_id));
- const active=season?.status==="in_progress",playerCanInteract=!!myMember&&active,staffCanInteract=staffScope;
+ const localDate=new Date(),todayKey=[localDate.getFullYear(),String(localDate.getMonth()+1).padStart(2,"0"),String(localDate.getDate()).padStart(2,"0")].join("-");\n const active=season?.status==="in_progress"&&(!season.starts_on||season.starts_on<=todayKey)&&(!season.ends_on||season.ends_on>=todayKey),playerCanInteract=!!myMember&&active,staffCanInteract=staffScope;
  async function createPost(e){
   e.preventDefault();if(!active||!title.trim())return;
   setBusy(true);setError("");setNotice("");
