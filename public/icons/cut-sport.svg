@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="112" fill="#08234b"/>
+  <rect width="512" height="512" rx="112" fill="#001637"/>
   <path d="M70 82h372v72H150v102h250v72H150v102H70z" fill="#fff"/>
-  <path d="M150 256h250v72H150z" fill="#f3c44e"/>
-  <path d="M306 82h136v72H306z" fill="#1557ad"/>
-  <text x="256" y="456" text-anchor="middle" font-family="Arial,sans-serif" font-size="42" font-weight="700" fill="#f3c44e" letter-spacing="8">SPORT</text>
+  <path d="M150 256h250v72H150z" fill="#FFCC00"/><path d="M150 328h250v12H150z" fill="#A60000"/>
+  <path d="M306 82h136v72H306z" fill="#0047B3"/>
+  <text x="256" y="456" text-anchor="middle" font-family="Arial,sans-serif" font-size="42" font-weight="700" fill="#FFCC00" letter-spacing="8">SPORT</text>
 </svg>
