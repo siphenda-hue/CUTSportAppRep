@@ -2395,42 +2395,61 @@ function AdminMatchStatistics({roles,user}) {
 function AdminPerformance({roles}) {
  const allowed=roles.some(r=>["sport_admin","super_admin","coach"].includes(r));
  const [records,setRecords]=useState([]),[busy,setBusy]=useState(false),[error,setError]=useState("");
- const [sportId,setSportId]=useState(""),[season,setSeason]=useState(""),[athleteId,setAthleteId]=useState(""),[competitionId,setCompetitionId]=useState(""),[metricKey,setMetricKey]=useState("");
+ const [sportId,setSportId]=useState(""),[season,setSeason]=useState(""),[teamName,setTeamName]=useState(""),[metricKey,setMetricKey]=useState("");
  async function load(){
   if(!supabase||!allowed)return;
   setBusy(true);setError("");
-  const {data,error}=await supabase.from("athlete_statistics")
-   .select("id,athlete_id,competition_id,fixture_id,season,period_label,metrics,approval_status,created_at,athletes(id,full_name,preferred_name,position,squad_number,sport_id,team_id,sports(name),teams(name)),competitions(name),fixtures(opponent,starts_at)")
-   .eq("approval_status","approved").order("created_at",{ascending:false}).limit(300);
+  const {data,error}=await supabase.from("player_profile_records")
+   .select("player_profile_id,record_type,record_id,competition_id,competition_name,season,sport_name,team_name,record_label,details,record_date")
+   .ilike("team_name","%CUT%")
+   .order("record_date",{ascending:false,nullsFirst:false})
+   .limit(1000);
   if(error)setError(error.message);else setRecords(data||[]);
   setBusy(false);
  }
  useEffect(()=>{load()},[allowed]);
- const filtered=records.filter(r=>(!sportId||r.athletes?.sport_id===sportId)&&(!season||r.season===season)&&(!athleteId||r.athlete_id===athleteId)&&(!competitionId||r.competition_id===competitionId));
- const sportOptions=[...new Map(records.filter(r=>r.athletes?.sport_id).map(r=>[r.athletes.sport_id,{id:r.athletes.sport_id,name:r.athletes.sports?.name||"Sport"}])).values()].sort((a,b)=>a.name.localeCompare(b.name));
- const seasonOptions=[...new Set(records.map(r=>r.season).filter(Boolean))].sort().reverse();
- const athleteOptions=[...new Map(records.filter(r=>r.athletes).map(r=>[r.athlete_id,{id:r.athlete_id,name:r.athletes.preferred_name||r.athletes.full_name}])).values()].sort((a,b)=>a.name.localeCompare(b.name));
- const competitionOptions=[...new Map(records.filter(r=>r.competition_id).map(r=>[r.competition_id,{id:r.competition_id,name:r.competitions?.name||"Competition"}])).values()].sort((a,b)=>a.name.localeCompare(b.name));
- const metricKeys=[...new Set(filtered.flatMap(r=>Object.entries(r.metrics||{}).filter(([,v])=>typeof v==="number"&&Number.isFinite(v)).map(([k])=>k)))].sort();
+ const sportOptions=[...new Set(records.map(r=>r.sport_name).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+ const seasonOptions=[...new Set(records.map(r=>r.season).filter(Boolean))].sort((a,b)=>b.localeCompare(a));
+ const teamOptions=[...new Set(records.map(r=>r.team_name).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+ const filtered=records.filter(r=>(!sportId||r.sport_name===sportId)&&(!season||r.season===season)&&(!teamName||r.team_name===teamName));
+ const squadRows=filtered.filter(r=>r.record_type==="squad_appearance");
+ const matchRows=filtered.filter(r=>r.record_type==="match_appearance");
+ const competitionStats=filtered.filter(r=>r.record_type==="competition_statistics");
+ const squadProfiles=new Set(squadRows.map(r=>r.player_profile_id).filter(Boolean));
+ const teamRows=[...new Map(squadRows.map(r=>[r.sport_name+"::"+r.team_name,{sport:r.sport_name||"Sport",team:r.team_name||"CUT team"}])).values()]
+  .map(t=>{
+   const rows=squadRows.filter(r=>r.sport_name===t.sport&&r.team_name===t.team);
+   return {...t,players:new Set(rows.map(r=>r.player_profile_id).filter(Boolean)).size,
+    complete:rows.length>0&&rows.every(r=>r.details?.is_complete===true)};
+  }).sort((a,b)=>a.sport.localeCompare(b.sport)||a.team.localeCompare(b.team));
+ const metricKeys=[...new Set(matchRows.flatMap(r=>Object.entries(r.details?.metrics||{}).filter(([,v])=>typeof v==="number"&&Number.isFinite(v)).map(([k])=>k)))].sort();
  const selectedMetric=metricKeys.includes(metricKey)?metricKey:(metricKeys[0]||"");
- const metricRows=filtered.filter(r=>typeof r.metrics?.[selectedMetric]==="number").slice(0,12).reverse();
- const values=filtered.map(r=>r.metrics?.[selectedMetric]).filter(v=>typeof v==="number"&&Number.isFinite(v));
+ const metricRows=matchRows.filter(r=>typeof r.details?.metrics?.[selectedMetric]==="number").slice(0,12).reverse();
+ const values=matchRows.map(r=>r.details?.metrics?.[selectedMetric]).filter(v=>typeof v==="number"&&Number.isFinite(v));
  const average=values.length?values.reduce((a,b)=>a+b,0)/values.length:0;
- const topValue=Math.max(1,...metricRows.map(r=>Number(r.metrics[selectedMetric])));
+ const appearanceMonths=[...new Set(matchRows.map(r=>r.record_date?String(r.record_date).slice(0,7):null).filter(Boolean))].sort();
  if(!allowed)return <><Header title="Performance access required" back/><main className="page"><Empty title="Restricted area" body="A coach, assigned sport administrator or super administrator role is required."/></main></>;
  return <><Header title="Athlete performance" back/><main className="page">
-  <div className="page-intro"><span className="eyebrow">ATHLETE DEVELOPMENT</span><h1>Performance dashboard.</h1><p>Explore approved performance records within your assigned athlete, team or sport permissions. Pending statistics are excluded until an authorised reviewer approves them.</p></div>
+  <div className="page-intro"><span className="eyebrow">THE BLUES · ATHLETE DEVELOPMENT</span><h1>Performance & participation.</h1><p>Explore CUT squad representation, approved match appearances and published player statistics. Other franchise and non-CUT team records are excluded.</p></div>
   <div className="performance-filters">
-   <label>Sport<select value={sportId} onChange={e=>setSportId(e.target.value)}><option value="">All assigned sports</option>{sportOptions.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</select></label>
+   <label>Sport<select value={sportId} onChange={e=>setSportId(e.target.value)}><option value="">All CUT sports</option>{sportOptions.map(x=><option key={x} value={x}>{x}</option>)}</select></label>
    <label>Season<select value={season} onChange={e=>setSeason(e.target.value)}><option value="">All seasons</option>{seasonOptions.map(x=><option key={x} value={x}>{x}</option>)}</select></label>
-   <label>Athlete<select value={athleteId} onChange={e=>setAthleteId(e.target.value)}><option value="">All athletes</option>{athleteOptions.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</select></label>
-   <label>Competition<select value={competitionId} onChange={e=>setCompetitionId(e.target.value)}><option value="">All competitions</option>{competitionOptions.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</select></label>
+   <label>CUT team<select value={teamName} onChange={e=>setTeamName(e.target.value)}><option value="">All CUT teams</option>{teamOptions.map(x=><option key={x} value={x}>{x}</option>)}</select></label>
   </div>
   {error&&<p className="form-error">{error}</p>}
-  <div className="admin-stats"><div><b>{filtered.length}</b><small>Approved records</small></div><div><b>{new Set(filtered.map(r=>r.athlete_id)).size}</b><small>Athletes tracked</small></div><div><b>{metricKeys.length}</b><small>Numeric metrics</small></div><div><b>{selectedMetric?average.toFixed(1):"—"}</b><small>{selectedMetric?selectedMetric.replaceAll("_"," ")+" average":"No metric selected"}</small></div></div>
-  <Section title="Metric trend">{metricKeys.length?<><label className="metric-picker">Choose metric<select value={selectedMetric} onChange={e=>setMetricKey(e.target.value)}>{metricKeys.map(k=><option key={k} value={k}>{k.replaceAll("_"," ")}</option>)}</select></label><div className="metric-trend">{metricRows.map(r=><div className="metric-trend-row" key={r.id}><span>{r.athletes?.preferred_name||r.athletes?.full_name||"Athlete"}<small>{r.period_label||r.season||dateLabel(r.created_at)}</small></span><div className="metric-bar"><i style={{width:Math.max(3,Number(r.metrics[selectedMetric])/topValue*100)+"%"}}/></div><b>{r.metrics[selectedMetric]}</b></div>)}</div></>:<Empty title={busy?"Loading performance":"No approved numeric metrics yet"} body={busy?"Approved athlete statistics are being retrieved.":"Once coaches submit performance records and an authorised reviewer approves them, metric trends will appear here."}/>}</Section>
-  <Section title="Approved performance records">{filtered.length?filtered.map(r=><article className="performance-record" key={r.id}><div className="performance-record-head"><div><b>{r.athletes?.preferred_name||r.athletes?.full_name||"Athlete"}</b><small>{r.athletes?.sports?.name||"Sport"} · {r.athletes?.teams?.name||"No team"} · {r.season||"Season not set"}</small></div><span>{dateLabel(r.created_at)}</span></div><p>{r.competitions?.name||r.fixtures?.opponent||r.period_label||"Performance entry"}</p><div className="performance-metric-chips">{Object.entries(r.metrics||{}).map(([k,v])=><span key={k}><b>{String(v)}</b> {k.replaceAll("_"," ")}</span>)}</div></article>):<Empty title={busy?"Loading records":"No records match these filters"} body="Try another season, sport or athlete. Only approved performance records are shown."/>}</Section>
-  <div className="admin-notice"><ShieldCheck/><div><b>Verified performance data</b><p>Only approved records are included. Coaches and sport staff can view only the athlete records allowed by the existing Supabase row-level security policies.</p></div></div>
+  <div className="admin-stats">
+   <div><b>{squadProfiles.size}</b><small>Public CUT squad profiles</small></div>
+   <div><b>{teamRows.length}</b><small>Squad groups represented</small></div>
+   <div><b>{matchRows.length}</b><small>Approved match appearances</small></div>
+   <div><b>{competitionStats.length}</b><small>Published competition stat records</small></div>
+   <div><b>{metricKeys.length}</b><small>Approved match metrics</small></div>
+  </div>
+  <Section title="CUT team representation">{teamRows.length?<div className="metric-trend">{teamRows.map(t=><div className="metric-trend-row" key={t.sport+"::"+t.team}><span>{t.team}<small>{t.sport} · {t.complete?"Source squad marked complete":"Source squad completeness not confirmed"}</small></span><div className="metric-bar"><i style={{width:Math.max(3,t.players/Math.max(1,...teamRows.map(x=>x.players))*100)+"%"}}/></div><b>{t.players}</b></div>)}</div>:<Empty title={busy?"Loading CUT squad records":"No CUT squad records in this scope"} body="Public canonical player profiles linked to CUT squad records will appear here. Unverified or non-CUT teams are not included."/>}</Section>
+  <Section title="Participation over time">{appearanceMonths.length?<div className="metric-trend">{appearanceMonths.map(month=><div className="metric-trend-row" key={month}><span>{new Date(month+"-01T00:00:00").toLocaleDateString("en-ZA",{month:"long",year:"numeric"})}<small>Approved match records</small></span><div className="metric-bar"><i style={{width:Math.max(3,matchRows.filter(r=>String(r.record_date).startsWith(month)).length/Math.max(1,...appearanceMonths.map(m=>matchRows.filter(r=>String(r.record_date).startsWith(m)).length))*100)+"%"}}/></div><b>{matchRows.filter(r=>String(r.record_date).startsWith(month)).length}</b></div>)}</div>:<Empty title="No approved CUT match appearances yet" body="Squad membership is not counted as a match appearance. This trend will populate only when CUT match-by-match records have been approved and published."/>}</Section>
+  <Section title="Approved performance indicators">{metricKeys.length?<><label className="metric-picker">Choose approved match metric<select value={selectedMetric} onChange={e=>setMetricKey(e.target.value)}>{metricKeys.map(k=><option key={k} value={k}>{k.replaceAll("_"," ")}</option>)}</select></label><div className="admin-stats"><div><b>{values.length}</b><small>Records with this metric</small></div><div><b>{average.toFixed(1)}</b><small>{selectedMetric.replaceAll("_"," ")} average</small></div></div><div className="metric-trend">{metricRows.map(r=><div className="metric-trend-row" key={r.record_id}><span>{r.record_label||"Match appearance"}<small>{r.sport_name||"Sport"} · {r.team_name} · {dateLabel(r.record_date)}</small></span><div className="metric-bar"><i style={{width:Math.max(3,Number(r.details.metrics[selectedMetric])/Math.max(1,...metricRows.map(x=>Number(x.details.metrics[selectedMetric])))*100)+"%"}}/></div><b>{r.details.metrics[selectedMetric]}</b></div>)}</div></>:<Empty title="No approved numeric match metrics yet" body="Performance indicators will appear when verified CUT match appearances with numeric statistics are approved. Pending submissions are deliberately excluded."/>}</Section>
+  <Section title="Published competition statistics">{competitionStats.length?competitionStats.slice(0,100).map(r=><article className="performance-record" key={r.record_id}><div className="performance-record-head"><div><b>{r.record_label||"Competition statistics"}</b><small>{r.sport_name||"Sport"} · {r.team_name} · {r.season||"Season not set"}</small></div><span>{dateLabel(r.record_date)}</span></div><div className="performance-metric-chips">{Object.entries(r.details||{}).filter(([k,v])=>k!=="statistics"&&v!==null&&v!==undefined).map(([k,v])=><span key={k}><b>{String(v)}</b> {k.replaceAll("_"," ")}</span>)}</div></article>):<Empty title="No published CUT competition statistics" body="Verified competition player statistics for CUT teams will appear here when available."/>}</Section>
+  <div className="admin-notice"><ShieldCheck/><div><b>Verified data & scope</b><p>Roster representation comes from public canonical player-profile records attached to CUT squad entries. Match appearances and performance trends use approved match-appearance records only. This dashboard loads up to 1,000 visible records under existing row-level security; squad member counts do not imply that every source squad is complete.</p></div></div>
+  <div className="section-head"><small className="muted">{busy?"Refreshing verified records…":records.length+" CUT-linked records loaded"}</small><button className="btn secondary" disabled={busy} onClick={load}>Refresh data</button></div>
  </main></>;
 }
 
