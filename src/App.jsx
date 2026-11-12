@@ -616,7 +616,7 @@ function TeamHub({user,roles=[]}) {
    const poll=polls.find(p=>p.post_id===practice.id&&p.poll_type==="attendance"),choices=poll?options.filter(o=>o.poll_id===poll.id):[],pollRows=poll?responses.filter(r=>r.poll_id===poll.id):[];
    members.forEach(member=>{const response=pollRows.find(r=>r.player_profile_id&&r.player_profile_id===member.player_profile_id);const record=attendanceRows.find(a=>a.practice_post_id===practice.id&&a.season_member_id===member.id);csvRows.push([practice.title,dateTimeLabel(practice.starts_at),member.player_name||"Squad member",choices.find(c=>c.id===response?.option_id)?.label||"No response",record?.status||"Not recorded"]);});
   });
-  const csv="\\uFEFF"+csvRows.map(row=>row.map(v=>'"'+String(v??"").replaceAll('"','""')+'"').join(",")).join("\\r\\n");
+  const csv="\uFEFF"+csvRows.map(row=>row.map(v=>'"'+String(v??"").replaceAll('"','""')+'"').join(",")).join("\r\n");
   const url=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));const link=document.createElement("a");link.href=url;link.download="cut-sport-team-hub-attendance-"+(season?.season_label||"season").toLowerCase().replace(/[^a-z0-9]+/g,"-")+".csv";link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
  }
  async function markPracticeAttendance(practice,member,status){
