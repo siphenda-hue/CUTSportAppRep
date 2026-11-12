@@ -1004,16 +1004,17 @@ function AdminVerificationCentre({roles}) {
   if(!supabase||!allowed||a.player_profile_id)return;
   setMatchingId(a.id);setLinkMessage("");setError("");
   const {data,error:matchError}=await supabase.from("player_profiles")
-   .select("id,full_name,display_name,profile_visibility,claimed_at")
+   .select("id,full_name,display_name,profile_visibility,claimed_at,claimed_by")
    .eq("full_name",a.full_name).limit(20);
   if(matchError)setError(matchError.message);
   else setMatches(current=>({...current,[a.id]:data||[]}));
   setMatchingId("");
  }
  async function linkExactProfile(a,p){
-  if(!supabase||!allowed||a.player_profile_id||p.full_name!==a.full_name)return;
-  const confirmed=window.confirm("Link this athlete record to the canonical player profile for the exact same full name? Check the supporting evidence and profile ownership first. This action changes the identity link.");
-  if(!confirmed)return;
+  if(!supabase||!roles.some(r=>["sport_admin","super_admin"].includes(r))||a.player_profile_id||p.full_name!==a.full_name)return;
+  if(p.claimed_by&&!isSuper){setError("This canonical profile is already claimed. A super administrator must review its ownership before an athlete link can be made.");return;}
+  const confirmation=window.prompt("Identity verification required. Review the athlete record and supporting evidence first. To confirm this exact canonical profile link, type the full name exactly as shown:\\n\\n"+p.full_name);
+  if(confirmation!==p.full_name){setLinkMessage("No identity link was changed. The exact-name confirmation was not completed.");return;}
   setLinkingId(a.id);setError("");setLinkMessage("");
   const {data,error:linkError}=await supabase.from("athletes")
    .update({player_profile_id:p.id}).eq("id",a.id).is("player_profile_id",null).select("id").maybeSingle();
@@ -1051,7 +1052,7 @@ function AdminVerificationCentre({roles}) {
    {roles.some(r=>["sport_admin","super_admin"].includes(r))&&<p><Link to="/admin/approvals">Open Athlete Approvals <ChevronRight size={15}/></Link></p>}
   </Section>
   <Section title="Canonical player-profile links">
-   <p className="muted">A canonical player profile is distinct from a CUT Sport account link. This page never auto-matches names or changes identity links.</p>
+   <p className="muted">A canonical player profile is distinct from a CUT Sport account link. Exact, case-sensitive matches are suggestions only. Linking requires a sport administrator or super administrator to inspect the record and type the candidate’s full name to confirm. Claimed profiles are reserved for super-administrator review.</p>
    {loading?<p className="muted">Loading athlete links…</p>:missingCanonical.length?missingCanonical.slice(0,50).map(a=><article className="performance-record" key={a.id}>
     <div className="performance-record-head"><div><b>{a.full_name}</b><small>{a.sports?.name||"Sport not recorded"}{a.teams?.name?" · "+a.teams.name:""}</small></div><span className="status-pill">Not linked</span></div>
     <p>Search for an exact, case-sensitive full-name match in canonical player profiles. A match is only a candidate; review the evidence before linking.</p>
@@ -1063,7 +1064,7 @@ function AdminVerificationCentre({roles}) {
      <b>{matches[a.id].length} exact-name candidate{matches[a.id].length===1?"":"s"}</b>
      {matches[a.id].length?matches[a.id].map(p=><div key={p.id}>
       <p><b>{p.full_name}</b>{p.display_name&&p.display_name!==p.full_name?" · Display name: "+p.display_name:""}<br/><small>{p.profile_visibility||"Visibility not recorded"} · {p.claimed_at?"Claimed profile":"Unclaimed profile"}</small></p>
-      <button className="btn primary" disabled={Boolean(linkingId)} onClick={()=>linkExactProfile(a,p)}>{linkingId===a.id?"Linking…":"Verify and link this profile"}</button>
+      <button className="btn primary" disabled={Boolean(linkingId)||(!isSuper&&Boolean(p.claimed_by))} onClick={()=>linkExactProfile(a,p)}>{linkingId===a.id?"Linking…":p.claimed_by&&!isSuper?"Super admin review required":"Confirm identity and link"}</button>
      </div>):<p className="muted">No exact full-name candidate is visible under your current profile access permissions. Do not use a fuzzy match as a substitute.</p>}
     </div>}
    </article>):<Empty title="All visible athletes have a canonical link" body="No missing player-profile links were found in the records visible to your account."/>}
