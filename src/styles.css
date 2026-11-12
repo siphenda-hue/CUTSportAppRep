@@ -263,3 +263,21 @@
 
 .nav-item{position:relative}
 .calendar-counts{grid-template-columns:repeat(4,minmax(0,1fr))}
+
+/* Navigation and small-screen interaction refinements */
+.nav-item{position:relative;min-width:0;padding:6px 3px}
+.nav-item span{font-size:10px;white-space:nowrap}
+.bottom-nav{padding:8px 10px;backdrop-filter:blur(12px)}
+.calendar-history-toggle{display:inline-flex;align-items:center}
+@media(max-width:420px){
+ .app-shell{padding:0}
+ .app-frame{min-height:100vh;border-radius:0}
+ .page{padding-left:18px;padding-right:18px}
+ .bottom-nav{width:calc(100% - 24px);bottom:10px}
+ .cart-fab{right:20px;bottom:88px}
+ .hero{padding:24px 20px 28px;min-height:300px}
+}
+@media(min-width:761px){
+ .app-frame{max-width:820px}
+ .bottom-nav{width:min(770px,calc(100% - 52px))}
+}
