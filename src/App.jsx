@@ -1928,7 +1928,7 @@ function AdminRecruitment({roles,user}) {
   const ids=(op.data||[]).map(x=>x.id);
   if(!ids.length){setApplications([]);setCriteria([]);setScores([]);return;}
   const [appResult,criteriaResult]=await Promise.all([
-   supabase.from("trial_applications").select("id,opportunity_id,athlete_id,full_name,playing_position,experience,motivation,status,created_at").in("opportunity_id",ids).order("created_at",{ascending:false}),
+   supabase.from("trial_applications").select("id,opportunity_id,athlete_id,full_name,playing_position,experience,motivation,status,reviewed_at,created_at").in("opportunity_id",ids).order("created_at",{ascending:false}),
    supabase.from("trial_evaluation_criteria").select("id,opportunity_id,title,description,max_score,display_order").in("opportunity_id",ids).order("display_order").order("created_at")
   ]);
   if(appResult.error||criteriaResult.error){setError(appResult.error?.message||criteriaResult.error?.message);return;}
@@ -2031,6 +2031,16 @@ function AdminRecruitment({roles,user}) {
  if(!allowed)return <><Header title="Admin access required" back/><main className="page"><Empty title="Restricted area" body="An assigned sport administrator, team manager or coach role is required."/></main></>;
  return <><Header title="Recruitment management" back/><main className="page">
   <div className="page-intro"><span className="eyebrow">TALENT IDENTIFICATION</span><h1>Trials, evaluation & squads.</h1><p>Publish opportunities, configure sport-specific assessment criteria, score applicants, select candidates and allocate linked athlete profiles to teams.</p></div>
+  <Section title="Recruitment pipeline"><div className="admin-stats">
+   <div><b>{opportunities.length}</b><small>Total opportunities</small></div>
+   <div><b>{opportunities.filter(x=>x.status==="open").length}</b><small>Open opportunities</small></div>
+   <div><b>{applications.length}</b><small>Total applications</small></div>
+   <div><b>{applications.filter(x=>!x.reviewed_at).length}</b><small>Awaiting first review</small></div>
+   <div><b>{applications.filter(x=>x.status==="shortlisted").length}</b><small>Shortlisted</small></div>
+   <div><b>{applications.filter(x=>x.status==="selected").length}</b><small>Selected</small></div>
+   <div><b>{applications.filter(x=>x.status==="not_selected").length}</b><small>Not selected</small></div>
+   <div><b>{applications.filter(a=>{const cs=criteria.filter(c=>c.opportunity_id===a.opportunity_id);return cs.length>0&&cs.every(c=>scores.some(sc=>sc.application_id===a.id&&sc.criterion_id===c.id));}).length}</b><small>Evaluations complete</small></div>
+  </div><p className="muted">Pipeline totals are calculated from applications and evaluation records visible to your current account. Awaiting first review means no review timestamp has been recorded.</p></Section>
   {error&&<p className="form-error" role="alert">{error}</p>}{notice&&<p className="admin-notice">{notice}</p>}
   <form className="form-card" onSubmit={create}><h3>Create recruitment opportunity</h3>
    <label>Sport<select required value={form.sport_id} onChange={e=>setForm({...form,sport_id:e.target.value,team_id:""})}><option value="">Choose sport</option>{sports.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</select></label>
@@ -2048,6 +2058,13 @@ function AdminRecruitment({roles,user}) {
    return <article className="performance-record" key={o.id}>
     <div className="performance-record-head"><div><b>{o.title}</b><small>{o.sports?.name||"Sport"}{o.teams?.name?" · "+o.teams.name:" · Whole sport"}</small></div><span>{o.status}</span></div>
     <p>{o.venue||"Venue TBC"} · {o.starts_at?dateLabel(o.starts_at):"Date TBC"}</p>
+    <div className="admin-stats">
+     <div><b>{opApplications.length}</b><small>Applicants</small></div>
+     <div><b>{opApplications.filter(a=>!a.reviewed_at).length}</b><small>Awaiting review</small></div>
+     <div><b>{opApplications.filter(a=>a.status==="shortlisted").length}</b><small>Shortlisted</small></div>
+     <div><b>{opApplications.filter(a=>a.status==="selected").length}</b><small>Selected</small></div>
+     <div><b>{opApplications.filter(a=>{const cs=opCriteria;return cs.length>0&&cs.every(c=>scores.some(sc=>sc.application_id===a.id&&sc.criterion_id===c.id));}).length}</b><small>Scoring complete</small></div>
+    </div>
     <div className="review-actions">{o.status!=="open"&&<button className="btn primary" onClick={()=>setOpportunityStatus(o,"open")}>Open applications</button>}{o.status==="open"&&<button className="btn secondary" onClick={()=>setOpportunityStatus(o,"closed")}>Close applications</button>}{o.status==="closed"&&<button className="btn secondary" onClick={()=>setOpportunityStatus(o,"draft")}>Move to draft</button>}<button className="btn secondary" onClick={()=>exportReport(o)}>Export trial report CSV</button></div>
     <div className="form-card"><h4>Evaluation criteria · {opCriteria.length}</h4>
      {opCriteria.map(c=><div className="sponsor-card" key={c.id}><div><b>{c.title}</b><small>{c.description||"No description"} · scored out of {Number(c.max_score)}</small></div></div>)}
