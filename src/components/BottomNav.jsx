@@ -1,11 +1,11 @@
 import React from 'react';
-import { Home, Trophy, CalendarDays, UserRound } from 'lucide-react';
+import { Home, UsersRound, CalendarDays, UserRound } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 
 export default function BottomNav() {
   const items = [
     { to: '/', label: 'Home', Icon: Home, end: true },
-    { to: '/sport', label: 'Sport', Icon: Trophy },
+    { to: '/my-team', label: 'My Team', Icon: UsersRound },
     { to: '/calendar', label: 'Calendar', Icon: CalendarDays },
     { to: '/profile', label: 'Me', Icon: UserRound }
   ];
