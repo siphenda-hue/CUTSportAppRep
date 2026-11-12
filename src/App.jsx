@@ -986,7 +986,7 @@ function AdminVerificationCentre({roles}) {
   if(!supabase||!allowed)return;
   setLoading(true);setError("");
   const athleteResult=await supabase.from("athletes")
-   .select("id,full_name,preferred_name,position,approval_status,player_profile_id,created_at,sports(name),teams(name)")
+   .select("id,full_name,preferred_name,position,squad_number,approval_status,player_profile_id,sport_id,team_id,created_at,sports(name),teams(name,sport_id)")
    .order("full_name").limit(500);
   if(athleteResult.error){setError(athleteResult.error.message);setLoading(false);return;}
   setAthletes(athleteResult.data||[]);
@@ -1034,10 +1034,20 @@ function AdminVerificationCentre({roles}) {
  }
 
  const pendingAthletes=athletes.filter(x=>x.approval_status==="pending");
-
- const pendingAthletes=athletes.filter(x=>x.approval_status==="pending");
  const missingCanonical=athletes.filter(x=>!x.player_profile_id);
  const linked=athletes.filter(x=>Boolean(x.player_profile_id));
+ const duplicateBuckets=new Map();
+ athletes.forEach(a=>{
+  const key=JSON.stringify([a.full_name,a.sport_id||null,a.team_id||null,a.player_profile_id||null]);
+  if(!duplicateBuckets.has(key))duplicateBuckets.set(key,[]);
+  duplicateBuckets.get(key).push(a);
+ });
+ const possibleDuplicates=[...duplicateBuckets.values()].filter(group=>group.length>1);
+ const missingTeam=athletes.filter(a=>!a.team_id);
+ const missingPosition=athletes.filter(a=>!a.position||!a.position.trim());
+ const missingSquadNumber=athletes.filter(a=>a.squad_number===null||a.squad_number===undefined);
+ const teamSportMismatch=athletes.filter(a=>a.team_id&&a.sport_id&&a.teams?.sport_id&&a.teams.sport_id!==a.sport_id);
+ const qualityIssueCount=possibleDuplicates.length+missingTeam.length+missingPosition.length+missingSquadNumber.length+teamSportMismatch.length;
  if(!allowed)return <><Header title="Verification access required" back/><main className="page"><Empty title="Restricted area" body="An assigned sport administrator, coach or super administrator role is required."/></main></>;
  return <><Header title="Athlete Verification" back/><main className="page">
   <div className="page-intro"><span className="eyebrow">CUT SPORT · TRUST & IDENTITY</span><h1>Verification Centre.</h1><p>A single review workspace for athlete publication status, canonical player-profile links and ownership claims. Existing role and database permissions remain in force.</p></div>
@@ -1057,6 +1067,29 @@ function AdminVerificationCentre({roles}) {
     <Link className="btn secondary" to="/admin/athletes">Open athlete management</Link>
    </article>):<Empty title="No pending athlete approvals" body="There are no pending athlete records in the scope available to your account."/>}
    {roles.some(r=>["sport_admin","super_admin"].includes(r))&&<p><Link to="/admin/approvals">Open Athlete Approvals <ChevronRight size={15}/></Link></p>}
+  </Section>
+  <Section title="Athlete Data Quality & Duplicate Detection">
+   <p className="muted">Read-only checks across athlete records visible under your current assigned sport/team permissions. Duplicate candidates require an exact, case-sensitive full-name match with the same sport, primary team and canonical profile link. Same-name athletes in different teams are not grouped. Nothing is merged, deleted or edited here.</p>
+   <div className="admin-stats">
+    <div><b>{possibleDuplicates.length}</b><small>Possible duplicate groups</small></div>
+    <div><b>{missingTeam.length}</b><small>Missing primary team</small></div>
+    <div><b>{missingPosition.length}</b><small>Missing position / event</small></div>
+    <div><b>{missingSquadNumber.length}</b><small>Missing squad number</small></div>
+    <div><b>{teamSportMismatch.length}</b><small>Team / sport mismatch</small></div>
+   </div>
+   {loading?<p className="muted">Checking athlete data quality…</p>:qualityIssueCount===0?<Empty title="No data-quality flags in the loaded records" body="The current visible records have no issues under these checks. This is not a guarantee that records outside your permissions or the 500-record review window are complete."/ >:<>
+    {possibleDuplicates.length>0&&<div className="review-history"><b>Possible exact duplicate records</b>{possibleDuplicates.map((group,i)=><article className="performance-record" key={"dup-"+i}>
+     <div className="performance-record-head"><div><b>{group[0].full_name}</b><small>{group[0].sports?.name||"Sport not recorded"} · {group[0].teams?.name||"No primary team"}</small></div><span className="status-pill">{group.length} records</span></div>
+     <p>Same exact name, sport, team and canonical profile reference. Inspect each record before deciding whether these are duplicates or legitimate separate entries.</p>
+     {group.map(a=><p key={a.id}><small>Record ID: {a.id}</small></p>)}
+     <Link className="btn secondary" to="/admin/athletes">Review athlete records</Link>
+    </article>)}</div>}
+    {missingTeam.length>0&&<div className="review-history"><b>Missing primary team ({missingTeam.length})</b>{missingTeam.slice(0,20).map(a=><article className="performance-record" key={"team-"+a.id}><b>{a.full_name}</b><small>{a.sports?.name||"Sport not recorded"} · Record {a.id}</small><Link className="btn secondary" to="/admin/athletes">Review athlete record</Link></article>)}</div>}
+    {missingPosition.length>0&&<div className="review-history"><b>Missing position / event ({missingPosition.length})</b>{missingPosition.slice(0,20).map(a=><article className="performance-record" key={"position-"+a.id}><b>{a.full_name}</b><small>{a.sports?.name||"Sport not recorded"} · {a.teams?.name||"No primary team"}</small><Link className="btn secondary" to="/admin/athletes">Review athlete record</Link></article>)}</div>}
+    {missingSquadNumber.length>0&&<div className="review-history"><b>Missing squad number ({missingSquadNumber.length})</b>{missingSquadNumber.slice(0,20).map(a=><article className="performance-record" key={"number-"+a.id}><b>{a.full_name}</b><small>{a.sports?.name||"Sport not recorded"} · {a.teams?.name||"No primary team"}</small><Link className="btn secondary" to="/admin/athletes">Review athlete record</Link></article>)}</div>}
+    {teamSportMismatch.length>0&&<div className="review-history"><b>Team / sport mismatch ({teamSportMismatch.length})</b>{teamSportMismatch.slice(0,20).map(a=><article className="performance-record" key={"mismatch-"+a.id}><b>{a.full_name}</b><small>Recorded sport: {a.sports?.name||a.sport_id} · Team: {a.teams?.name||a.team_id}</small><Link className="btn secondary" to="/admin/athletes">Review athlete record</Link></article>)}</div>}
+   </>}
+   <div className="admin-notice"><ShieldCheck size={18}/><div><b>Human review required</b><p>These are review flags, not proof of an error. No athlete records, team memberships or canonical player identities are changed by this centre.</p></div></div>
   </Section>
   <Section title="Canonical player-profile links">
    <p className="muted">A canonical player profile is distinct from a CUT Sport account link. Exact, case-sensitive matches are suggestions only. Linking requires a sport administrator or super administrator to inspect the record and type the candidate’s full name to confirm. Claimed profiles are reserved for super-administrator review.</p>
