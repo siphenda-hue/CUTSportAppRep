@@ -1132,9 +1132,19 @@ function Profile({user,profile,roles}) {
   async function loadAthleteReview(){
    if(!user?.id||!supabase){setAthleteReview({athlete:null,statistics:[],achievements:[],media:[],history:[],memberships:[]});setReviewError("");return;}
    setReviewLoading(true);setReviewError("");
-   const athleteResult=await supabase.from("athletes").select("id,full_name,preferred_name,position,gender,nationality,hometown,province,faculty,qualification,year_of_study,student_status,years_representing_cut,previous_clubs,squad_number,bio,photo_url,approval_status,review_note,reviewed_at,sports(name),teams(name)").eq("profile_id",user.id).maybeSingle();
+   let athleteResult=await supabase.from("athletes").select("id,full_name,preferred_name,position,gender,nationality,hometown,province,faculty,qualification,year_of_study,student_status,years_representing_cut,previous_clubs,squad_number,bio,photo_url,approval_status,review_note,reviewed_at,sports(name),teams(name)").eq("profile_id",user.id).maybeSingle();
    if(!active)return;
    if(athleteResult.error){setReviewError(athleteResult.error.message);setReviewLoading(false);return;}
+   if(!athleteResult.data){
+    const claimedProfile=await supabase.from("player_profiles").select("id").eq("claimed_by",user.id).limit(1).maybeSingle();
+    if(!active)return;
+    if(claimedProfile.error){setReviewError(claimedProfile.error.message);setReviewLoading(false);return;}
+    if(claimedProfile.data){
+     athleteResult=await supabase.from("athletes").select("id,full_name,preferred_name,position,gender,nationality,hometown,province,faculty,qualification,year_of_study,student_status,years_representing_cut,previous_clubs,squad_number,bio,photo_url,approval_status,review_note,reviewed_at,sports(name),teams(name)").eq("player_profile_id",claimedProfile.data.id).maybeSingle();
+     if(!active)return;
+     if(athleteResult.error){setReviewError(athleteResult.error.message);setReviewLoading(false);return;}
+    }
+   }
    if(!athleteResult.data){setAthleteReview({athlete:null,statistics:[],achievements:[],media:[],history:[],memberships:[]});setReviewLoading(false);return;}
    const athleteId=athleteResult.data.id;
    const [stats,achievements,media,history,memberships]=await Promise.all([
