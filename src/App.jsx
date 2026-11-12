@@ -979,7 +979,7 @@ function AdminCalendar({roles,sports}) {
 function AdminVerificationCentre({roles}) {
  const allowed=roles.some(r=>["sport_admin","super_admin","coach"].includes(r));
  const isSuper=roles.includes("super_admin");
- const [athletes,setAthletes]=useState([]),[claims,setClaims]=useState([]);
+ const [athletes,setAthletes]=useState([]),[claims,setClaims]=useState([]),[auditEvents,setAuditEvents]=useState([]);
  const [loading,setLoading]=useState(false),[error,setError]=useState("");
  const [matches,setMatches]=useState({}),[matchingId,setMatchingId]=useState(""),[linkingId,setLinkingId]=useState(""),[linkMessage,setLinkMessage]=useState("");
  async function load(){
@@ -991,12 +991,15 @@ function AdminVerificationCentre({roles}) {
   if(athleteResult.error){setError(athleteResult.error.message);setLoading(false);return;}
   setAthletes(athleteResult.data||[]);
   if(isSuper){
-   const claimResult=await supabase.from("player_profile_claims")
-    .select("id,player_profile_id,user_id,evidence_note,created_at,player_profiles(full_name)")
-    .eq("status","pending").order("created_at",{ascending:true}).limit(100);
+   const [claimResult,auditResult]=await Promise.all([
+    supabase.from("player_profile_claims").select("id,player_profile_id,user_id,evidence_note,created_at,player_profiles(full_name)").eq("status","pending").order("created_at",{ascending:true}).limit(100),
+    supabase.from("athlete_player_profile_link_audit").select("id,athlete_id,athlete_full_name,previous_profile_name,new_profile_name,changed_by,changed_at,reason").order("changed_at",{ascending:false}).limit(100)
+   ]);
    if(claimResult.error)setError(claimResult.error.message);
    else setClaims(claimResult.data||[]);
-  }else setClaims([]);
+   if(auditResult.error)setError(auditResult.error.message);
+   else setAuditEvents(auditResult.data||[]);
+  }else{setClaims([]);setAuditEvents([]);}
   setLoading(false);
  }
  useEffect(()=>{load()},[allowed,isSuper]);
@@ -1013,20 +1016,24 @@ function AdminVerificationCentre({roles}) {
  async function linkExactProfile(a,p){
   if(!supabase||!roles.some(r=>["sport_admin","super_admin"].includes(r))||a.player_profile_id||p.full_name!==a.full_name)return;
   if(p.claimed_by&&!isSuper){setError("This canonical profile is already claimed. A super administrator must review its ownership before an athlete link can be made.");return;}
-  const confirmation=window.prompt("Identity verification required. Review the athlete record and supporting evidence first. To confirm this exact canonical profile link, type the full name exactly as shown:\\n\\n"+p.full_name);
+  const confirmation=window.prompt("Identity verification required. Review the athlete record and supporting evidence first. To confirm this exact canonical profile link, type the full name exactly as shown:\n\n"+p.full_name);
   if(confirmation!==p.full_name){setLinkMessage("No identity link was changed. The exact-name confirmation was not completed.");return;}
+  const reason=window.prompt("Enter the evidence or reason supporting this identity link. This will be saved in the permanent audit trail.");
+  if(!reason||!reason.trim()){setLinkMessage("No identity link was changed because an audit reason is required.");return;}
   setLinkingId(a.id);setError("");setLinkMessage("");
   const {data,error:linkError}=await supabase.from("athletes")
-   .update({player_profile_id:p.id}).eq("id",a.id).is("player_profile_id",null).select("id").maybeSingle();
+   .update({player_profile_id:p.id,player_profile_link_note:reason.trim()}).eq("id",a.id).is("player_profile_id",null).select("id").maybeSingle();
   if(linkError)setError(linkError.message);
   else if(!data)setError("The link was not saved. The athlete may already have been linked, or your assigned sport/team permissions may not allow this change.");
   else{
-   setLinkMessage("Canonical profile link saved. The athlete record has been refreshed.");
+   setLinkMessage("Canonical profile link saved and audit event recorded.");
    setMatches(current=>{const next={...current};delete next[a.id];return next;});
    await load();
   }
   setLinkingId("");
  }
+
+ const pendingAthletes=athletes.filter(x=>x.approval_status==="pending");
 
  const pendingAthletes=athletes.filter(x=>x.approval_status==="pending");
  const missingCanonical=athletes.filter(x=>!x.player_profile_id);
@@ -1076,6 +1083,15 @@ function AdminVerificationCentre({roles}) {
     {c.evidence_note&&<p>Evidence supplied: {c.evidence_note}</p>}
     <Link className="btn primary" to={"/players/"+c.player_profile_id}>Review claim <ChevronRight size={15}/></Link>
    </article>):<Empty title="No pending ownership claims" body="New player-profile ownership requests will appear here."/>}
+  </Section>}
+  {isSuper&&<Section title="Identity link audit trail">
+   <p className="muted">Permanent history of canonical profile link changes. Entries are written by the database when an athlete identity link changes and are readable only by super administrators.</p>
+   {auditEvents.length?auditEvents.map(event=><article className="performance-record" key={event.id}>
+    <div className="performance-record-head"><div><b>{event.athlete_full_name}</b><small>{dateLabel(event.changed_at)} · Admin ID: {event.changed_by||"Not recorded"}</small></div><span className="status-pill">Identity change</span></div>
+    <p>{event.previous_profile_name||"No previous canonical profile"} → {event.new_profile_name||"Profile unlinked"}</p>
+    <p><b>Reason / evidence:</b> {event.reason||"No reason supplied"}</p>
+    <small>Athlete record: {event.athlete_id}</small>
+   </article>):<Empty title="No identity changes recorded" body="New canonical profile links will appear here after they are verified and saved."/ >}
   </Section>}
   {linkMessage&&<p className="success-message" role="status">{linkMessage}</p>}
   <div className="admin-notice"><ShieldCheck size={18}/><div><b>Identity protection</b><p>Exact full-name matches only. No fuzzy matching, automatic merges, profile reassignment or approval changes are performed by this dashboard.</p></div></div>
