@@ -452,7 +452,7 @@ function AdminTeamSeasons({roles=[],user}) {
  const [athletes,setAthletes]=useState([]),[members,setMembers]=useState([]),[seasonLabel,setSeasonLabel]=useState(""),[startsOn,setStartsOn]=useState(""),[endsOn,setEndsOn]=useState(""),[athleteId,setAthleteId]=useState("");
  const [busy,setBusy]=useState(false),[error,setError]=useState(""),[notice,setNotice]=useState("");
  const superAdmin=roles.includes("super_admin"),sportAdmin=roles.includes("sport_admin");
- const allowed=!!user?.id&&(superAdmin||sportAdmin||roles.includes("coach")||roles.includes("team_manager"));
+ const allowed=!!user?.id;
  async function loadTeams(){
   if(!supabase||!allowed)return;
   const [t,a]=await Promise.all([
@@ -618,7 +618,7 @@ function TeamHub({user,roles=[]}) {
  const myResponse=poll=>responses.find(r=>r.poll_id===poll.id&&r.user_id===user?.id);
  return <><Header title="Team hub" back/><main className="page">
   {!user?<Empty title="Sign in to open this team hub" body="Only claimed players selected for this season and authorised team staff can access the hub."/>:!season?<><p className="form-error">{error||"Loading team hub…"}</p></>:<>
-   <div className="page-intro"><span className="eyebrow">{season.teams?.sports?.name||"CUT SPORT"} · TEAM HUB</span><h1>{season.teams?.name||"Team"}.</h1><p>Season {season.season_label} · {season.status.replace("_"," ")}</p></div>
+   <div className="page-intro"><span className="eyebrow">{season.teams?.sports?.name||"CUT SPORT"} · TEAM HUB</span><h1>{season.teams?.name||"Team"}.</h1><p>Season {season.season_label} · {season.status.replace("_"," ")}</p>{staffScope&&<Link className="btn secondary" to="/admin/team-seasons">Manage season squads</Link>}</div>
    {!active&&<div className="admin-notice"><ShieldCheck/><div><b>Season not currently active</b><p>This season is completed or outside its approved start/end dates. Players can review previous updates and poll responses, but cannot interact. Coaches and team managers can review the archive.</p></div></div>}
    <Section title="Season squad">{members.length?members.map(m=><div className="player-history-row" key={m.id}><div><b>{m.player_name||"Player"}</b><small>{m.position||"Position not recorded"}{m.squad_number!==null?" · #"+m.squad_number:""}</small></div></div>):<Empty title="No squad records" body="The season squad will appear here after it is submitted by the coaching staff."/ >}</Section>
    {active&&staffCanInteract&&<Section title="Team updates"><form className="form-card" onSubmit={createPost}><h3>Publish to the squad</h3><label>Update type<select value={postType} onChange={e=>setPostType(e.target.value)}><option value="practice">Practice schedule</option><option value="squad_announcement">Squad announcement</option><option value="instruction">Instructions</option></select></label><label>Title<input required minLength="3" maxLength="180" value={title} onChange={e=>setTitle(e.target.value)} placeholder="e.g. Thursday training session"/></label>{postType==="practice"&&<><label>Practice date & time<input type="datetime-local" required value={startsAt} onChange={e=>setStartsAt(e.target.value)}/></label><label>Venue<input maxLength="240" value={venue} onChange={e=>setVenue(e.target.value)} placeholder="Training venue"/></label></>}<label>Details<textarea rows={4} maxLength="5000" value={body} onChange={e=>setBody(e.target.value)} placeholder="Share the information the squad needs…"/></label><button className="btn primary" disabled={busy||!title.trim()}>Publish update</button></form>
