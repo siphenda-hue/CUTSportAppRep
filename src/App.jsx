@@ -348,6 +348,11 @@ function PlayerProfilePage({user,roles=[]}) {
    return values.map(([k,v])=>k.replaceAll("_"," ")+": "+(typeof v==="object"?JSON.stringify(v):v)).join(" · ");
   }
   if(row.record_type==="athlete_statistics")return Object.entries(d.metrics||{}).map(([k,v])=>k.replaceAll("_"," ")+": "+v).join(" · ");
+  if(row.record_type==="match_appearance"){
+   const metrics=d.metrics&&typeof d.metrics==="object"?d.metrics:{};
+   const values=Object.entries(metrics).filter(([k,v])=>k!=="match_note"&&k!=="statistics_not_quantified"&&v!==null&&v!==undefined&&typeof v!=="object").map(([k,v])=>k.replaceAll("_"," ")+": "+v);
+   return [d.match_date||null,d.opponent?"vs "+d.opponent:null,...values,d.match_note||null].filter(Boolean).join(" · ");
+  }
   if(row.record_type==="athlete_achievement")return [row.role,d.description,d.is_verified?"Verified achievement":null].filter(Boolean).join(" · ");
   if(row.record_type==="international_appearance")return [d.country,d.national_team,d.opponent?"vs "+d.opponent:null,d.caps?d.caps+" cap(s)":null,...Object.entries(d.metrics||{}).map(([k,v])=>k.replaceAll("_"," ")+": "+v)].filter(Boolean).join(" · ");
   if(row.record_type==="player_award")return [d.award_category||null,"Verified award"].filter(Boolean).join(" · ");
