@@ -519,7 +519,7 @@ function AdminTeamSeasons({roles=[],user}) {
   ...announcementMembers.map((m,i)=>(i+1)+". "+(m.player_name||"Athlete")+(m.squad_number!==null&&m.squad_number!==undefined?" · #"+m.squad_number:"")+(m.position?" · "+m.position:"")),
   "",
   "#CUTSport #TheBlues"
- ].join("\\n");
+ ].join("\n");
  function escapeAnnouncementHtml(value){return String(value??"").replace(/[&<>"']/g,char=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]));}
  async function copySquadAnnouncement(){
   if(season?.status!=="in_progress"||!announcementMembers.length)return;
@@ -537,7 +537,7 @@ function AdminTeamSeasons({roles=[],user}) {
   if(season?.status!=="in_progress"||!announcementMembers.length)return;
   const esc=escapeAnnouncementHtml;
   const players=announcementMembers.map((m,i)=>'<li><b>'+esc(m.player_name||"Athlete")+'</b>'+(m.squad_number!==null&&m.squad_number!==undefined?' · #'+esc(m.squad_number):"")+(m.position?' · '+esc(m.position):"")+'</li>').join("");
-  const content='<p><b>'+esc(announcementTeamName)+'</b> · Season '+esc(season.season_label||"—")+'</p><h2>'+esc(announcementTitle.trim()||"Squad announcement")+'</h2><p>'+esc(announcementMessage.trim()).replace(/\\n/g,"<br>")+'</p><h2>Confirmed squad · '+announcementMembers.length+' athletes</h2><ol>'+players+'</ol><p class="muted">This announcement is generated from the active team season roster. Check the latest team communication before distribution.</p>';
+  const content='<p><b>'+esc(announcementTeamName)+'</b> · Season '+esc(season.season_label||"—")+'</p><h2>'+esc(announcementTitle.trim()||"Squad announcement")+'</h2><p>'+esc(announcementMessage.trim()).replace(/\n/g,"<br>")+'</p><h2>Confirmed squad · '+announcementMembers.length+' athletes</h2><ol>'+players+'</ol><p class="muted">This announcement is generated from the active team season roster. Check the latest team communication before distribution.</p>';
   if(!openCutPrintableReport(announcementTeamName+" · Squad announcement","CUT SPORT · DIGITAL SQUAD ANNOUNCEMENT",content,false,{report_type:"squad_announcement",scope_label:announcementTeamName+" · "+season.season_label,season_id:season.id,period_start:season.starts_on||null,period_end:season.ends_on||null}))setError("Allow pop-ups for CUT Sport to print the squad announcement.");
  }
  async function createSeason(e){
