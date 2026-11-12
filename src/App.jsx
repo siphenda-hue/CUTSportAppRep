@@ -474,7 +474,7 @@ function AdminTeamSeasons({roles=[],user}) {
  const [busy,setBusy]=useState(false),[error,setError]=useState(""),[notice,setNotice]=useState("");
  const [announcementTitle,setAnnouncementTitle]=useState("Our squad is set!"),[announcementMessage,setAnnouncementMessage]=useState("Congratulations to every athlete selected to represent CUT Sport. We look forward to seeing you represent The Blues with pride.");
  const [socialPlatform,setSocialPlatform]=useState("Instagram"),[socialFormat,setSocialFormat]=useState("Post"),[socialDate,setSocialDate]=useState(new Date().toISOString().slice(0,10)),[socialTime,setSocialTime]=useState("18:00"),[socialIdea,setSocialIdea]=useState(""),[socialCaption,setSocialCaption]=useState(""),[socialPlan,setSocialPlan]=useState([]),[socialLoading,setSocialLoading]=useState(false),[socialSaving,setSocialSaving]=useState(false);
- const superAdmin=roles.includes("super_admin"),sportAdmin=roles.includes("sport_admin");
+ const superAdmin=roles.includes("super_admin"),sportAdmin=roles.includes("sport_admin"),canReview=superAdmin||sportAdmin;
  const allowed=!!user?.id;
  async function loadTeams(){
   if(!supabase||!allowed)return;
@@ -1898,7 +1898,7 @@ function AdminPlanningCentre({roles,user}) {
 function AdminMediaLibrary({roles=[],user}) {
  const [teams,setTeams]=useState([]),[seasons,setSeasons]=useState([]),[assets,setAssets]=useState([]);
  const [teamId,setTeamId]=useState(""),[seasonId,setSeasonId]=useState("");
- const [description,setDescription]=useState(""),[search,setSearch]=useState(""),[typeFilter,setTypeFilter]=useState("all");
+ const [description,setDescription]=useState(""),[search,setSearch]=useState(""),[typeFilter,setTypeFilter]=useState("all"),[statusFilter,setStatusFilter]=useState("all"),[reviewNotes,setReviewNotes]=useState({});
  const [loading,setLoading]=useState(false),[uploading,setUploading]=useState(false),[error,setError]=useState(""),[notice,setNotice]=useState("");
  const superAdmin=roles.includes("super_admin"),sportAdmin=roles.includes("sport_admin");
  const allowed=roles.some(r=>["coach","sport_admin","super_admin"].includes(r));
@@ -1926,7 +1926,7 @@ function AdminMediaLibrary({roles=[],user}) {
  async function loadAssets(id=seasonId){
   if(!supabase||!id){setAssets([]);return;}
   setLoading(true);setError("");
-  const {data,error:e}=await supabase.from("team_hub_media_assets").select("id,season_id,storage_path,title,description,asset_type,original_filename,mime_type,size_bytes,uploaded_by,created_at").eq("season_id",id).order("created_at",{ascending:false});
+  const {data,error:e}=await supabase.from("team_hub_media_assets").select("id,season_id,storage_path,title,description,asset_type,original_filename,mime_type,size_bytes,uploaded_by,created_at,approval_status,reviewed_by,reviewed_at,review_notes").eq("season_id",id).order("created_at",{ascending:false});
   if(e){setError("Could not load the media library: "+e.message);setAssets([]);setLoading(false);return;}
   const signed=await Promise.all((data||[]).map(async item=>{
    const {data:link,error:linkError}=await supabase.storage.from("cut-sport-media").createSignedUrl(item.storage_path,600);
@@ -1970,7 +1970,15 @@ function AdminMediaLibrary({roles=[],user}) {
   else{setAssets(current=>current.filter(x=>x.id!==item.id));setNotice("Media asset removed.");}
   setUploading(false);
  }
- const filtered=assets.filter(x=>(typeFilter==="all"||x.asset_type===typeFilter)&&[x.title,x.original_filename,x.description].join(" ").toLowerCase().includes(search.toLowerCase()));
+ async function reviewAsset(item,status){
+  if(!canReview||!season||season.status!=="in_progress"||uploading)return;
+  setUploading(true);setError("");setNotice("");
+  const {error:e}=await supabase.from("team_hub_media_assets").update({approval_status:status,review_notes:(reviewNotes[item.id]??item.review_notes??"").trim()}).eq("id",item.id).eq("season_id",season.id);
+  if(e)setError("Could not save the media review: "+e.message);
+  else{setNotice("Media review saved: "+status+".");setReviewNotes(current=>({...current,[item.id]:(reviewNotes[item.id]??item.review_notes??"").trim()}));}
+  setUploading(false);await loadAssets(season.id);
+ }
+ const filtered=assets.filter(x=>(typeFilter==="all"||x.asset_type===typeFilter)&&(statusFilter==="all"||x.approval_status===statusFilter)&&[x.title,x.original_filename,x.description].join(" ").toLowerCase().includes(search.toLowerCase()));
  const formatSize=n=>n>=1048576?(n/1048576).toFixed(1)+" MB":Math.max(1,Math.round(n/1024))+" KB";
  if(!allowed)return <><Header title="Media library" back/><main className="page"><Empty title="Staff access required" body="Only authorised CUT Sport coaches, team managers and administrators can access team media."/></main></>;
  return <><Header title="Media asset library" back/><main className="page">
@@ -1992,15 +2000,16 @@ function AdminMediaLibrary({roles=[],user}) {
    </div>:<div className="admin-notice"><ShieldCheck/><div><b>Archived season</b><p>This season's media can be viewed and downloaded, but uploads and removals are disabled.</p></div></div>}
   </Section>
   <Section title="Saved media">
-   <div className="form-grid"><label>Search library<input type="search" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search title, filename or notes…"/></label><label>Asset type<select value={typeFilter} onChange={e=>setTypeFilter(e.target.value)}><option value="all">All media</option><option value="image">Photographs & graphics</option><option value="video">Videos</option><option value="document">PDF documents</option></select></label></div>
+   <div className="form-grid"><label>Search library<input type="search" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search title, filename or notes…"/></label><label>Asset type<select value={typeFilter} onChange={e=>setTypeFilter(e.target.value)}><option value="all">All media</option><option value="image">Photographs & graphics</option><option value="video">Videos</option><option value="document">PDF documents</option></select></label><label>Approval status<select value={statusFilter} onChange={e=>setStatusFilter(e.target.value)}><option value="all">All statuses</option><option value="pending">Pending review</option><option value="approved">Approved</option><option value="rejected">Rejected</option></select></label></div>
    <div className="performance-record-head"><div><b>{team?.name} · {season.season_label}</b><small>{filtered.length} of {assets.length} asset(s) · private team library</small></div><button className="btn secondary" type="button" onClick={()=>loadAssets(season.id)} disabled={loading}>{loading?"Refreshing…":"Refresh"}</button></div>
    {loading?<p className="muted">Loading saved media…</p>:filtered.length?<div className="admin-module-grid">{filtered.map(item=><article className="admin-module" key={item.id} style={{display:"block"}}>
     {item.asset_type==="image"&&item.signedUrl&&<img src={item.signedUrl} alt={item.title} loading="lazy" style={{width:"100%",maxHeight:230,objectFit:"cover",borderRadius:10,marginBottom:10}}/>}
     {item.asset_type==="video"&&item.signedUrl&&<video src={item.signedUrl} controls preload="metadata" style={{width:"100%",maxHeight:230,borderRadius:10,marginBottom:10}}/>}
-    <div className="admin-module-copy"><b>{item.title}</b><p>{item.original_filename}</p><small>{item.asset_type.toUpperCase()} · {formatSize(item.size_bytes)} · {dateTimeLabel(item.created_at)}</small>{item.description&&<p>{item.description}</p>}</div>
+    <div className="admin-module-copy"><b>{item.title}</b><p>{item.original_filename}</p><small>{item.asset_type.toUpperCase()} · {formatSize(item.size_bytes)} · {dateTimeLabel(item.created_at)}</small><p><b>Review status:</b> <span className="eyebrow">{(item.approval_status||"pending").toUpperCase()}</span></p>{item.description&&<p>{item.description}</p>}{item.reviewed_at&&<small>Reviewed {dateTimeLabel(item.reviewed_at)}</small>}{item.review_notes&&<p><b>Reviewer notes:</b> {item.review_notes}</p>}</div>
     {item.signedUrl&&<a className="btn secondary" href={item.signedUrl} target="_blank" rel="noreferrer">Open / download</a>}
     {season.status==="in_progress"&&<button className="btn secondary" type="button" onClick={()=>deleteAsset(item)} disabled={uploading}>Remove asset</button>}
     {!item.signedUrl&&<small className="muted">Preview unavailable. Refresh the library to request a new secure link.</small>}
+    {canReview&&season.status==="in_progress"&&<div className="form-card" style={{marginTop:12}}><label>Review notes<textarea rows={2} maxLength={1200} value={reviewNotes[item.id]??item.review_notes??""} onChange={e=>setReviewNotes(current=>({...current,[item.id]:e.target.value}))} placeholder="Feedback for the media submitter…"/></label><div className="form-grid"><button className="btn primary" type="button" onClick={()=>reviewAsset(item,"approved")} disabled={uploading}>Approve for CUT Sport use</button><button className="btn secondary" type="button" onClick={()=>reviewAsset(item,"rejected")} disabled={uploading}>Reject asset</button></div></div>}
    </article>)}</div>:<Empty title="No media in this season yet" body="Upload the first team photo, match video, graphic or campaign document to start building the library."/>}
   </Section></>}
   <div className="admin-notice"><ShieldCheck/><div><b>Privacy and access</b><p>The storage bucket is private. Access is restricted by database policies to staff assigned to the exact team season. Public visitors and other teams cannot browse these files. Signed preview links expire after 10 minutes.</p></div></div>
