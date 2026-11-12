@@ -45,7 +45,7 @@ function App() {
  const add=p=>{setCart(old=>{const found=old.find(x=>x.id===p.id);return found?old.map(x=>x.id===p.id?{...x,qty:x.qty+1}:x):[...old,{id:p.id,name:p.name,price_cents:p.price_cents,image_url:p.image_url,qty:1}]});setToast('Added to your bag');setTimeout(()=>setToast(''),2200)};
  const common={sports,teams,competitions,products,fixtures,articles,events,ticketTypes,sponsors,athletes,user,profile,roles,cart,setCart,add};
  return <div className="app-shell"><div className="app-frame"><Routes>
- <Route path="/" element={<Home {...common}/>}/><Route path="/shop" element={<Shop {...common}/>}/><Route path="/shop/:slug" element={<Product {...common}/>}/><Route path="/cart" element={<Cart {...common}/>}/><Route path="/checkout" element={<Checkout cart={cart} setCart={setCart} user={user}/>}/><Route path="/payment/:result" element={<PaymentReturn user={user} result="success" cart={cart} setCart={setCart}/>}/><Route path="/events/:id" element={<EventTickets events={events} ticketTypes={ticketTypes} user={user}/>}/><Route path="/calendar" element={<CalendarPage {...common}/>}/><Route path="/sport" element={<Sport {...common}/>}/><Route path="/sport/:slug" element={<Hub {...common}/>}/><Route path="/news" element={<News {...common}/>}/><Route path="/news/:slug" element={<Story {...common}/>}/><Route path="/sponsors" element={<Sponsors {...common}/>}/><Route path="/profile" element={<Profile {...common}/>}/><Route path="/players" element={<PlayerDirectory user={user}/>}/><Route path="/players/:id" element={<PlayerProfilePage user={user} roles={roles}/>}/><Route path="/performance" element={<AthletePerformance user={user}/>}/><Route path="/trials" element={<Trials user={user} profile={profile}/>}/><Route path="/admin/recruitment" element={<AdminRecruitment roles={roles} user={user}/>}/><Route path="/admin" element={<AdminDashboard {...common}/>}/><Route path="/admin/sports" element={<AdminSports roles={roles} user={user} setSports={setSports}/>}/><Route path="/admin/sponsors" element={<AdminSponsors user={user} roles={roles}/>}/><Route path="/admin/products" element={<AdminProducts roles={roles} products={products} setProducts={setProducts}/>}/><Route path="/admin/shop-orders" element={<AdminShopOrders roles={roles}/>}/><Route path="/admin/athletes" element={<AdminAthletes roles={roles} user={user}/>}/><Route path="/admin/verification" element={<AdminVerificationCentre roles={roles}/>}/><Route path="/admin/rosters" element={<AdminRosters roles={roles} user={user}/>}/><Route path="/admin/teams" element={<AdminTeams roles={roles} user={user}/>}/><Route path="/admin/performance" element={<AdminPerformance roles={roles}/>}/><Route path="/admin/planning" element={<AdminPlanningCentre roles={roles} user={user}/>}/><Route path="/admin/match-statistics" element={<AdminMatchStatistics roles={roles} user={user}/>}/><Route path="/admin/international-appearances" element={<AdminInternationalAppearances roles={roles} user={user}/>}/><Route path="/admin/player-awards" element={<AdminPlayerAwards roles={roles} user={user}/>}/><Route path="/admin/calendar" element={<AdminCalendar roles={roles} sports={sports}/>}/><Route path="/admin/operations" element={<AdminOperations roles={roles} user={user}/>}/><Route path="/admin/approvals" element={<AdminApprovals roles={roles} user={user}/>}/><Route path="/admin/messages" element={<AdminMessages roles={roles} user={user}/>}/><Route path="/messages" element={<AthleteMessages user={user}/>}/><Route path="/admin/ticket-gate" element={<AdminTicketGate roles={roles}/>}/><Route path="/admin/event-reports" element={<AdminEventReports roles={roles}/>}/><Route path="/admin/editorial" element={<AdminEditorial roles={roles} user={user} sports={sports}/>}/><Route path="/notifications" element={<Personal title="Notifications" user={user} kind="notifications"/>}/><Route path="/tickets" element={<Personal title="My tickets" user={user} kind="tickets"/>}/><Route path="/orders" element={<Personal title="My orders" user={user} kind="orders"/>}/><Route path="*" element={<Home {...common}/>}/>
+ <Route path="/" element={<Home {...common}/>}/><Route path="/shop" element={<Shop {...common}/>}/><Route path="/shop/:slug" element={<Product {...common}/>}/><Route path="/cart" element={<Cart {...common}/>}/><Route path="/checkout" element={<Checkout cart={cart} setCart={setCart} user={user}/>}/><Route path="/payment/:result" element={<PaymentReturn user={user} result="success" cart={cart} setCart={setCart}/>}/><Route path="/events/:id" element={<EventTickets events={events} ticketTypes={ticketTypes} user={user}/>}/><Route path="/calendar" element={<CalendarPage {...common}/>}/><Route path="/sport" element={<Sport {...common}/>}/><Route path="/sport/:slug" element={<Hub {...common}/>}/><Route path="/news" element={<News {...common}/>}/><Route path="/news/:slug" element={<Story {...common}/>}/><Route path="/sponsors" element={<Sponsors {...common}/>}/><Route path="/profile" element={<Profile {...common}/>}/><Route path="/players" element={<PlayerDirectory user={user}/>}/><Route path="/players/:id" element={<PlayerProfilePage user={user} roles={roles}/>}/><Route path="/team-hub/:seasonId" element={<TeamHub user={user} roles={roles}/>}/><Route path="/admin/team-seasons" element={<AdminTeamSeasons roles={roles} user={user}/>}/><Route path="/performance" element={<AthletePerformance user={user}/>}/><Route path="/trials" element={<Trials user={user} profile={profile}/>}/><Route path="/admin/recruitment" element={<AdminRecruitment roles={roles} user={user}/>}/><Route path="/admin" element={<AdminDashboard {...common}/>}/><Route path="/admin/sports" element={<AdminSports roles={roles} user={user} setSports={setSports}/>}/><Route path="/admin/sponsors" element={<AdminSponsors user={user} roles={roles}/>}/><Route path="/admin/products" element={<AdminProducts roles={roles} products={products} setProducts={setProducts}/>}/><Route path="/admin/shop-orders" element={<AdminShopOrders roles={roles}/>}/><Route path="/admin/athletes" element={<AdminAthletes roles={roles} user={user}/>}/><Route path="/admin/verification" element={<AdminVerificationCentre roles={roles}/>}/><Route path="/admin/rosters" element={<AdminRosters roles={roles} user={user}/>}/><Route path="/admin/teams" element={<AdminTeams roles={roles} user={user}/>}/><Route path="/admin/performance" element={<AdminPerformance roles={roles}/>}/><Route path="/admin/planning" element={<AdminPlanningCentre roles={roles} user={user}/>}/><Route path="/admin/match-statistics" element={<AdminMatchStatistics roles={roles} user={user}/>}/><Route path="/admin/international-appearances" element={<AdminInternationalAppearances roles={roles} user={user}/>}/><Route path="/admin/player-awards" element={<AdminPlayerAwards roles={roles} user={user}/>}/><Route path="/admin/calendar" element={<AdminCalendar roles={roles} sports={sports}/>}/><Route path="/admin/operations" element={<AdminOperations roles={roles} user={user}/>}/><Route path="/admin/approvals" element={<AdminApprovals roles={roles} user={user}/>}/><Route path="/admin/messages" element={<AdminMessages roles={roles} user={user}/>}/><Route path="/messages" element={<AthleteMessages user={user}/>}/><Route path="/admin/ticket-gate" element={<AdminTicketGate roles={roles}/>}/><Route path="/admin/event-reports" element={<AdminEventReports roles={roles}/>}/><Route path="/admin/editorial" element={<AdminEditorial roles={roles} user={user} sports={sports}/>}/><Route path="/notifications" element={<Personal title="Notifications" user={user} kind="notifications"/>}/><Route path="/tickets" element={<Personal title="My tickets" user={user} kind="tickets"/>}/><Route path="/orders" element={<Personal title="My orders" user={user} kind="orders"/>}/><Route path="*" element={<Home {...common}/>}/>
  </Routes><BottomNav/><Link className="cart-fab" to="/cart"><ShoppingBag size={18}/>{cart.reduce((n,x)=>n+x.qty,0)>0&&<span>{cart.reduce((n,x)=>n+x.qty,0)}</span>}</Link>{toast&&<div className="toast">{toast}</div>}</div></div>;
 }
 function Home({sports,products,fixtures,articles,events,sponsors}) {
@@ -277,7 +277,7 @@ function PlayerDirectory({user}) {
 function PlayerProfilePage({user,roles=[]}) {
  const {id}=useParams();
  const [player,setPlayer]=useState(null),[records,setRecords]=useState([]),[claim,setClaim]=useState(null),[claimNote,setClaimNote]=useState(""),[busy,setBusy]=useState(true),[saving,setSaving]=useState(false),[error,setError]=useState(""),[message,setMessage]=useState(""),[pending,setPending]=useState([]);
- const [photoBusy,setPhotoBusy]=useState(false);
+ const [photoBusy,setPhotoBusy]=useState(false),[hubSeasons,setHubSeasons]=useState([]);
  const isSuper=roles.includes("super_admin");
  async function load(){
   if(!supabase)return;
@@ -288,6 +288,12 @@ function PlayerProfilePage({user,roles=[]}) {
   ]);
   if(p.error||r.error)setError(p.error?.message||r.error?.message||"Unable to load this player profile.");
   setPlayer(p.data||null);setRecords(r.data||[]);
+  if(user?.id&&p.data){
+   const {data:hubRows,error:hubError}=await supabase.from("team_hub_season_members")
+    .select("season_id,player_profile_id,team_hub_seasons(id,season_label,status,teams(name,sports(name)))")
+    .eq("player_profile_id",id).order("selected_at",{ascending:false});
+   if(hubError)setError(hubError.message);setHubSeasons(hubRows||[]);
+  }else setHubSeasons([]);
   if(user?.id){
    const {data,error:ce}=await supabase.from("player_profile_claims").select("id,status,review_note,created_at").eq("player_profile_id",id).eq("user_id",user.id).maybeSingle();
    if(ce)setError(ce.message);setClaim(data||null);
@@ -427,6 +433,7 @@ function PlayerProfilePage({user,roles=[]}) {
    <div className="player-career-stats">
     <article><b>{appearances.size}</b><small>Match appearances</small></article><article><b>{statisticRecords}</b><small>Statistics records</small></article><article><b>{competitions}</b><small>Competitions</small></article><article><b>{internationalAppearances}</b><small>International appearances</small></article><article><b>{squadSelections}</b><small>Squad selections</small></article><article><b>{awardRecords}</b><small>Awards & honours</small></article>
    </div>
+   {hubSeasons.length>0&&<Section title="My team hubs"><div className="metric-trend">{hubSeasons.map(row=><article className="performance-record" key={row.season_id}><div className="performance-record-head"><div><b>{row.team_hub_seasons?.teams?.sports?.name||"CUT Sport"} · {row.team_hub_seasons?.teams?.name||"Team"}</b><small>Season {row.team_hub_seasons?.season_label||"—"}</small></div><span className="status-pill">{row.team_hub_seasons?.status==="in_progress"?"In progress":"Completed"}</span></div><Link className="btn secondary" to={"/team-hub/"+row.season_id}>Open team hub</Link></article>)}</div></Section>}
    {Object.keys(totals).some(k=>totals[k]!==0)&&<Section title="Recorded career totals"><div className="player-total-grid">{Object.entries(totals).filter(([,v])=>v!==0).map(([k,v])=><article key={k}><b>{v}</b><small>{statLabels[k]||k.replaceAll("_"," ")}</small></article>)}</div><p className="muted">Totals combine available source-backed records only. They are not represented as complete career totals unless the underlying competition records are complete.</p></Section>}
    {canManageVisibility&&<section className="player-privacy-panel"><div><b>Public profile visibility</b><p>{player.profile_visibility==="public"?"Anyone can view this player dashboard.":"This player dashboard is hidden from public visitors."}</p></div><button className="btn secondary" disabled={saving} onClick={()=>changeVisibility(player.profile_visibility==="public"?"private":"public")}>{player.profile_visibility==="public"?"Hide profile":"Make profile public"}</button></section>}
    {isSuper&&<section className="player-photo-admin"><div><b>Official CUT profile photo</b><p>Upload a professional CUT photo and assign it to this player. Assigning the image approves it for public display.</p></div><label className="btn secondary">{photoBusy?"Uploading…":player.photo_path?"Replace approved photo":"Upload and approve photo"}<input type="file" accept="image/jpeg,image/png,image/webp" onChange={uploadApprovedPhoto} disabled={photoBusy} hidden/></label>{player.photo_path&&<button className="btn secondary" type="button" onClick={removeApprovedPhoto} disabled={photoBusy}>Remove photo</button>}{player.photo_approved_at&&<small>Approved {dateLabel(player.photo_approved_at)}</small>}</section>}
@@ -438,6 +445,185 @@ function PlayerProfilePage({user,roles=[]}) {
   </>}
  </main></>;
 }
+
+
+function AdminTeamSeasons({roles=[],user}) {
+ const [teams,setTeams]=useState([]),[teamId,setTeamId]=useState(""),[seasons,setSeasons]=useState([]),[seasonId,setSeasonId]=useState("");
+ const [athletes,setAthletes]=useState([]),[members,setMembers]=useState([]),[seasonLabel,setSeasonLabel]=useState(""),[startsOn,setStartsOn]=useState(""),[endsOn,setEndsOn]=useState(""),[athleteId,setAthleteId]=useState("");
+ const [busy,setBusy]=useState(false),[error,setError]=useState(""),[notice,setNotice]=useState("");
+ const superAdmin=roles.includes("super_admin"),sportAdmin=roles.includes("sport_admin");
+ const allowed=!!user?.id&&(superAdmin||sportAdmin||roles.includes("coach")||roles.includes("team_manager"));
+ async function loadTeams(){
+  if(!supabase||!allowed)return;
+  const [t,a]=await Promise.all([
+   supabase.from("teams").select("id,name,sport_id,season,category,sports(name)").eq("is_active",true).order("name"),
+   supabase.from("sport_admin_assignments").select("team_id,sport_id,assignment_role,is_active,starts_on,ends_on").eq("admin_profile_id",user.id).eq("is_active",true)
+  ]);
+  if(t.error||a.error){setError(t.error?.message||a.error?.message);return;}
+  const today=new Date().toISOString().slice(0,10),assignments=a.data||[];
+  const visible=superAdmin?(t.data||[]):(t.data||[]).filter(team=>assignments.some(x=>(sportAdmin&&x.sport_id===team.sport_id&&(!x.team_id||x.team_id===team.id)||x.team_id===team.id&&["coach","team_manager"].includes(x.assignment_role))&&(!x.starts_on||x.starts_on<=today)&&(!x.ends_on||x.ends_on>=today)));
+  setTeams(visible);if(!teamId&&visible.length)setTeamId(visible[0].id);
+ }
+ async function loadSeasons(id=teamId){
+  if(!supabase||!id){setSeasons([]);setSeasonId("");return;}
+  const {data,error:e}=await supabase.from("team_hub_seasons").select("id,team_id,sport_id,season_label,status,starts_on,ends_on,squad_submitted_at,closed_at").eq("team_id",id).order("created_at",{ascending:false});
+  if(e){setError(e.message);return;}setSeasons(data||[]);
+  if(!seasonId&&data?.length)setSeasonId(data[0].id);else if(seasonId&&!data?.some(x=>x.id===seasonId))setSeasonId(data?.[0]?.id||"");
+ }
+ async function loadMembers(id=seasonId){
+  if(!supabase||!id){setMembers([]);return;}
+  const {data,error:e}=await supabase.from("team_hub_season_members").select("id,athlete_id,player_profile_id,membership_status,position,squad_number,athletes(full_name,preferred_name)").eq("season_id",id).order("selected_at",{ascending:true});
+  if(e)setError(e.message);else setMembers(data||[]);
+ }
+ async function loadAthletes(){
+  const {data,error:e}=await supabase.from("athletes").select("id,full_name,preferred_name,position,squad_number,player_profile_id,approval_status").eq("approval_status","approved").order("full_name").limit(1000);
+  if(e)setError(e.message);else setAthletes(data||[]);
+ }
+ useEffect(()=>{loadTeams()},[allowed,user?.id]);
+ useEffect(()=>{if(teamId){setSeasonId("");loadSeasons(teamId);loadAthletes()}else{setSeasons([]);setMembers([])}},[teamId]);
+ useEffect(()=>{if(seasonId)loadMembers(seasonId);else setMembers([])},[seasonId]);
+ const team=teams.find(t=>t.id===teamId),season=seasons.find(x=>x.id===seasonId),draft=season?.status==="draft";
+ async function createSeason(e){
+  e.preventDefault();if(!team||!seasonLabel.trim()||busy)return;
+  setBusy(true);setError("");setNotice("");
+  const {data,error:e1}=await supabase.from("team_hub_seasons").insert({team_id:team.id,sport_id:team.sport_id,season_label:seasonLabel.trim(),starts_on:startsOn||null,ends_on:endsOn||null,created_by:user.id}).select("id").single();
+  if(e1)setError(e1.code==="23505"?"A season with that name already exists for this team.":e1.message);
+  else{setSeasonLabel("");setStartsOn("");setEndsOn("");setSeasonId(data.id);setNotice("Season draft created. Add or retain players, then submit the squad to activate its team hub.");await loadSeasons(team.id);}
+  setBusy(false);
+ }
+ async function addPlayer(e){
+  e.preventDefault();const athlete=athletes.find(a=>a.id===athleteId);if(!season||!athlete||!draft||busy)return;
+  setBusy(true);setError("");setNotice("");
+  const {error:e1}=await supabase.from("team_hub_season_members").insert({season_id:season.id,team_id:team.id,sport_id:team.sport_id,athlete_id:athlete.id,player_profile_id:athlete.player_profile_id||null,position:athlete.position||null,squad_number:athlete.squad_number??null,selected_by:user.id});
+  if(e1)setError(e1.code==="23505"?"This player is already on this season's squad.":e1.message);
+  else{setAthleteId("");setNotice("Player added to the season draft.");await loadMembers(season.id);}
+  setBusy(false);
+ }
+ async function retainPrevious(){
+  if(!season||!draft||busy)return;
+  const previous=seasons.find(x=>x.id!==season.id&&x.status==="completed");
+  if(!previous){setError("There is no previous completed season with a submitted squad to retain.");return;}
+  setBusy(true);setError("");setNotice("");
+  const {data,error:e1}=await supabase.from("team_hub_season_members").select("athlete_id,player_profile_id,position,squad_number").eq("season_id",previous.id).in("membership_status",["selected","retained"]);
+  if(e1){setError(e1.message);setBusy(false);return;}
+  if(!data?.length){setError("The previous season has no saved squad members.");setBusy(false);return;}
+  const rows=data.map(x=>({...x,season_id:season.id,team_id:team.id,sport_id:team.sport_id,membership_status:"retained",selected_by:user.id}));
+  const {error:e2}=await supabase.from("team_hub_season_members").upsert(rows,{onConflict:"season_id,athlete_id",ignoreDuplicates:true});
+  if(e2)setError(e2.message);else{setNotice("Returning players copied from "+previous.season_label+". Review the new squad before submitting.");await loadMembers(season.id);}
+  setBusy(false);
+ }
+ async function releaseMember(member){
+  if(!season||!draft||busy)return;
+  setBusy(true);setError("");const {error:e}=await supabase.from("team_hub_season_members").update({membership_status:"released"}).eq("id",member.id);
+  if(e)setError(e.message);else{setNotice("Player removed from the draft squad. Previous-season records remain unchanged.");await loadMembers(season.id);}setBusy(false);
+ }
+ async function submitSquad(){
+  if(!season||!draft||busy)return;
+  if(!window.confirm("Submit this squad and activate the "+season.season_label+" team hub? Any previous in-progress season for this team will be closed and retained as history."))return;
+  setBusy(true);setError("");setNotice("");
+  const {error:e}=await supabase.rpc("submit_team_hub_squad",{p_season_id:season.id});
+  if(e)setError(e.message);else{setNotice("Squad submitted. The team hub is now active for this season.");await loadSeasons(team.id);}
+  setBusy(false);
+ }
+ async function completeSeason(){
+  if(!season||season.status!=="in_progress"||busy)return;
+  if(!window.confirm("End this season? Players will no longer be able to post, respond to polls or interact in this season's hub. Its history will remain available."))return;
+  setBusy(true);setError("");const {error:e}=await supabase.from("team_hub_seasons").update({status:"completed",closed_at:new Date().toISOString(),updated_at:new Date().toISOString()}).eq("id",season.id);
+  if(e)setError(e.message);else{setNotice("Season completed. Its team hub is now read-only for players.");await loadSeasons(team.id);}setBusy(false);
+ }
+ if(!allowed)return <><Header title="Team season access required" back/><main className="page"><Empty title="Restricted area" body="Only authorised sport administrators, coaches and team managers can manage season squads."/></main></>;
+ return <><Header title="Team seasons & squads" back/><main className="page">
+  <div className="page-intro"><span className="eyebrow">SQUAD RENEWAL · TEAM HUB</span><h1>Manage team seasons.</h1><p>Create a season draft, retain returning players from a previous squad, add new players, then submit the approved squad to activate its dedicated team hub.</p></div>
+  {error&&<p className="form-error" role="alert">{error}</p>}{notice&&<p className="admin-notice">{notice}</p>}
+  <div className="form-card"><label>Team<select value={teamId} onChange={e=>setTeamId(e.target.value)}><option value="">Choose a team you manage</option>{teams.map(t=><option key={t.id} value={t.id}>{t.sports?.name||"Sport"} · {t.name} · {t.season||"Season not labelled"}</option>)}</select></label></div>
+  {team&&<Section title={"Create a season · "+team.name}><form className="form-card" onSubmit={createSeason}><label>Season label<input required maxLength="80" value={seasonLabel} onChange={e=>setSeasonLabel(e.target.value)} placeholder="e.g. 2027"/></label><div className="form-grid"><label>Start date<input type="date" value={startsOn} onChange={e=>setStartsOn(e.target.value)}/></label><label>End date<input type="date" value={endsOn} onChange={e=>setEndsOn(e.target.value)}/></label></div><button className="btn primary" disabled={busy||!seasonLabel.trim()}>Create season draft</button></form></Section>}
+  {team&&<Section title="Season history">{seasons.length?seasons.map(x=><article className="performance-record" key={x.id}><div className="performance-record-head"><div><b>{x.season_label}</b><small>{x.starts_on||"Start date not set"} · {x.ends_on||"End date not set"}</small></div><span className="status-pill">{x.status.replace("_"," ")}</span></div><button className="btn secondary" type="button" onClick={()=>setSeasonId(x.id)}>Manage squad</button><Link className="btn secondary" to={"/team-hub/"+x.id}>Open hub</Link></article>):<Empty title="No managed seasons yet" body="Create a season draft above. Existing historical competition seasons have not been automatically converted into team hubs."/ >}</Section>}
+  {season&&<Section title={"Squad · "+season.season_label}><div className="form-card"><p className="muted">{season.status==="draft"?"This is a draft. Only selected players will receive access after squad submission.":season.status==="in_progress"?"This season is active. Its approved squad can interact in the team hub.":"This season is completed. Its roster and team hub history are retained."}</p>
+   {draft&&<><button className="btn secondary" type="button" disabled={busy} onClick={retainPrevious}>Retain players from previous season</button><form onSubmit={addPlayer}><label>Add approved athlete<select required value={athleteId} onChange={e=>setAthleteId(e.target.value)}><option value="">Choose athlete</option>{athletes.filter(a=>!members.some(m=>m.athlete_id===a.id&&m.membership_status!=="released")).map(a=><option key={a.id} value={a.id}>{a.preferred_name||a.full_name}</option>)}</select></label><button className="btn primary" disabled={busy||!athleteId}>Add to draft squad</button></form></>}
+   {members.length?members.map(m=><div className="player-history-row" key={m.id}><div><b>{m.athletes?.preferred_name||m.athletes?.full_name||"Athlete record"}</b><small>{m.position||"Position not recorded"}{m.squad_number!==null?" · #"+m.squad_number:""} · {m.membership_status}</small></div>{draft&&m.membership_status!=="released"&&<button type="button" disabled={busy} onClick={()=>releaseMember(m)}>Remove</button>}</div>):<Empty title="No squad members yet" body="Add players or retain the previous season's squad before submitting."/>}
+   {draft&&<button className="btn primary" type="button" disabled={busy||!members.some(m=>["selected","retained"].includes(m.membership_status))} onClick={submitSquad}>Submit squad & activate hub</button>}
+   {season.status==="in_progress"&&<><Link className="btn primary" to={"/team-hub/"+season.id}>Open active team hub</Link><button className="btn secondary" type="button" disabled={busy} onClick={completeSeason}>Complete season</button></>}
+  </div></Section>}
+  <div className="admin-notice"><ShieldCheck/><div><b>Season access rules</b><p>Only approved athletes whose canonical player profile is claimed by their own account can participate. Coaches and team managers retain access to previous seasons. Completed seasons are read-only for players; a newly submitted squad activates the next season.</p></div></div>
+ </main></>;
+}
+
+function TeamHub({user,roles=[]}) {
+ const {seasonId}=useParams();
+ const [season,setSeason]=useState(null),[members,setMembers]=useState([]),[posts,setPosts]=useState([]),[polls,setPolls]=useState([]),[options,setOptions]=useState([]),[responses,setResponses]=useState([]),[myProfiles,setMyProfiles]=useState([]),[busy,setBusy]=useState(false),[error,setError]=useState(""),[notice,setNotice]=useState("");
+ const [postType,setPostType]=useState("practice"),[title,setTitle]=useState(""),[body,setBody]=useState(""),[startsAt,setStartsAt]=useState(""),[venue,setVenue]=useState("");
+ const [pollType,setPollType]=useState("attendance"),[question,setQuestion]=useState(""),[pollOptions,setPollOptions]=useState("Attending\nNot attending\nUnsure");
+ async function load(){
+  if(!supabase||!user?.id){setSeason(null);setMembers([]);return;}
+  setBusy(true);setError("");
+  const {data:s,error:se}=await supabase.from("team_hub_seasons").select("id,team_id,sport_id,season_label,status,starts_on,ends_on,teams(name,sports(name))").eq("id",seasonId).maybeSingle();
+  if(se||!s){setError(se?.message||"This team hub is unavailable or you are not authorised to view it.");setSeason(null);setBusy(false);return;}
+  const [m,p,pl,prof]=await Promise.all([
+   supabase.from("team_hub_season_members").select("id,athlete_id,player_profile_id,membership_status,position,squad_number,athletes(full_name,preferred_name)").eq("season_id",seasonId).in("membership_status",["selected","retained"]),
+   supabase.from("team_hub_posts").select("id,post_type,status,title,body,starts_at,ends_at,venue,status_note,created_at,updated_at,created_by").eq("season_id",seasonId).order("created_at",{ascending:false}).limit(100),
+   supabase.from("team_hub_polls").select("id,poll_type,question,status,closes_at,created_at").eq("season_id",seasonId).order("created_at",{ascending:false}).limit(100),
+   supabase.from("player_profiles").select("id").eq("claimed_by",user.id)
+  ]);
+  const failure=m.error||p.error||pl.error||prof.error;
+  if(failure)setError(failure.message);
+  setSeason(s);setMembers(m.data||[]);setPosts(p.data||[]);setPolls(pl.data||[]);setMyProfiles((prof.data||[]).map(x=>x.id));
+  const pollIds=(pl.data||[]).map(x=>x.id);
+  if(pollIds.length){
+   const [o,r]=await Promise.all([
+    supabase.from("team_hub_poll_options").select("id,poll_id,label,display_order").in("poll_id",pollIds).order("display_order"),
+    supabase.from("team_hub_poll_responses").select("id,poll_id,option_id,player_profile_id,user_id,responded_at").in("poll_id",pollIds)
+   ]);
+   if(o.error||r.error)setError(o.error?.message||r.error?.message);
+   setOptions(o.data||[]);setResponses(r.data||[]);
+  }else{setOptions([]);setResponses([]);}
+  setBusy(false);
+ }
+ useEffect(()=>{load()},[seasonId,user?.id]);
+ const canManage=roles.some(r=>["super_admin","sport_admin"].includes(r));
+ const myMember=members.find(m=>myProfiles.includes(m.player_profile_id));
+ const active=season?.status==="in_progress",playerCanInteract=!!myMember&&active,staffCanInteract=canManage;
+ async function createPost(e){
+  e.preventDefault();if(!active||!title.trim())return;
+  setBusy(true);setError("");setNotice("");
+  const {error:e}=await supabase.from("team_hub_posts").insert({season_id:season.id,team_id:season.team_id,sport_id:season.sport_id,post_type:postType,title:title.trim(),body:body.trim()||null,starts_at:postType==="practice"&&startsAt?new Date(startsAt).toISOString():null,venue:postType==="practice"?venue.trim()||null:null,created_by:user.id});
+  if(e)setError(e.message);else{setTitle("");setBody("");setStartsAt("");setVenue("");setNotice("Team update published.");await load();}setBusy(false);
+ }
+ async function changePracticeStatus(post,status){
+  if(!active||post.post_type!=="practice")return;
+  const note=window.prompt(status==="postponed"?"Add a short postponement update:":"Add a short cancellation reason:");if(note===null)return;
+  setBusy(true);setError("");
+  const {error:e}=await supabase.from("team_hub_posts").update({status,status_note:note.trim()||null,updated_at:new Date().toISOString()}).eq("id",post.id);
+  if(e)setError(e.message);else{setNotice("Practice status updated.");await load();}setBusy(false);
+ }
+ async function createPoll(e){
+  e.preventDefault();if(!active||!question.trim())return;
+  const labels=pollOptions.split("\n").map(x=>x.trim()).filter(Boolean);
+  if(labels.length<2||labels.length>8){setError("A poll needs between 2 and 8 answer options.");return;}
+  setBusy(true);setError("");setNotice("");
+  const {data:p,error:e1}=await supabase.from("team_hub_polls").insert({season_id:season.id,team_id:season.team_id,sport_id:season.sport_id,poll_type:pollType,question:question.trim(),created_by:user.id}).select("id").single();
+  if(e1){setError(e1.message);setBusy(false);return;}
+  const {error:e2}=await supabase.from("team_hub_poll_options").insert(labels.map((label,i)=>({poll_id:p.id,label,display_order:i})));
+  if(e2)setError(e2.message);else{setQuestion("");setNotice("Poll published to the active squad.");await load();}setBusy(false);
+ }
+ async function vote(poll,option){
+  if(!playerCanInteract||!myMember)return;
+  setBusy(true);setError("");
+  const {error:e}=await supabase.from("team_hub_poll_responses").insert({poll_id:poll.id,option_id:option.id,season_id:season.id,team_id:season.team_id,sport_id:season.sport_id,player_profile_id:myMember.player_profile_id,user_id:user.id});
+  if(e)setError(e.code==="23505"?"Your response is already recorded.":"Unable to save your response: "+e.message);
+  else{setNotice("Your response has been recorded.");await load();}setBusy(false);
+ }
+ const myResponse=poll=>responses.find(r=>r.poll_id===poll.id&&r.user_id===user?.id);
+ return <><Header title="Team hub" back/><main className="page">
+  {!user?<Empty title="Sign in to open this team hub" body="Only claimed players selected for this season and authorised team staff can access the hub."/>:!season?<><p className="form-error">{error||"Loading team hub…"}</p></>:<>
+   <div className="page-intro"><span className="eyebrow">{season.teams?.sports?.name||"CUT SPORT"} · TEAM HUB</span><h1>{season.teams?.name||"Team"}.</h1><p>Season {season.season_label} · {season.status.replace("_"," ")}</p></div>
+   {!active&&<div className="admin-notice"><ShieldCheck/><div><b>Season completed</b><p>This season is preserved as history. Players can review previous updates and poll responses, but cannot interact. Coaches and team managers can review the archive.</p></div></div>}
+   <Section title="Season squad">{members.length?members.map(m=><div className="player-history-row" key={m.id}><div><b>{m.athletes?.preferred_name||m.athletes?.full_name||"Player"}</b><small>{m.position||"Position not recorded"}{m.squad_number!==null?" · #"+m.squad_number:""}</small></div></div>):<Empty title="No squad records" body="The season squad will appear here after it is submitted by the coaching staff."/ >}</Section>
+   {active&&(staffCanInteract||playerCanInteract)&&<Section title="Team updates"><form className="form-card" onSubmit={createPost}><h3>Publish to the squad</h3><label>Update type<select value={postType} onChange={e=>setPostType(e.target.value)}><option value="practice">Practice schedule</option><option value="squad_announcement">Squad announcement</option><option value="instruction">Instructions</option></select></label><label>Title<input required minLength="3" maxLength="180" value={title} onChange={e=>setTitle(e.target.value)} placeholder="e.g. Thursday training session"/></label>{postType==="practice"&&<><label>Practice date & time<input type="datetime-local" value={startsAt} onChange={e=>setStartsAt(e.target.value)}/></label><label>Venue<input maxLength="240" value={venue} onChange={e=>setVenue(e.target.value)} placeholder="Training venue"/></label></>}<label>Details<textarea rows={4} maxLength="5000" value={body} onChange={e=>setBody(e.target.value)} placeholder="Share the information the squad needs…"/></label><button className="btn primary" disabled={busy||!title.trim()}>Publish update</button></form>
+   <form className="form-card" onSubmit={createPoll}><h3>Create a squad poll</h3><label>Poll type<select value={pollType} onChange={e=>{setPollType(e.target.value);setPollOptions(e.target.value==="attendance"?"Attending\nNot attending\nUnsure":"Yes\nNo");}}><option value="attendance">Practice / event attendance</option><option value="general">General poll</option></select></label><label>Question<input required maxLength="500" value={question} onChange={e=>setQuestion(e.target.value)} placeholder="Can you attend Friday's practice?"/></label><label>Answer options<textarea rows={4} value={pollOptions} onChange={e=>setPollOptions(e.target.value)} maxLength="1000"/></label><small>Enter one answer per line (2–8 options).</small><button className="btn primary" disabled={busy||!question.trim()}>Publish poll</button></form></Section>}
+   <Section title="Updates & announcements">{posts.length?posts.map(post=><article className="performance-record" key={post.id}><div className="performance-record-head"><div><b>{post.title}</b><small>{post.post_type.replaceAll("_"," ")} · {dateLabel(post.created_at)}</small></div><span className="status-pill">{post.status}</span></div>{post.starts_at&&<p>{dateLabel(post.starts_at)}{post.venue?" · "+post.venue:""}</p>}{post.body&&<p>{post.body}</p>}{post.status_note&&<p className="muted">{post.status_note}</p>}{active&&staffCanInteract&&post.post_type==="practice"&&post.status==="published"&&<div className="review-actions"><button type="button" disabled={busy} onClick={()=>changePracticeStatus(post,"postponed")}>Postpone</button><button type="button" disabled={busy} onClick={()=>changePracticeStatus(post,"cancelled")}>Cancel practice</button></div>}</article>):<Empty title="No updates yet" body="Practice schedules, squad announcements and instructions will appear here."/ >}</Section>
+   <Section title="Squad polls">{polls.length?polls.map(poll=>{const my=myResponse(poll),choices=options.filter(x=>x.poll_id===poll.id),counts=choices.map(x=>({option:x,count:responses.filter(r=>r.poll_id===poll.id&&r.option_id===x.id).length}));return <article className="performance-record" key={poll.id}><div className="performance-record-head"><div><b>{poll.question}</b><small>{poll.poll_type==="attendance"?"Attendance poll":"Team poll"} · {dateLabel(poll.created_at)}</small></div><span className="status-pill">{poll.status}</span></div>{my?<p className="muted">Your response: <b>{choices.find(x=>x.id===my.option_id)?.label||"Recorded"}</b></p>:playerCanInteract&&poll.status==="open"?<div className="metric-trend">{choices.map(option=><button className="btn secondary" type="button" key={option.id} disabled={busy} onClick={()=>vote(poll,option)}>{option.label}</button>)}</div>:null}{staffCanInteract&&<div className="performance-metric-chips">{counts.map(x=><span key={x.option.id}><b>{x.count}</b> {x.option.label}</span>)}</div>}</article>;}):<Empty title="No polls yet" body="Attendance and team polls will appear here."/ >}</Section>
+  </>}
+ </main></>;}
 
 function AthletePerformance({user}) {
  const [athlete,setAthlete]=useState(null),[records,setRecords]=useState([]),[achievements,setAchievements]=useState([]);
