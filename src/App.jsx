@@ -496,7 +496,7 @@ function AdminTeamSeasons({roles=[],user}) {
  async function addPlayer(e){
   e.preventDefault();const athlete=athletes.find(a=>a.id===athleteId);if(!season||!athlete||!draft||busy)return;
   setBusy(true);setError("");setNotice("");
-  const {error:e1}=await supabase.from("team_hub_season_members").insert({season_id:season.id,team_id:team.id,sport_id:team.sport_id,athlete_id:athlete.id,player_profile_id:athlete.player_profile_id||null,position:athlete.position||null,squad_number:athlete.squad_number??null,selected_by:user.id});
+  const {error:e1}=await supabase.from("team_hub_season_members").insert({season_id:season.id,team_id:team.id,sport_id:team.sport_id,athlete_id:athlete.id,position:athlete.position||null,squad_number:athlete.squad_number??null,selected_by:user.id});
   if(e1)setError(e1.code==="23505"?"This player is already on this season's squad.":e1.message);
   else{setAthleteId("");setNotice("Player added to the season draft.");await loadMembers(season.id);}
   setBusy(false);
@@ -506,7 +506,7 @@ function AdminTeamSeasons({roles=[],user}) {
   const previous=seasons.find(x=>x.id!==season.id&&x.status==="completed");
   if(!previous){setError("There is no previous completed season with a submitted squad to retain.");return;}
   setBusy(true);setError("");setNotice("");
-  const {data,error:e1}=await supabase.from("team_hub_season_members").select("athlete_id,player_profile_id,player_name,position,squad_number").eq("season_id",previous.id).in("membership_status",["selected","retained"]);
+  const {data,error:e1}=await supabase.from("team_hub_season_members").select("athlete_id,position,squad_number").eq("season_id",previous.id).in("membership_status",["selected","retained"]);
   if(e1){setError(e1.message);setBusy(false);return;}
   if(!data?.length){setError("The previous season has no saved squad members.");setBusy(false);return;}
   const rows=data.map(x=>({...x,season_id:season.id,team_id:team.id,sport_id:team.sport_id,membership_status:"retained",selected_by:user.id}));
