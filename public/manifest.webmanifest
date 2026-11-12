@@ -7,8 +7,8 @@
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
-  "background_color": "#ffffff",
-  "theme_color": "#1557ad",
+  "background_color": "#FBFAF5",
+  "theme_color": "#0047B3",
   "icons": [
     {
       "src": "/icons/cut-sport.svg",
