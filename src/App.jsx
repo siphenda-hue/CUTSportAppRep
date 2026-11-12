@@ -3133,7 +3133,7 @@ function AdminEventReports({roles}) {
   const rows=[["Attendee","Ticket type","Issued at","Check-in status","Checked in at"],...report.attendees.map(a=>[a.attendee_name,a.ticket_type,a.issued_at,a.redeemed_at?"Checked in":"Not checked in",a.redeemed_at||""])];
   const csv=rows.map(row=>row.map(value=>'"'+String(value??"").replaceAll('"','""')+'"').join(",")).join("\r\n");
   const url=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));
-  const link=document.createElement("a");link.href=url;link.download="cut-sport-attendees.csv";link.click();URL.revokeObjectURL(url);
+  const link=document.createElement("a");link.href=url;link.download="cut-sport-attendees.csv";link.click();URL.revokeObjectURL(url);recordCutReportExport({report_type:"event_report",report_title:"Event Attendee Register",scope_label:report.event.title,period_start:report.event.starts_at?String(report.event.starts_at).slice(0,10):null,output_format:"csv",export_action:"csv_download_started"});
  }
  if(!allowed)return <><Header title="Event reports access required" back/><main className="page"><Empty title="Restricted area" body="An assigned sport administrator or super administrator role is required."/></main></>;
  const summary=report?.summary;
