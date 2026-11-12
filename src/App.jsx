@@ -473,7 +473,7 @@ function AdminTeamSeasons({roles=[],user}) {
  const [athletes,setAthletes]=useState([]),[members,setMembers]=useState([]),[seasonLabel,setSeasonLabel]=useState(""),[startsOn,setStartsOn]=useState(""),[endsOn,setEndsOn]=useState(""),[athleteId,setAthleteId]=useState("");
  const [busy,setBusy]=useState(false),[error,setError]=useState(""),[notice,setNotice]=useState("");
  const [announcementTitle,setAnnouncementTitle]=useState("Our squad is set!"),[announcementMessage,setAnnouncementMessage]=useState("Congratulations to every athlete selected to represent CUT Sport. We look forward to seeing you represent The Blues with pride.");
- const [socialPlatform,setSocialPlatform]=useState("Instagram"),[socialFormat,setSocialFormat]=useState("Post"),[socialDate,setSocialDate]=useState(new Date().toISOString().slice(0,10)),[socialTime,setSocialTime]=useState("18:00"),[socialIdea,setSocialIdea]=useState(""),[socialCaption,setSocialCaption]=useState(""),[socialPlan,setSocialPlan]=useState([]),[socialLoading,setSocialLoading]=useState(false),[socialSaving,setSocialSaving]=useState(false);
+ const [socialPlatform,setSocialPlatform]=useState("Instagram"),[socialFormat,setSocialFormat]=useState("Post"),[socialDate,setSocialDate]=useState(new Date().toISOString().slice(0,10)),[socialTime,setSocialTime]=useState("18:00"),[socialIdea,setSocialIdea]=useState(""),[socialCaption,setSocialCaption]=useState(""),[socialPlan,setSocialPlan]=useState([]),[socialLoading,setSocialLoading]=useState(false),[socialSaving,setSocialSaving]=useState(false),[socialAssets,setSocialAssets]=useState([]),[socialAssetId,setSocialAssetId]=useState("");
  const superAdmin=roles.includes("super_admin"),sportAdmin=roles.includes("sport_admin"),canReview=superAdmin||sportAdmin;
  const allowed=!!user?.id;
  async function loadTeams(){
@@ -514,15 +514,22 @@ function AdminTeamSeasons({roles=[],user}) {
   const d=new Date(row.scheduled_at),pad=n=>String(n).padStart(2,"0");
   return {...row,date:d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate()),time:pad(d.getHours())+":"+pad(d.getMinutes()),idea:row.content_idea,caption:row.caption,format:row.content_format};
  }
+ async function loadApprovedSocialAssets(id=seasonId){
+  if(!supabase||!id){setSocialAssets([]);setSocialAssetId("");return;}
+  const {data,error:e}=await supabase.from("team_hub_media_assets").select("id,title,asset_type,storage_path,original_filename").eq("season_id",id).eq("approval_status","approved").order("created_at",{ascending:false});
+  if(e){setError("Could not load approved media for the content calendar: "+e.message);setSocialAssets([]);return;}
+  const signed=await Promise.all((data||[]).map(async asset=>{const {data:link}=await supabase.storage.from("cut-sport-media").createSignedUrl(asset.storage_path,600);return {...asset,signedUrl:link?.signedUrl||null};}));
+  setSocialAssets(signed);
+ }
  async function loadSocialPlan(id=seasonId){
   if(!supabase||!id){setSocialPlan([]);return;}
   setSocialLoading(true);
-  const {data,error:e}=await supabase.from("team_hub_social_content").select("id,season_id,platform,content_format,scheduled_at,content_idea,caption,status,created_by,updated_by,created_at,updated_at").eq("season_id",id).order("scheduled_at",{ascending:true});
+  const {data,error:e}=await supabase.from("team_hub_social_content").select("id,season_id,platform,content_format,scheduled_at,content_idea,caption,status,media_asset_id,created_by,updated_by,created_at,updated_at").eq("season_id",id).order("scheduled_at",{ascending:true});
   if(e){setError("Could not load the saved social media calendar: "+e.message);setSocialPlan([]);}
   else setSocialPlan((data||[]).map(mapSocialContentRow));
   setSocialLoading(false);
  }
- useEffect(()=>{setSocialPlan([]);if(seasonId)loadSocialPlan(seasonId);},[seasonId,season?.status]);
+ useEffect(()=>{setSocialPlan([]);setSocialAssets([]);setSocialAssetId("");if(seasonId){loadSocialPlan(seasonId);loadApprovedSocialAssets(seasonId);}},[seasonId,season?.status]);
  const announcementText=[
   "CUT SPORT · THE BLUES",
   announcementTeamName+" · "+(season?.season_label||"Current season"),
@@ -553,10 +560,10 @@ function AdminTeamSeasons({roles=[],user}) {
   const scheduled=new Date(socialDate+"T"+(socialTime||"18:00"));
   if(Number.isNaN(scheduled.getTime())){setError("Choose a valid publishing date and time.");return;}
   setSocialSaving(true);setError("");setNotice("");
-  const payload={season_id:season.id,platform:socialPlatform,content_format:socialFormat,scheduled_at:scheduled.toISOString(),content_idea:socialIdea.trim(),caption:socialCaption.trim(),status:"planned",created_by:user.id,updated_by:user.id};
-  const {data,error:e1}=await supabase.from("team_hub_social_content").insert(payload).select("id,season_id,platform,content_format,scheduled_at,content_idea,caption,status,created_by,updated_by,created_at,updated_at").single();
+  const payload={season_id:season.id,platform:socialPlatform,content_format:socialFormat,scheduled_at:scheduled.toISOString(),content_idea:socialIdea.trim(),caption:socialCaption.trim(),status:"planned",media_asset_id:socialAssetId||null,created_by:user.id,updated_by:user.id};
+  const {data,error:e1}=await supabase.from("team_hub_social_content").insert(payload).select("id,season_id,platform,content_format,scheduled_at,content_idea,caption,status,media_asset_id,created_by,updated_by,created_at,updated_at").single();
   if(e1)setError("Could not save this calendar item: "+e1.message);
-  else{setSocialPlan(current=>[...current,mapSocialContentRow(data)].sort((a,b)=>a.scheduled_at.localeCompare(b.scheduled_at)));setSocialIdea("");setSocialCaption("");setNotice("Content item saved to the shared team calendar.");}
+  else{setSocialPlan(current=>[...current,mapSocialContentRow(data)].sort((a,b)=>a.scheduled_at.localeCompare(b.scheduled_at)));setSocialIdea("");setSocialCaption("");setSocialAssetId("");setNotice("Content item saved to the shared team calendar.");}
   setSocialSaving(false);
  }
  async function removeSocialPlanItem(id){
@@ -679,12 +686,14 @@ function AdminTeamSeasons({roles=[],user}) {
      <label>Planned time<input type="time" value={socialTime} onChange={e=>setSocialTime(e.target.value)}/></label>
     </div>
     <label>Content idea<input required maxLength="160" value={socialIdea} onChange={e=>setSocialIdea(e.target.value)} placeholder="e.g. Training week highlights"/></label>
+    <label>Attach approved media<select value={socialAssetId} onChange={e=>setSocialAssetId(e.target.value)}><option value="">No media attached</option>{socialAssets.map(asset=><option key={asset.id} value={asset.id}>{asset.title} · {asset.asset_type}</option>)}</select></label>
+    {socialAssetId&&socialAssets.find(asset=>asset.id===socialAssetId)?.signedUrl&&<div className="admin-notice"><ShieldCheck/><div><b>Approved asset selected</b><p>{socialAssets.find(asset=>asset.id===socialAssetId)?.title} · This file remains private; the calendar only stores its reference.</p></div></div>}
     <label>Caption / copy<textarea required rows={4} maxLength={1800} value={socialCaption} onChange={e=>setSocialCaption(e.target.value)} placeholder="Write the caption, call to action and relevant hashtags."/></label>
     <button className="btn primary" type="submit" disabled={socialSaving||!socialDate||!socialIdea.trim()||!socialCaption.trim()}>{socialSaving?"Saving…":"Save to shared calendar"}</button>
    </form>}
    {socialLoading?<p className="muted">Loading saved calendar…</p>:socialPlan.length?socialPlan.map((item,index)=><article className="performance-record" key={item.id}>
     <div className="performance-record-head"><div><b>{item.date} · {item.time}</b><small>{item.platform} · {item.format}</small></div>{season?.status==="in_progress"?<button type="button" className="btn secondary" disabled={socialSaving} onClick={()=>removeSocialPlanItem(item.id)}>Remove</button>:<span className="status-pill">Archived</span>}</div>
-    <b>{index+1}. {item.idea}</b><p>{item.caption}</p>
+    <b>{index+1}. {item.idea}</b><p>{item.caption}</p>{item.media_asset_id&&<div className="admin-notice"><ShieldCheck/><div><b>Approved media attached</b><p>{socialAssets.find(asset=>asset.id===item.media_asset_id)?.title||"Linked approved asset"}</p>{socialAssets.find(asset=>asset.id===item.media_asset_id)?.signedUrl&&<a href={socialAssets.find(asset=>asset.id===item.media_asset_id).signedUrl} target="_blank" rel="noreferrer">Open private media preview</a>}</div></div>}
     <div className="form-grid"><label>Workflow status<select value={item.status} disabled={season?.status!=="in_progress"||socialSaving} onChange={e=>updateSocialPlanStatus(item.id,e.target.value)}><option value="planned">Planned</option><option value="ready">Ready for publishing</option><option value="published">Published (manually)</option><option value="cancelled">Cancelled</option></select></label><small className="muted">Last updated {new Date(item.updated_at).toLocaleString()}</small></div>
    </article>):<Empty title="No saved calendar items" body="Add the first post, story, reel or video to this team's shared content calendar."/ >}
    <div className="review-actions"><button type="button" className="btn secondary" disabled={!socialPlan.length} onClick={copySocialPlan}>Copy calendar</button><button type="button" className="btn primary" disabled={!socialPlan.length} onClick={printSocialPlan}>Print content plan</button></div>
