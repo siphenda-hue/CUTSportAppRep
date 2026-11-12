@@ -99,7 +99,7 @@ function MyTeam({user,roles=[]}) {
    const [memberResults,teamMemberships]=await Promise.all([
     Promise.all(memberQueries),
     athleteIds.length
-     ?supabase.from("athlete_team_memberships").select("id,team_id,sport_id,position,squad_number,joined_at,teams(id,name,sport_id,sports(name,slug))").in("athlete_id",athleteIds).eq("is_active",true).order("joined_at",{ascending:false})
+     ?supabase.from("athlete_team_memberships").select("id,team_id,sport_id,position,squad_number,joined_at,teams!athlete_team_memberships_team_sport_fk(id,name,sport_id,sports(name,slug))").in("athlete_id",athleteIds).eq("is_active",true).order("joined_at",{ascending:false})
      :Promise.resolve({data:[],error:null})
    ]);
    if(!active)return;
