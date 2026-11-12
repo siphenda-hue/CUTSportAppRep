@@ -520,7 +520,7 @@ function AdminTeamSeasons({roles=[],user}) {
  }
  async function submitSquad(){
   if(!season||!draft||busy)return;
-  if(!window.confirm("Submit this squad and activate the "+season.season_label+" team hub? Any previous in-progress season for this team will be closed and retained as history."))return;
+  if(!window.confirm("Submit this squad and activate the "+season.season_label+" team hub? Complete the previous in-progress season first; its history will remain available."))return;
   setBusy(true);setError("");setNotice("");
   const {error:e}=await supabase.rpc("submit_team_hub_squad",{p_season_id:season.id});
   if(e)setError(e.message);else{setNotice("Squad submitted. The team hub is now active for this season.");await loadSeasons(team.id);}
@@ -529,7 +529,7 @@ function AdminTeamSeasons({roles=[],user}) {
  async function completeSeason(){
   if(!season||season.status!=="in_progress"||busy)return;
   if(!window.confirm("End this season? Players will no longer be able to post, respond to polls or interact in this season's hub. Its history will remain available."))return;
-  setBusy(true);setError("");const {error:e}=await supabase.from("team_hub_seasons").update({status:"completed",closed_at:new Date().toISOString(),updated_at:new Date().toISOString()}).eq("id",season.id);
+  setBusy(true);setError("");const {error:e}=await supabase.from("team_hub_seasons").update({status:"completed"}).eq("id",season.id);
   if(e)setError(e.message);else{setNotice("Season completed. Its team hub is now read-only for players.");await loadSeasons(team.id);}setBusy(false);
  }
  if(!allowed)return <><Header title="Team season access required" back/><main className="page"><Empty title="Restricted area" body="Only authorised sport administrators, coaches and team managers can manage season squads."/></main></>;
@@ -619,7 +619,7 @@ function TeamHub({user,roles=[]}) {
  return <><Header title="Team hub" back/><main className="page">
   {!user?<Empty title="Sign in to open this team hub" body="Only claimed players selected for this season and authorised team staff can access the hub."/>:!season?<><p className="form-error">{error||"Loading team hub…"}</p></>:<>
    <div className="page-intro"><span className="eyebrow">{season.teams?.sports?.name||"CUT SPORT"} · TEAM HUB</span><h1>{season.teams?.name||"Team"}.</h1><p>Season {season.season_label} · {season.status.replace("_"," ")}</p></div>
-   {!active&&<div className="admin-notice"><ShieldCheck/><div><b>Season completed</b><p>This season is preserved as history. Players can review previous updates and poll responses, but cannot interact. Coaches and team managers can review the archive.</p></div></div>}
+   {!active&&<div className="admin-notice"><ShieldCheck/><div><b>Season not currently active</b><p>This season is completed or outside its approved start/end dates. Players can review previous updates and poll responses, but cannot interact. Coaches and team managers can review the archive.</p></div></div>}
    <Section title="Season squad">{members.length?members.map(m=><div className="player-history-row" key={m.id}><div><b>{m.player_name||"Player"}</b><small>{m.position||"Position not recorded"}{m.squad_number!==null?" · #"+m.squad_number:""}</small></div></div>):<Empty title="No squad records" body="The season squad will appear here after it is submitted by the coaching staff."/ >}</Section>
    {active&&staffCanInteract&&<Section title="Team updates"><form className="form-card" onSubmit={createPost}><h3>Publish to the squad</h3><label>Update type<select value={postType} onChange={e=>setPostType(e.target.value)}><option value="practice">Practice schedule</option><option value="squad_announcement">Squad announcement</option><option value="instruction">Instructions</option></select></label><label>Title<input required minLength="3" maxLength="180" value={title} onChange={e=>setTitle(e.target.value)} placeholder="e.g. Thursday training session"/></label>{postType==="practice"&&<><label>Practice date & time<input type="datetime-local" required value={startsAt} onChange={e=>setStartsAt(e.target.value)}/></label><label>Venue<input maxLength="240" value={venue} onChange={e=>setVenue(e.target.value)} placeholder="Training venue"/></label></>}<label>Details<textarea rows={4} maxLength="5000" value={body} onChange={e=>setBody(e.target.value)} placeholder="Share the information the squad needs…"/></label><button className="btn primary" disabled={busy||!title.trim()}>Publish update</button></form>
    <form className="form-card" onSubmit={createPoll}><h3>Create a squad poll</h3><label>Poll type<select value={pollType} onChange={e=>{setPollType(e.target.value);setPollOptions(e.target.value==="attendance"?"Attending\nNot attending\nUnsure":"Yes\nNo");}}><option value="attendance">Practice / event attendance</option><option value="general">General poll</option></select></label><label>Question<input required maxLength="500" value={question} onChange={e=>setQuestion(e.target.value)} placeholder="Can you attend Friday's practice?"/></label><label>Answer options<textarea rows={4} value={pollOptions} onChange={e=>setPollOptions(e.target.value)} maxLength="1000"/></label><small>Enter one answer per line (2–8 options).</small><button className="btn primary" disabled={busy||!question.trim()}>Publish poll</button></form></Section>}
