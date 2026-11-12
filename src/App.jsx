@@ -11,15 +11,26 @@ function Header({title='CUT Sport',back=false}) {
  const nav=useNavigate();
  const [unreadCount,setUnreadCount]=useState(0);
  useEffect(()=>{
-  let active=true;
-  if(!supabase){setUnreadCount(0);return()=>{active=false}}
-  supabase.auth.getUser().then(async({data})=>{
+  if(!supabase){setUnreadCount(0);return}
+  let active=true,channel=null;
+  const refresh=async(userId)=>{
    if(!active)return;
-   if(!data.user){setUnreadCount(0);return}
-   const {count,error}=await supabase.from("notifications").select("id",{count:"exact",head:true}).eq("user_id",data.user.id).is("read_at",null);
+   if(!userId){setUnreadCount(0);return}
+   const {count,error}=await supabase.from("notifications").select("id",{count:"exact",head:true}).eq("user_id",userId).is("read_at",null);
    if(active)setUnreadCount(error?0:(count||0));
-  });
-  return()=>{active=false};
+  };
+  const connect=async(user)=>{
+   if(channel){await supabase.removeChannel(channel);channel=null}
+   if(!user){setUnreadCount(0);return}
+   await refresh(user.id);
+   if(!active)return;
+   channel=supabase.channel("notification-badge:"+user.id)
+    .on("postgres_changes",{event:"*",schema:"public",table:"notifications",filter:"user_id=eq."+user.id},()=>refresh(user.id))
+    .subscribe();
+  };
+  supabase.auth.getUser().then(({data})=>connect(data.user||null));
+  const {data:{subscription}}=supabase.auth.onAuthStateChange((_event,session)=>connect(session?.user||null));
+  return()=>{active=false;subscription.unsubscribe();if(channel)supabase.removeChannel(channel)};
  },[]);
  return <header className="topbar">{back?<button className="icon-btn" onClick={()=>nav(-1)}><ArrowLeft/></button>:<Link className="brand-mark" to="/"><b>CUT</b><small>SPORT</small></Link>}<div className="topbar-title"><b>{title}</b><small>HERITAGE · CULTURE · COMMUNITY</small></div><Link className="icon-btn notification-bell" to="/notifications" aria-label={unreadCount?("Notifications, "+unreadCount+" unread"):"Notifications"}><Bell/>{unreadCount>0&&<span className="notification-count">{unreadCount>99?"99+":unreadCount}</span>}</Link></header>;
 }
@@ -665,6 +676,13 @@ function Personal({title,user,kind}) {
   setItems(result.data||[]);setBusy(false);
  }
  useEffect(()=>{load()},[user,kind]);
+ useEffect(()=>{
+  if(!isNotifications||!user||!supabase)return;
+  const channel=supabase.channel("notification-inbox:"+user.id)
+   .on("postgres_changes",{event:"*",schema:"public",table:"notifications",filter:"user_id=eq."+user.id},()=>load())
+   .subscribe();
+  return()=>{supabase.removeChannel(channel)};
+ },[user,kind]);
  const unread=items.filter(x=>!x.read_at);
  async function markRead(id){
   if(!supabase||!user)return;
@@ -2055,11 +2073,13 @@ function AdminMatchStatistics({roles,user}) {
  const corrections=records.filter(r=>r.approval_status==="correction_requested"&&r.recorded_by===user?.id);
  const overdue=pending.filter(r=>r.created_at&&Date.now()-new Date(r.created_at).getTime()>48*60*60*1000);
  const submitterByRecord=Object.fromEntries(submitters.map(x=>[x.record_id,x.submitter_name]));
+ const firstReviewHours=records.flatMap(r=>{const first=reviewHistory.filter(h=>h.record_id===r.id&&["approved","rejected","correction_requested"].includes(h.new_status)).sort((a,b)=>new Date(a.reviewed_at)-new Date(b.reviewed_at))[0];if(!first||!r.created_at)return [];const hours=(new Date(first.reviewed_at)-new Date(r.created_at))/3600000;return Number.isFinite(hours)&&hours>=0?[hours]:[]});
+ const averageFirstReviewHours=firstReviewHours.length?firstReviewHours.reduce((a,b)=>a+b,0)/firstReviewHours.length:null;
  const waitingLabel=value=>{const ms=Date.now()-new Date(value).getTime();if(!Number.isFinite(ms)||ms<0)return "just submitted";const hours=Math.floor(ms/3600000);return hours<1?"less than 1 hour":hours<24?hours+"h":Math.floor(hours/24)+"d "+(hours%24)+"h"};
  if(!allowed)return <><Header title="Match statistics access required" back/><main className="page"><Empty title="Restricted area" body="A coach, assigned sport administrator or super administrator role is required."/></main></>;
  return <><Header title="Match statistics" back/><main className="page">
   <div className="page-intro"><span className="eyebrow">CUT SPORT · PERFORMANCE DATA</span><h1>Match-by-match records.</h1><p>Review the player identity, match details and published source before approving a record. Pending and rejected records are never shown on public player profiles.</p></div>
-  <div className="admin-stats"><div><b>{records.length}</b><small>Records loaded</small></div><div><b>{pending.length}</b><small>Awaiting review</small></div><div><b>{overdue.length}</b><small>Waiting over 48 hours</small></div><div><b>{approved.length}</b><small>Approved & published</small></div><div><b>{rejected.length}</b><small>Rejected records</small></div></div>
+  <div className="admin-stats"><div><b>{records.length}</b><small>Records loaded</small></div><div><b>{pending.length}</b><small>Awaiting review</small></div><div><b>{overdue.length}</b><small>Waiting over 48 hours</small></div><div><b>{approved.length}</b><small>Approved & published</small></div><div><b>{rejected.length}</b><small>Rejected records</small></div><div><b>{corrections.length}</b><small>Returned for correction</small></div><div><b>{averageFirstReviewHours===null?"—":averageFirstReviewHours.toFixed(1)+"h"}</b><small>Average first review time</small></div></div>
   <form className="form-card" onSubmit={submit}>
    <h3>{editingRecordId?"Correct and resubmit match record":"Record a match appearance"}</h3>
    {editingRecordId&&<p className="admin-notice">You are editing a record returned for correction. Its player identity is locked, and the original review note remains in its audit history. <button type="button" className="btn secondary" onClick={()=>{setEditingRecordId(null);setMessage("");}}>Cancel correction</button></p>}
