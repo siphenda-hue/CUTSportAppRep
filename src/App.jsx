@@ -472,6 +472,7 @@ function AdminTeamSeasons({roles=[],user}) {
  const [teams,setTeams]=useState([]),[teamId,setTeamId]=useState(""),[seasons,setSeasons]=useState([]),[seasonId,setSeasonId]=useState("");
  const [athletes,setAthletes]=useState([]),[members,setMembers]=useState([]),[seasonLabel,setSeasonLabel]=useState(""),[startsOn,setStartsOn]=useState(""),[endsOn,setEndsOn]=useState(""),[athleteId,setAthleteId]=useState("");
  const [busy,setBusy]=useState(false),[error,setError]=useState(""),[notice,setNotice]=useState("");
+ const [announcementTitle,setAnnouncementTitle]=useState("Our squad is set!"),[announcementMessage,setAnnouncementMessage]=useState("Congratulations to every athlete selected to represent CUT Sport. We look forward to seeing you represent The Blues with pride.");
  const superAdmin=roles.includes("super_admin"),sportAdmin=roles.includes("sport_admin");
  const allowed=!!user?.id;
  async function loadTeams(){
@@ -506,6 +507,39 @@ function AdminTeamSeasons({roles=[],user}) {
  useEffect(()=>{if(teamId){setSeasonId("");loadSeasons(teamId);loadAthletes()}else{setSeasons([]);setMembers([])}},[teamId]);
  useEffect(()=>{if(seasonId)loadMembers(seasonId);else setMembers([])},[seasonId]);
  const team=teams.find(t=>t.id===teamId),season=seasons.find(x=>x.id===seasonId),draft=season?.status==="draft";
+ const announcementMembers=members.filter(m=>["selected","retained"].includes(m.membership_status)).slice().sort((a,b)=>(a.squad_number??999)-(b.squad_number??999)||String(a.player_name||"").localeCompare(String(b.player_name||"")));
+ const announcementTeamName=season?.team_name_snapshot||team?.name||"CUT Team";
+ const announcementText=[
+  "CUT SPORT · THE BLUES",
+  announcementTeamName+" · "+(season?.season_label||"Current season"),
+  announcementTitle.trim()||"Squad announcement",
+  announcementMessage.trim(),
+  "",
+  "CONFIRMED SQUAD",
+  ...announcementMembers.map((m,i)=>(i+1)+". "+(m.player_name||"Athlete")+(m.squad_number!==null&&m.squad_number!==undefined?" · #"+m.squad_number:"")+(m.position?" · "+m.position:"")),
+  "",
+  "#CUTSport #TheBlues"
+ ].join("\\n");
+ function escapeAnnouncementHtml(value){return String(value??"").replace(/[&<>"']/g,char=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]));}
+ async function copySquadAnnouncement(){
+  if(season?.status!=="in_progress"||!announcementMembers.length)return;
+  try{await navigator.clipboard.writeText(announcementText);setNotice("Squad announcement copied. You can paste it into your approved CUT Sport communication channel.");}
+  catch(e){setError("Copy is unavailable in this browser. Use Share or Print instead.");}
+ }
+ async function shareSquadAnnouncement(){
+  if(season?.status!=="in_progress"||!announcementMembers.length)return;
+  try{
+   if(navigator.share){await navigator.share({title:announcementTeamName+" · Squad announcement",text:announcementText});setNotice("Share sheet opened for the squad announcement.");}
+   else{await navigator.clipboard.writeText(announcementText);setNotice("This browser does not offer a share sheet, so the announcement text was copied instead.");}
+  }catch(e){if(e?.name!=="AbortError")setError("The announcement could not be shared from this browser.");}
+ }
+ function printGeneratedSquadAnnouncement(){
+  if(season?.status!=="in_progress"||!announcementMembers.length)return;
+  const esc=escapeAnnouncementHtml;
+  const players=announcementMembers.map((m,i)=>'<li><b>'+esc(m.player_name||"Athlete")+'</b>'+(m.squad_number!==null&&m.squad_number!==undefined?' · #'+esc(m.squad_number):"")+(m.position?' · '+esc(m.position):"")+'</li>').join("");
+  const content='<p><b>'+esc(announcementTeamName)+'</b> · Season '+esc(season.season_label||"—")+'</p><h2>'+esc(announcementTitle.trim()||"Squad announcement")+'</h2><p>'+esc(announcementMessage.trim()).replace(/\\n/g,"<br>")+'</p><h2>Confirmed squad · '+announcementMembers.length+' athletes</h2><ol>'+players+'</ol><p class="muted">This announcement is generated from the active team season roster. Check the latest team communication before distribution.</p>';
+  if(!openCutPrintableReport(announcementTeamName+" · Squad announcement","CUT SPORT · DIGITAL SQUAD ANNOUNCEMENT",content,false,{report_type:"squad_announcement",scope_label:announcementTeamName+" · "+season.season_label,season_id:season.id,period_start:season.starts_on||null,period_end:season.ends_on||null}))setError("Allow pop-ups for CUT Sport to print the squad announcement.");
+ }
  async function createSeason(e){
   e.preventDefault();if(!team||!seasonLabel.trim()||busy)return;
   setBusy(true);setError("");setNotice("");
@@ -568,6 +602,17 @@ function AdminTeamSeasons({roles=[],user}) {
    {draft&&<button className="btn primary" type="button" disabled={busy||!members.some(m=>["selected","retained"].includes(m.membership_status))} onClick={submitSquad}>Submit squad & activate hub</button>}
    {season.status==="in_progress"&&<><Link className="btn primary" to={"/team-hub/"+season.id}>Open active team hub</Link><button className="btn secondary" type="button" disabled={busy} onClick={completeSeason}>Complete season</button></>}
   </div></Section>}
+  {season?.status==="in_progress"&&announcementMembers.length>0&&<Section title="Digital squad announcement generator">
+   <p className="muted">Prepare a share-ready announcement from this active season's confirmed roster. Only selected and retained season members are included; draft applicants and released players are excluded.</p>
+   <div className="form-card">
+    <div className="performance-metric-chips"><span><b>{announcementMembers.length}</b> Confirmed squad members</span><span><b>{season.season_label}</b> Active season</span></div>
+    <label>Announcement headline<input maxLength="120" value={announcementTitle} onChange={e=>setAnnouncementTitle(e.target.value)} placeholder="Our squad is set!"/></label>
+    <label>Announcement message<textarea rows={3} maxLength={1200} value={announcementMessage} onChange={e=>setAnnouncementMessage(e.target.value)} placeholder="Write a message to athletes and supporters."/></label>
+    <div className="performance-record"><span className="eyebrow">CUT SPORT · THE BLUES</span><h3>{announcementTeamName} · {season.season_label}</h3><h2>{announcementTitle.trim()||"Squad announcement"}</h2><p>{announcementMessage||"Add an announcement message above."}</p><h3>Confirmed squad</h3><ol>{announcementMembers.map((m,i)=><li key={m.id}>{m.player_name||"Athlete"}{m.squad_number!==null&&m.squad_number!==undefined?" · #"+m.squad_number:""}{m.position?" · "+m.position:""}</li>)}</ol><small className="muted">Generated from the active season roster · {announcementMembers.length} members</small></div>
+    <div className="review-actions"><button type="button" className="btn secondary" disabled={!announcementMembers.length} onClick={copySquadAnnouncement}>Copy announcement text</button><button type="button" className="btn secondary" disabled={!announcementMembers.length} onClick={shareSquadAnnouncement}>Share announcement</button><button type="button" className="btn primary" disabled={!announcementMembers.length} onClick={printGeneratedSquadAnnouncement}>Print branded announcement</button></div>
+    <small className="muted">Sharing uses your device's share sheet when supported. Otherwise, the text is copied. This tool does not publish automatically to CUT Sport social accounts.</small>
+   </div>
+  </Section>}
   <div className="admin-notice"><ShieldCheck/><div><b>Season access rules</b><p>Only approved athletes whose canonical player profile is claimed by their own account can participate. Coaches and team managers retain access to previous seasons. Completed seasons are read-only for players; a newly submitted squad activates the next season.</p></div></div>
  </main></>;
 }
