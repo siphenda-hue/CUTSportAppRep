@@ -1084,6 +1084,23 @@ function AdminRecruitment({roles,user}) {
  }
  useEffect(()=>{load()},[allowed]);
  const availableTeams=teams.filter(t=>!form.sport_id||t.sport_id===form.sport_id);
+ const completenessFor=a=>{
+  const missing=[];
+  if(!a.player_profile_id)missing.push("Canonical player profile link");
+  if(!a.team_id)missing.push("Primary team");
+  if(!a.position)missing.push("Position / event");
+  if(a.squad_number===null||a.squad_number===undefined)missing.push("Squad number");
+  return missing;
+ };
+ const incompleteItems=items.map(a=>({...a,missingFields:completenessFor(a)})).filter(a=>a.missingFields.length>0);
+ const completenessCounts={
+  total:items.length,
+  complete:items.length-incompleteItems.length,
+  missingProfile:items.filter(a=>!a.player_profile_id).length,
+  missingTeam:items.filter(a=>!a.team_id).length,
+  missingPosition:items.filter(a=>!a.position).length,
+  missingNumber:items.filter(a=>a.squad_number===null||a.squad_number===undefined).length
+ };
  async function create(e){
   e.preventDefault();if(!allowed||!user?.id)return;
   setBusy(true);setError("");setNotice("");
@@ -1397,7 +1414,7 @@ function AdminAthletes({roles,user}) {
   const [s,t,a,p]=await Promise.all([
    supabase.from("sports").select("id,name").eq("is_active",true).order("display_order"),
    supabase.from("teams").select("id,name,sport_id,sports(name)").eq("is_active",true).order("name"),
-   supabase.from("athletes").select("id,profile_id,sport_id,team_id,full_name,preferred_name,position,gender,nationality,hometown,province,faculty,qualification,year_of_study,student_status,years_representing_cut,previous_clubs,squad_number,bio,photo_url,is_featured,approval_status,profile_visibility,sports(name),teams(name)").order("full_name"),
+   supabase.from("athletes").select("id,profile_id,player_profile_id,sport_id,team_id,full_name,preferred_name,position,gender,nationality,hometown,province,faculty,qualification,year_of_study,student_status,years_representing_cut,previous_clubs,squad_number,bio,photo_url,is_featured,approval_status,profile_visibility,sports(name),teams(name)").order("full_name"),
    superAdmin?supabase.from("profiles").select("id,full_name,email,student_number").order("full_name"):Promise.resolve({data:[],error:null})
   ]);
   const failure=s.error||t.error||a.error||p.error;
@@ -1497,6 +1514,21 @@ function AdminAthletes({roles,user}) {
  <label>Profile visibility<select value={form.profile_visibility} onChange={e=>setForm({...form,profile_visibility:e.target.value})}><option value="public">Public after approval</option><option value="private">Private</option></select></label>
  <label className="check-label"><input type="checkbox" checked={Boolean(form.is_featured)} onChange={e=>setForm({...form,is_featured:e.target.checked})}/> Feature on sport profile</label>
  <button className="btn primary" disabled={busy||!sports.length}>{busy?"Saving…":editing?"Save athlete":"Register athlete"}</button>{editing&&<button type="button" onClick={reset}>Cancel edit</button>}{error&&<p className="form-error">{error}</p>}</form>
+ <Section title="Profile completeness">
+  <p className="muted">A review checklist for athlete records visible within your assigned sport and team permissions. Missing fields are flagged for administrators to verify; nothing is filled automatically.</p>
+  <div className="player-career-stats">
+   <article><b>{completenessCounts.total}</b><small>Visible athlete records</small></article>
+   <article><b>{completenessCounts.complete}</b><small>Core fields complete</small></article>
+   <article><b>{completenessCounts.missingProfile}</b><small>Missing canonical link</small></article>
+   <article><b>{completenessCounts.missingTeam}</b><small>Missing primary team</small></article>
+   <article><b>{completenessCounts.missingPosition}</b><small>Missing position / event</small></article>
+   <article><b>{completenessCounts.missingNumber}</b><small>Missing squad number</small></article>
+  </div>
+  {incompleteItems.length?incompleteItems.map(a=><article className="performance-record" key={"completeness-"+a.id}>
+   <div className="performance-record-head"><div><b>{a.preferred_name||a.full_name}</b><small>{a.sports?.name||"Sport not set"} · {a.teams?.name||"No primary team"} · {a.approval_status}</small></div><span className="order-status">{a.missingFields.length} item(s) to verify</span></div>
+   <p className="muted">{a.missingFields.join(" · ")}</p><button type="button" onClick={()=>edit(a)}>Review athlete record</button>
+  </article>):<Empty title="Core profile details complete" body="All athlete records visible to your account have a canonical player link, primary team, position / event and squad number."/>}
+ </Section>
  <Section title="Athlete records">{items.length?items.map(a=><div className="sponsor-card admin-sponsor" key={a.id}><div><b>{a.preferred_name||a.full_name}</b><small>{a.sports?.name||"Sport not set"} · {a.teams?.name||"No primary team"} · {a.approval_status}</small></div><button onClick={()=>edit(a)}>Edit</button><button disabled={membershipBusy} onClick={()=>openMemberships(a)}>Manage teams</button></div>):<Empty title="No athlete records" body="No athlete profiles are currently available within your assigned sport or team permissions."/>}</Section>
  {membershipAthlete&&<Section title={"Team memberships · "+(membershipAthlete.preferred_name||membershipAthlete.full_name)}>
   <div className="form-card"><p className="muted">Add this athlete to another active team without changing their primary sport or existing memberships. Your account must have management permission for the destination team.</p>
