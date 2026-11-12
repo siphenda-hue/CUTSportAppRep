@@ -828,9 +828,17 @@ function TeamHub({user,roles=[]}) {
    supabase.from("team_hub_practice_attendance").select("id,practice_post_id,season_member_id,status,note,marked_by,marked_at").eq("season_id",seasonId),
    supabase.from("team_hub_player_development_notes").select("id,season_member_id,review_date,category,progress_summary,development_focus,next_action,follow_up_on,created_by,created_at").eq("season_id",seasonId).order("review_date",{ascending:false}).order("created_at",{ascending:false})
   ]);
-  const failure=m.error||p.error||pl.error||prof.error||athletes.error||attendance.error||development.error;
+  const profileIds=(prof.data||[]).map(x=>x.id);
+  let linkedAthletes=athletes.data||[];
+  let linkedAthleteError=null;
+  if(profileIds.length){
+   const {data:profileLinked,error:profileLinkError}=await supabase.from("athletes").select("id,player_profile_id").in("player_profile_id",profileIds);
+   linkedAthleteError=profileLinkError;
+   if(profileLinked)linkedAthletes=[...linkedAthletes,...profileLinked];
+  }
+  const failure=m.error||p.error||pl.error||prof.error||athletes.error||linkedAthleteError||attendance.error||development.error;
   if(failure)setError(failure.message);
-  setSeason(s);setMembers(m.data||[]);setPosts(p.data||[]);setPolls(pl.data||[]);setAttendanceRows(attendance.data||[]);setDevelopmentNotes(development.data||[]);setMyProfiles((prof.data||[]).map(x=>x.id));setMyAthletes(athletes.data||[]);
+  setSeason(s);setMembers(m.data||[]);setPosts(p.data||[]);setPolls(pl.data||[]);setAttendanceRows(attendance.data||[]);setDevelopmentNotes(development.data||[]);setMyProfiles(profileIds);setMyAthletes([...new Map(linkedAthletes.map(a=>[a.id,a])).values()]);
   let canViewStaffRecords=roles.some(r=>["super_admin","sport_admin"].includes(r));
   if(!canViewStaffRecords){const {data:assignments}=await supabase.from("sport_admin_assignments").select("assignment_role,starts_on,ends_on,is_active").eq("admin_profile_id",user.id).eq("sport_id",s.sport_id).eq("team_id",s.team_id).eq("is_active",true);const today=localDateKey();canViewStaffRecords=(assignments||[]).some(x=>["coach","team_manager"].includes(x.assignment_role)&&(!x.starts_on||x.starts_on<=today)&&(!x.ends_on||x.ends_on>=today));}
   setStaffScope(canViewStaffRecords);
