@@ -476,10 +476,11 @@ function AdminTeamSeasons({roles=[],user}) {
   if(e)setError(e.message);else setMembers(data||[]);
  }
  async function loadAthletes(){
-  const {data,error:e}=await supabase.from("athletes").select("id,full_name,preferred_name,position,squad_number,player_profile_id,approval_status").eq("approval_status","approved").order("full_name").limit(1000);
+  const selected=teams.find(t=>t.id===teamId);if(!selected)return;
+  const {data,error:e}=await supabase.from("athletes").select("id,full_name,preferred_name,position,squad_number,player_profile_id,approval_status").eq("approval_status","approved").eq("sport_id",selected.sport_id).order("full_name").limit(1000);
   if(e)setError(e.message);else setAthletes(data||[]);
  }
- useEffect(()=>{loadTeams()},[allowed,user?.id]);
+ useEffect(()=>{loadTeams()},[allowed,user?.id,roles.join("|")]);
  useEffect(()=>{if(teamId){setSeasonId("");loadSeasons(teamId);loadAthletes()}else{setSeasons([]);setMembers([])}},[teamId]);
  useEffect(()=>{if(seasonId)loadMembers(seasonId);else setMembers([])},[seasonId]);
  const team=teams.find(t=>t.id===teamId),season=seasons.find(x=>x.id===seasonId),draft=season?.status==="draft";
@@ -559,7 +560,7 @@ function TeamHub({user,roles=[]}) {
   const {data:s,error:se}=await supabase.from("team_hub_seasons").select("id,team_id,sport_id,season_label,status,starts_on,ends_on,teams(name,sports(name))").eq("id",seasonId).maybeSingle();
   if(se||!s){setError(se?.message||"This team hub is unavailable or you are not authorised to view it.");setSeason(null);setBusy(false);return;}
   const [m,p,pl,prof]=await Promise.all([
-   supabase.from("team_hub_season_members").select("id,athlete_id,player_profile_id,membership_status,position,squad_number,athletes(full_name,preferred_name)").eq("season_id",seasonId).in("membership_status",["selected","retained"]),
+   supabase.from("team_hub_season_members").select("id,athlete_id,player_profile_id,player_name,membership_status,position,squad_number").eq("season_id",seasonId).in("membership_status",["selected","retained"]),
    supabase.from("team_hub_posts").select("id,post_type,status,title,body,starts_at,ends_at,venue,status_note,created_at,updated_at,created_by").eq("season_id",seasonId).order("created_at",{ascending:false}).limit(100),
    supabase.from("team_hub_polls").select("id,poll_type,question,status,closes_at,created_at").eq("season_id",seasonId).order("created_at",{ascending:false}).limit(100),
    supabase.from("player_profiles").select("id").eq("claimed_by",user.id)
