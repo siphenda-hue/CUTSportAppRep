@@ -1019,7 +1019,7 @@ function AdminVerificationCentre({roles}) {
     <div className="performance-record-head"><div><b>{a.preferred_name||a.full_name}</b><small>{a.sports?.name||"Sport not recorded"}{a.teams?.name?" · "+a.teams.name:""}</small></div><span className="status-pill">Pending approval</span></div>
     <p>{a.position||"Position / event not recorded"} · {a.player_profile_id?"Canonical profile linked":"Canonical profile link missing"}</p>
     <Link className="btn secondary" to="/admin/athletes">Open athlete management</Link>
-   </article>):<Empty title="No pending athlete approvals" body="There are no pending athlete records in the scope available to your account."/ >}
+   </article>):<Empty title="No pending athlete approvals" body="There are no pending athlete records in the scope available to your account."/>}
    {roles.some(r=>["sport_admin","super_admin"].includes(r))&&<p><Link to="/admin/approvals">Open Athlete Approvals <ChevronRight size={15}/></Link></p>}
   </Section>
   <Section title="Canonical player-profile links">
@@ -1028,7 +1028,7 @@ function AdminVerificationCentre({roles}) {
     <div className="performance-record-head"><div><b>{a.full_name}</b><small>{a.sports?.name||"Sport not recorded"}{a.teams?.name?" · "+a.teams.name:""}</small></div><span className="status-pill">Not linked</span></div>
     <p>Review the source record and exact full-name identity before linking a canonical player profile.</p>
     <Link className="btn secondary" to="/admin/athletes">Review athlete record</Link>
-   </article>):<Empty title="All visible athletes have a canonical link" body="No missing player-profile links were found in the records visible to your account."/ >}
+   </article>):<Empty title="All visible athletes have a canonical link" body="No missing player-profile links were found in the records visible to your account."/>}
   </Section>
   {isSuper&&<Section title="Player ownership claims">
    <p className="muted">Only super administrators can review ownership claims. Open a claim’s existing player-profile review screen to approve or reject it.</p>
@@ -1036,7 +1036,7 @@ function AdminVerificationCentre({roles}) {
     <div className="performance-record-head"><div><b>{c.player_profiles?.full_name||"Player profile"}</b><small>Submitted {dateLabel(c.created_at)}</small></div><span className="status-pill">Pending claim</span></div>
     {c.evidence_note&&<p>Evidence supplied: {c.evidence_note}</p>}
     <Link className="btn primary" to={"/players/"+c.player_profile_id}>Review claim <ChevronRight size={15}/></Link>
-   </article>):<Empty title="No pending ownership claims" body="New player-profile ownership requests will appear here."/ >}
+   </article>):<Empty title="No pending ownership claims" body="New player-profile ownership requests will appear here."/>}
   </Section>}
   <div className="admin-notice"><ShieldCheck size={18}/><div><b>Identity protection</b><p>Exact full-name matches only. No fuzzy matching, automatic merges, profile reassignment or approval changes are performed by this dashboard.</p></div></div>
  </main></>;
@@ -1608,7 +1608,7 @@ function AdminAthletes({roles,user}) {
    </form>
   </div>
   {membershipError&&<p className="form-error">{membershipError}</p>}
-  {memberships.length?memberships.map(m=><article className="performance-record" key={m.id}><div className="performance-record-head"><div><b>{m.sports?.name||"Sport"} · {m.teams?.name||"Team"}</b><small>{m.position||"Position not set"}{m.squad_number!==null?" · #"+m.squad_number:""} · Joined {dateLabel(m.joined_at)}</small></div><span className={"order-status "+(m.is_active?"is-paid":"")}>{m.is_active?"Active":"Inactive"}</span></div>{!m.is_active&&m.left_at&&<p className="muted">Membership ended {dateLabel(m.left_at)}. You can reactivate it using the team selector.</p>}{m.is_active&&<button type="button" disabled={membershipBusy} onClick={()=>deactivateMembership(m)}>End membership</button>}</article>):<Empty title="No team memberships recorded" body="Add the athlete to one or more active teams. Existing primary-team details remain unchanged until separately edited."/ >}
+  {memberships.length?memberships.map(m=><article className="performance-record" key={m.id}><div className="performance-record-head"><div><b>{m.sports?.name||"Sport"} · {m.teams?.name||"Team"}</b><small>{m.position||"Position not set"}{m.squad_number!==null?" · #"+m.squad_number:""} · Joined {dateLabel(m.joined_at)}</small></div><span className={"order-status "+(m.is_active?"is-paid":"")}>{m.is_active?"Active":"Inactive"}</span></div>{!m.is_active&&m.left_at&&<p className="muted">Membership ended {dateLabel(m.left_at)}. You can reactivate it using the team selector.</p>}{m.is_active&&<button type="button" disabled={membershipBusy} onClick={()=>deactivateMembership(m)}>End membership</button>}</article>):<Empty title="No team memberships recorded" body="Add the athlete to one or more active teams. Existing primary-team details remain unchanged until separately edited."/>}
  </Section>}
  </main></>;
 }
