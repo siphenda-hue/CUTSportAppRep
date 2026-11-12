@@ -107,24 +107,21 @@ function MyTeam({user,roles=[]}) {
    if(memberFailure||teamMemberships.error){setError(memberFailure?.error?.message||teamMemberships.error?.message||"Your squad information could not be loaded.");setBusy(false);return;}
    const memberSeasonIds=memberResults.flatMap(x=>(x.data||[]).map(row=>row.season_id));
    const today=localDateKey(),staff=(assignments.data||[]).filter(a=>(!a.starts_on||a.starts_on<=today)&&(!a.ends_on||a.ends_on>=today));
-   const canSeeAll=roles.some(r=>["super_admin","sport_admin"].includes(r));
    const query=supabase.from("team_hub_seasons").select("id,team_id,sport_id,season_label,status,starts_on,ends_on,team_name_snapshot,team_category_snapshot,sports(name,slug),teams(name)").eq("status","in_progress").order("starts_on",{ascending:false});
    let visibleSeasonIds=[...new Set(memberSeasonIds)];
-   if(!canSeeAll){
-    const teamIds=[...new Set([...(staff.map(x=>x.team_id)),...(teamMemberships.data||[]).map(x=>x.team_id)].filter(Boolean))];
-    const sportIds=[...new Set(staff.filter(x=>!x.team_id).map(x=>x.sport_id).filter(Boolean))];
-    const lookups=[];
-    if(teamIds.length)lookups.push(supabase.from("team_hub_seasons").select("id").eq("status","in_progress").in("team_id",teamIds));
-    for(const sportId of sportIds)lookups.push(supabase.from("team_hub_seasons").select("id").eq("status","in_progress").eq("sport_id",sportId));
-    const lookupResults=await Promise.all(lookups);
-    if(!active)return;
-    const lookupFailure=lookupResults.find(x=>x.error);
-    if(lookupFailure){setError(lookupFailure.error.message);setBusy(false);return;}
-    visibleSeasonIds.push(...lookupResults.flatMap(x=>(x.data||[]).map(row=>row.id)));
-    visibleSeasonIds=[...new Set(visibleSeasonIds)];
-    if(!visibleSeasonIds.length){setSeasons([]);setMemberships(teamMemberships.data||[]);setBusy(false);return;}
-   }
-   const seasonQuery=canSeeAll?query:query.in("id",visibleSeasonIds);
+   const teamIds=[...new Set([...(staff.map(x=>x.team_id)),...(teamMemberships.data||[]).map(x=>x.team_id)].filter(Boolean))];
+   const sportIds=[...new Set(staff.filter(x=>!x.team_id).map(x=>x.sport_id).filter(Boolean))];
+   const lookups=[];
+   if(teamIds.length)lookups.push(supabase.from("team_hub_seasons").select("id").eq("status","in_progress").in("team_id",teamIds));
+   for(const sportId of sportIds)lookups.push(supabase.from("team_hub_seasons").select("id").eq("status","in_progress").eq("sport_id",sportId));
+   const lookupResults=await Promise.all(lookups);
+   if(!active)return;
+   const lookupFailure=lookupResults.find(x=>x.error);
+   if(lookupFailure){setError(lookupFailure.error.message);setBusy(false);return;}
+   visibleSeasonIds.push(...lookupResults.flatMap(x=>(x.data||[]).map(row=>row.id)));
+   visibleSeasonIds=[...new Set(visibleSeasonIds)];
+   if(!visibleSeasonIds.length){setSeasons([]);setMemberships(teamMemberships.data||[]);setBusy(false);return;}
+   const seasonQuery=query.in("id",visibleSeasonIds);
    const {data,error:seasonError}=await seasonQuery;
    if(!active)return;
    if(seasonError){setError(seasonError.message);setBusy(false);return;}
