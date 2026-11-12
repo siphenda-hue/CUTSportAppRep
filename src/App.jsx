@@ -46,13 +46,16 @@ function App() {
  const add=p=>{setCart(old=>{const found=old.find(x=>x.id===p.id);return found?old.map(x=>x.id===p.id?{...x,qty:x.qty+1}:x):[...old,{id:p.id,name:p.name,price_cents:p.price_cents,image_url:p.image_url,qty:1}]});setToast('Added to your bag');setTimeout(()=>setToast(''),2200)};
  const common={sports,teams,competitions,products,fixtures,articles,events,ticketTypes,sponsors,athletes,user,profile,roles,cart,setCart,add};
  return <div className="app-shell"><div className="app-frame"><Routes>
- <Route path="/" element={<Home {...common}/>}/><Route path="/shop" element={<Shop {...common}/>}/><Route path="/shop/:slug" element={<Product {...common}/>}/><Route path="/cart" element={<Cart {...common}/>}/><Route path="/checkout" element={<Checkout cart={cart} setCart={setCart} user={user}/>}/><Route path="/payment/:result" element={<PaymentReturn user={user} result="success" cart={cart} setCart={setCart}/>}/><Route path="/events/:id" element={<EventTickets events={events} ticketTypes={ticketTypes} user={user}/>}/><Route path="/calendar" element={<CalendarPage {...common}/>}/><Route path="/sport" element={<Sport {...common}/>}/><Route path="/sport/:slug" element={<Hub {...common}/>}/><Route path="/news" element={<News {...common}/>}/><Route path="/news/:slug" element={<Story {...common}/>}/><Route path="/sponsors" element={<Sponsors {...common}/>}/><Route path="/profile" element={<Profile {...common}/>}/><Route path="/players" element={<PlayerDirectory user={user}/>}/><Route path="/players/:id" element={<PlayerProfilePage user={user} roles={roles}/>}/><Route path="/team-hub/:seasonId" element={<TeamHub user={user} roles={roles}/>}/><Route path="/admin/team-seasons" element={<AdminTeamSeasons roles={roles} user={user}/>}/><Route path="/performance" element={<AthletePerformance user={user}/>}/><Route path="/trials" element={<Trials user={user} profile={profile}/>}/><Route path="/admin/recruitment" element={<AdminRecruitment roles={roles} user={user}/>}/><Route path="/admin" element={<AdminDashboard {...common}/>}/><Route path="/admin/overview" element={<AdminOverview {...common}/>}/><Route path="/admin/content-performance" element={<AdminContentPerformance roles={roles}/>}/><Route path="/admin/media-library" element={<AdminMediaLibrary roles={roles} user={user}/>}/><Route path="/admin/sports" element={<AdminSports roles={roles} user={user} setSports={setSports}/>}/><Route path="/admin/sponsors" element={<AdminSponsors user={user} roles={roles}/>}/><Route path="/admin/products" element={<AdminProducts roles={roles} products={products} setProducts={setProducts}/>}/><Route path="/admin/shop-orders" element={<AdminShopOrders roles={roles}/>}/><Route path="/admin/athletes" element={<AdminAthletes roles={roles} user={user}/>}/><Route path="/admin/verification" element={<AdminVerificationCentre roles={roles}/>}/><Route path="/admin/rosters" element={<AdminRosters roles={roles} user={user}/>}/><Route path="/admin/teams" element={<AdminTeams roles={roles} user={user}/>}/><Route path="/admin/performance" element={<AdminPerformance roles={roles}/>}/><Route path="/admin/reports" element={<AdminReports roles={roles}/>}/><Route path="/admin/planning" element={<AdminPlanningCentre roles={roles} user={user}/>}/><Route path="/admin/match-statistics" element={<AdminMatchStatistics roles={roles} user={user}/>}/><Route path="/admin/international-appearances" element={<AdminInternationalAppearances roles={roles} user={user}/>}/><Route path="/admin/player-awards" element={<AdminPlayerAwards roles={roles} user={user}/>}/><Route path="/admin/calendar" element={<AdminCalendar roles={roles} sports={sports}/>}/><Route path="/admin/operations" element={<AdminOperations roles={roles} user={user}/>}/><Route path="/admin/approvals" element={<AdminApprovals roles={roles} user={user}/>}/><Route path="/admin/messages" element={<AdminMessages roles={roles} user={user}/>}/><Route path="/messages" element={<AthleteMessages user={user}/>}/><Route path="/admin/ticket-gate" element={<AdminTicketGate roles={roles}/>}/><Route path="/admin/event-reports" element={<AdminEventReports roles={roles}/>}/><Route path="/admin/editorial" element={<AdminEditorial roles={roles} user={user} sports={sports}/>}/><Route path="/notifications" element={<Personal title="Notifications" user={user} kind="notifications"/>}/><Route path="/tickets" element={<Personal title="My tickets" user={user} kind="tickets"/>}/><Route path="/orders" element={<Personal title="My orders" user={user} kind="orders"/>}/><Route path="*" element={<Home {...common}/>}/>
+ <Route path="/" element={<Home {...common}/>}/><Route path="/shop" element={<Shop {...common}/>}/><Route path="/shop/:slug" element={<Product {...common}/>}/><Route path="/cart" element={<Cart {...common}/>}/><Route path="/checkout" element={<Checkout cart={cart} setCart={setCart} user={user}/>}/><Route path="/payment/:result" element={<PaymentReturn user={user} result="success" cart={cart} setCart={setCart}/>}/><Route path="/events/:id" element={<EventTickets events={events} ticketTypes={ticketTypes} user={user}/>}/><Route path="/calendar" element={<CalendarPage {...common}/>}/><Route path="/sport" element={<Sport {...common}/>}/><Route path="/sport/:slug" element={<Hub {...common}/>}/><Route path="/news" element={<News {...common}/>}/><Route path="/news/:slug" element={<Story {...common}/>}/><Route path="/sponsors" element={<Sponsors {...common}/>}/><Route path="/profile" element={<Profile {...common}/>}/><Route path="/players" element={<PlayerDirectory user={user}/>}/><Route path="/players/:id" element={<PlayerProfilePage user={user} roles={roles}/>}/><Route path="/team-hub/:seasonId" element={<TeamHub user={user} roles={roles}/>}/><Route path="/admin/team-seasons" element={<AdminTeamSeasons roles={roles} user={user}/>}/><Route path="/performance" element={<AthletePerformance user={user}/>}/><Route path="/trials" element={<Trials user={user} profile={profile}/>}/><Route path="/admin/recruitment" element={<AdminRecruitment roles={roles} user={user}/>}/><Route path="/admin" element={<AdminDashboard {...common}/>}/><Route path="/admin/overview" element={<AdminOverview {...common}/>}/><Route path="/admin/content-performance" element={<AdminContentPerformance roles={roles}/>}/><Route path="/admin/media-library" element={<AdminMediaLibrary roles={roles} user={user}/>}/><Route path="/admin/sports" element={<AdminSports roles={roles} user={user} setSports={setSports}/>}/><Route path="/admin/sponsors" element={<AdminSponsors user={user} roles={roles}/>}/><Route path="/admin/products" element={<AdminProducts roles={roles} products={products} setProducts={setProducts}/>}/><Route path="/admin/shop-orders" element={<AdminShopOrders roles={roles}/>}/><Route path="/admin/athletes" element={<AdminAthletes roles={roles} user={user}/>}/><Route path="/admin/verification" element={<AdminVerificationCentre roles={roles}/>}/><Route path="/admin/rosters" element={<AdminRosters roles={roles} user={user}/>}/><Route path="/admin/teams" element={<AdminTeams roles={roles} user={user}/>}/><Route path="/admin/performance" element={<AdminPerformance roles={roles}/>}/><Route path="/admin/reports" element={<AdminReports roles={roles}/>}/><Route path="/admin/planning" element={<AdminPlanningCentre roles={roles} user={user}/>}/><Route path="/admin/match-statistics" element={<AdminMatchStatistics roles={roles} user={user}/>}/><Route path="/admin/international-appearances" element={<AdminInternationalAppearances roles={roles} user={user}/>}/><Route path="/admin/player-awards" element={<AdminPlayerAwards roles={roles} user={user}/>}/><Route path="/admin/calendar" element={<AdminCalendar roles={roles} sports={sports}/>}/><Route path="/admin/operations" element={<AdminOperations roles={roles} user={user}/>}/><Route path="/admin/approvals" element={<AdminApprovals roles={roles} user={user}/>}/><Route path="/admin/messages" element={<AdminMessages roles={roles} user={user}/>}/><Route path="/messages" element={<AthleteMessages user={user}/>}/><Route path="/admin/ticket-gate" element={<AdminTicketGate roles={roles}/>}/><Route path="/admin/event-reports" element={<AdminEventReports roles={roles}/>}/><Route path="/admin/editorial" element={<AdminEditorial roles={roles} user={user} sports={sports}/>}/><Route path="/notifications" element={<Personal title="Notifications" user={user} kind="notifications"/>}/><Route path="/tickets" element={<Personal title="My tickets" user={user} kind="tickets"/>}/><Route path="/orders" element={<Personal title="My orders" user={user} kind="orders"/>}/><Route path="*" element={<NotFound/>}/>
  </Routes><BottomNav/>{cart.reduce((n,x)=>n+x.qty,0)>0&&<Link className="cart-fab" to="/cart" aria-label="Open shopping bag"><ShoppingBag size={18}/><span>{cart.reduce((n,x)=>n+x.qty,0)}</span></Link>}{toast&&<div className="toast">{toast}</div>}</div></div>;
 }
+function localDateKey(value=new Date()) { const d=new Date(value); return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-'); }
+function NotFound() { return <><Header title="Page not found" back/><main className="page"><div className="page-intro"><span className="eyebrow">CUT SPORT · THE BLUES</span><h1>We couldn't find that page.</h1><p>The link may have moved, or the address may be incorrect. Your CUT Sport journey is still here.</p></div><div className="review-actions"><Link className="btn primary" to="/">Back to home</Link><Link className="btn secondary" to="/sport">Explore sport</Link><Link className="btn secondary" to="/calendar">Open calendar</Link></div></main></>; }
 function Home({sports,products,fixtures,articles,events,sponsors}) {
- const upcoming=fixtures.filter(x=>['scheduled','live'].includes(x.status)).sort((a,b)=>new Date(a.starts_at)-new Date(b.starts_at)).slice(0,3);
+ const now=Date.now();
+ const upcoming=fixtures.filter(x=>x.status==='live'||(x.status==='scheduled'&&(!x.starts_at||new Date(x.starts_at).getTime()>=now))).sort((a,b)=>new Date(a.starts_at||'9999-12-31')-new Date(b.starts_at||'9999-12-31')).slice(0,3);
  const recentResults=fixtures.filter(x=>x.status==='completed').sort((a,b)=>new Date(b.starts_at)-new Date(a.starts_at)).slice(0,3);
- const todayKey=new Date().toISOString().slice(0,10);
+ const todayKey=localDateKey();
  const upcomingEvents=events.filter(e=>!e.starts_at||String(e.starts_at).slice(0,10)>=todayKey).sort((a,b)=>new Date(a.starts_at||0)-new Date(b.starts_at||0));
  return <><Header/><main className="page"><section className="hero"><span className="eyebrow">THE BLUES · CUT SPORT</span><h1>ONE CAMPUS.<br/><em>ONE TEAM.</em><br/>ONE BLUE.</h1><p>Every athlete. Every story. Every moment.</p><Link className="btn light" to="/sport">Explore CUT Sport <ChevronRight/></Link></section><div className="quick-links"><Link to="/calendar"><CalendarDays/>Calendar</Link><Link to="/sport"><Trophy/>Sport codes</Link><Link to="/trials"><ClipboardList/>Trials</Link><Link to="/news"><Newspaper/>News</Link><Link to="/players"><Users/>Athletes</Link><Link to="/shop"><ShoppingBag/>Shop</Link></div>
  <Section title="Sport codes" link="/sport"><div className="sport-grid">{sports.slice(0,6).map((s,i)=><Link className="sport-tile" to={'/sport/'+s.slug} key={s.id}><small>{String(i+1).padStart(2,'0')}</small><b>{s.name}</b><ChevronRight/></Link>)}</div></Section>
@@ -149,7 +152,7 @@ function CalendarPage({sports,fixtures,competitions,events}) {
   ...events.map(x=>({id:"event-"+x.id,type:"Event",title:x.title,sportId:x.sport_id,sport:sports.find(s=>s.id===x.sport_id)?.name||"All sports",date:x.starts_at,endDate:x.ends_at,venue:x.venue,status:"Published",detail:x.ticketed?"Ticketed event":"CUT Sport event"})),
   ...trials.map(x=>({id:"trial-"+x.id,type:"Trial",title:x.title,sportId:x.sport_id,sport:x.sports?.name||"CUT Sport",date:x.starts_at,venue:x.venue,status:"Open",detail:x.teams?.name||"Open recruitment"}))
  ];
- const todayKey=new Date().toISOString().slice(0,10);
+ const todayKey=localDateKey();
  const filtered=items.filter(x=>{
   if(!showPast&&x.date&&String(x.date).slice(0,10)<todayKey)return false;
   if(sportFilter!=="all"&&x.sportId!==sportFilter)return false;
@@ -485,7 +488,7 @@ function AdminTeamSeasons({roles=[],user}) {
  const [athletes,setAthletes]=useState([]),[members,setMembers]=useState([]),[seasonLabel,setSeasonLabel]=useState(""),[startsOn,setStartsOn]=useState(""),[endsOn,setEndsOn]=useState(""),[athleteId,setAthleteId]=useState("");
  const [busy,setBusy]=useState(false),[error,setError]=useState(""),[notice,setNotice]=useState("");
  const [announcementTitle,setAnnouncementTitle]=useState("Our squad is set!"),[announcementMessage,setAnnouncementMessage]=useState("Congratulations to every athlete selected to represent CUT Sport. We look forward to seeing you represent The Blues with pride.");
- const [socialPlatform,setSocialPlatform]=useState("Instagram"),[socialFormat,setSocialFormat]=useState("Post"),[socialDate,setSocialDate]=useState(new Date().toISOString().slice(0,10)),[socialTime,setSocialTime]=useState("18:00"),[socialIdea,setSocialIdea]=useState(""),[socialCaption,setSocialCaption]=useState(""),[socialPlan,setSocialPlan]=useState([]),[socialLoading,setSocialLoading]=useState(false),[socialSaving,setSocialSaving]=useState(false),[socialAssets,setSocialAssets]=useState([]),[socialAssetId,setSocialAssetId]=useState("");
+ const [socialPlatform,setSocialPlatform]=useState("Instagram"),[socialFormat,setSocialFormat]=useState("Post"),[socialDate,setSocialDate]=useState(localDateKey()),[socialTime,setSocialTime]=useState("18:00"),[socialIdea,setSocialIdea]=useState(""),[socialCaption,setSocialCaption]=useState(""),[socialPlan,setSocialPlan]=useState([]),[socialLoading,setSocialLoading]=useState(false),[socialSaving,setSocialSaving]=useState(false),[socialAssets,setSocialAssets]=useState([]),[socialAssetId,setSocialAssetId]=useState("");
  const superAdmin=roles.includes("super_admin"),sportAdmin=roles.includes("sport_admin"),canReview=superAdmin||sportAdmin;
  const allowed=!!user?.id;
  async function loadTeams(){
@@ -495,7 +498,7 @@ function AdminTeamSeasons({roles=[],user}) {
    supabase.from("sport_admin_assignments").select("team_id,sport_id,assignment_role,is_active,starts_on,ends_on").eq("admin_profile_id",user.id).eq("is_active",true)
   ]);
   if(t.error||a.error){setError(t.error?.message||a.error?.message);return;}
-  const today=new Date().toISOString().slice(0,10),assignments=a.data||[];
+  const today=localDateKey(),assignments=a.data||[];
   const visible=superAdmin?(t.data||[]):(t.data||[]).filter(team=>assignments.some(x=>(sportAdmin&&x.sport_id===team.sport_id&&(!x.team_id||x.team_id===team.id)||x.team_id===team.id&&["coach","team_manager"].includes(x.assignment_role))&&(!x.starts_on||x.starts_on<=today)&&(!x.ends_on||x.ends_on>=today)));
   setTeams(visible);if(!teamId&&visible.length)setTeamId(visible[0].id);
  }
@@ -720,7 +723,7 @@ function TeamHub({user,roles=[]}) {
  const [season,setSeason]=useState(null),[members,setMembers]=useState([]),[posts,setPosts]=useState([]),[polls,setPolls]=useState([]),[options,setOptions]=useState([]),[responses,setResponses]=useState([]),[attendanceRows,setAttendanceRows]=useState([]),[developmentNotes,setDevelopmentNotes]=useState([]),[playerActions,setPlayerActions]=useState([]),[myProfiles,setMyProfiles]=useState([]),[staffScope,setStaffScope]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState(""),[notice,setNotice]=useState("");
  const [postType,setPostType]=useState("practice"),[title,setTitle]=useState(""),[body,setBody]=useState(""),[startsAt,setStartsAt]=useState(""),[venue,setVenue]=useState("");
  const [pollType,setPollType]=useState("attendance"),[question,setQuestion]=useState(""),[pollOptions,setPollOptions]=useState("Attending\nNot attending\nUnsure"),[attendancePracticeId,setAttendancePracticeId]=useState("");
- const [reviewMemberId,setReviewMemberId]=useState(""),[reviewDate,setReviewDate]=useState(new Date().toISOString().slice(0,10)),[reviewCategory,setReviewCategory]=useState("technical"),[progressSummary,setProgressSummary]=useState(""),[developmentFocus,setDevelopmentFocus]=useState(""),[nextAction,setNextAction]=useState(""),[followUpOn,setFollowUpOn]=useState("");
+ const [reviewMemberId,setReviewMemberId]=useState(""),[reviewDate,setReviewDate]=useState(localDateKey()),[reviewCategory,setReviewCategory]=useState("technical"),[progressSummary,setProgressSummary]=useState(""),[developmentFocus,setDevelopmentFocus]=useState(""),[nextAction,setNextAction]=useState(""),[followUpOn,setFollowUpOn]=useState("");
  async function load(){
   if(!supabase||!user?.id){setSeason(null);setMembers([]);setPlayerActions([]);return;}
   setBusy(true);setError("");
@@ -738,7 +741,7 @@ function TeamHub({user,roles=[]}) {
   if(failure)setError(failure.message);
   setSeason(s);setMembers(m.data||[]);setPosts(p.data||[]);setPolls(pl.data||[]);setAttendanceRows(attendance.data||[]);setDevelopmentNotes(development.data||[]);setMyProfiles((prof.data||[]).map(x=>x.id));
   let canViewStaffRecords=roles.some(r=>["super_admin","sport_admin"].includes(r));
-  if(!canViewStaffRecords){const {data:assignments}=await supabase.from("sport_admin_assignments").select("assignment_role,starts_on,ends_on,is_active").eq("admin_profile_id",user.id).eq("sport_id",s.sport_id).eq("team_id",s.team_id).eq("is_active",true);const today=new Date().toISOString().slice(0,10);canViewStaffRecords=(assignments||[]).some(x=>["coach","team_manager"].includes(x.assignment_role)&&(!x.starts_on||x.starts_on<=today)&&(!x.ends_on||x.ends_on>=today));}
+  if(!canViewStaffRecords){const {data:assignments}=await supabase.from("sport_admin_assignments").select("assignment_role,starts_on,ends_on,is_active").eq("admin_profile_id",user.id).eq("sport_id",s.sport_id).eq("team_id",s.team_id).eq("is_active",true);const today=localDateKey();canViewStaffRecords=(assignments||[]).some(x=>["coach","team_manager"].includes(x.assignment_role)&&(!x.starts_on||x.starts_on<=today)&&(!x.ends_on||x.ends_on>=today));}
   setStaffScope(canViewStaffRecords);
   if(canViewStaffRecords){const {data:actionRows,error:actionError}=await supabase.from("coach_action_tasks").select("id,season_id,season_member_id,title,description,due_date,priority,status,created_at,completed_at,outcome_review,outcome_reviewed_at,outcome_reviewed_by,assigned_to,created_by,updated_at").eq("season_id",seasonId).order("created_at",{ascending:false});if(actionError){setError("Unable to load private player development actions: "+actionError.message);setPlayerActions([]);}else setPlayerActions(actionRows||[]);}else setPlayerActions([]);
   const pollIds=(pl.data||[]).map(x=>x.id);
@@ -996,7 +999,7 @@ function Profile({user,profile,roles}) {
   async function checkTeamHubAccess(){
    if(!user?.id||!supabase){setTeamHubAssignment(false);return;}
    const {data,error}=await supabase.from("sport_admin_assignments").select("assignment_role,starts_on,ends_on,is_active").eq("admin_profile_id",user.id).eq("is_active",true);
-   const today=new Date().toISOString().slice(0,10);
+   const today=localDateKey();
    if(active)setTeamHubAssignment(!error&&(data||[]).some(a=>["coach","team_manager"].includes(a.assignment_role)&&(!a.starts_on||a.starts_on<=today)&&(!a.ends_on||a.ends_on>=today)));
   }
   checkTeamHubAccess();return()=>{active=false;};
@@ -1749,7 +1752,7 @@ function AdminPlanningCentre({roles,user}) {
     .select("sport_id,team_id,assignment_role,starts_on,ends_on,is_active")
     .eq("admin_profile_id",user.id).eq("is_active",true);
    if(assignmentError){setError(assignmentError.message);setBusy(false);return;}
-   const today=new Date().toISOString().slice(0,10);
+   const today=localDateKey();
    assignments=(data||[]).filter(a=>(!a.starts_on||a.starts_on<=today)&&(!a.ends_on||a.ends_on>=today));
   }
   const {data:teamRows,error:teamError}=await supabase.from("teams")
@@ -1790,7 +1793,7 @@ function AdminPlanningCentre({roles,user}) {
     .in("task_id",taskIds).order("changed_at",{ascending:false}).limit(150);
    if(historyError){setError(historyError.message);setTaskHistory([]);}else setTaskHistory(historyRows||[]);
   }else setTaskHistory([]);
-  const today=new Date().toISOString().slice(0,10);
+  const today=localDateKey();
   const activeAssignments=(assignmentResult.data||[]).filter(a=>(!a.starts_on||a.starts_on<=today)&&(!a.ends_on||a.ends_on>=today)&&["coach","team_manager"].includes(a.assignment_role));
   const assigneeIds=[...new Set(activeAssignments.map(a=>a.admin_profile_id))];
   if(assigneeIds.length){
@@ -1931,7 +1934,7 @@ function AdminMediaLibrary({roles=[],user}) {
    supabase.from("sport_admin_assignments").select("team_id,sport_id,assignment_role,is_active,starts_on,ends_on").eq("admin_profile_id",user.id).eq("is_active",true)
   ]);
   if(t.error||a.error){setError(t.error?.message||a.error?.message);return;}
-  const today=new Date().toISOString().slice(0,10),assignments=a.data||[];
+  const today=localDateKey(),assignments=a.data||[];
   const visible=superAdmin?(t.data||[]):(t.data||[]).filter(x=>assignments.some(v=>(sportAdmin&&v.sport_id===x.sport_id&&(!v.team_id||v.team_id===x.id)||v.team_id===x.id&&["coach","team_manager"].includes(v.assignment_role))&&(!v.starts_on||v.starts_on<=today)&&(!v.ends_on||v.ends_on>=today)));
   setTeams(visible);
   if(!teamId&&visible.length)setTeamId(visible[0].id);
@@ -2639,7 +2642,7 @@ function AdminRosters({roles,user}) {
   const values={position:position.trim()||null,squad_number:number===""?null:Number(number)};
   if(values.squad_number!==null&&(!Number.isInteger(values.squad_number)||values.squad_number<0||values.squad_number>999)){setError("Squad number must be a whole number from 0 to 999.");setBusy(false);return}
   let result;
-  if(existing)result=await supabase.from("athlete_team_memberships").update({...values,is_active:true,left_at:null,joined_at:existing.is_active?existing.joined_at:new Date().toISOString().slice(0,10),updated_at:new Date().toISOString()}).eq("id",existing.id).select("id").maybeSingle();
+  if(existing)result=await supabase.from("athlete_team_memberships").update({...values,is_active:true,left_at:null,joined_at:existing.is_active?existing.joined_at:localDateKey(),updated_at:new Date().toISOString()}).eq("id",existing.id).select("id").maybeSingle();
   else result=await supabase.from("athlete_team_memberships").insert({athlete_id:athleteId,team_id:team.id,sport_id:team.sport_id,created_by:user.id,...values}).select("id").maybeSingle();
   if(result.error)setError(result.error.message);
   else if(!result.data)setError("No roster change was made. Confirm that you have management permission for this team.");
@@ -2659,7 +2662,7 @@ function AdminRosters({roles,user}) {
  async function endMember(m){
   if(!window.confirm("End this athlete's membership of "+(team?.name||"this team")+"? The membership history will be kept."))return;
   setBusy(true);setError("");setNotice("");
-  const {data,error}=await supabase.from("athlete_team_memberships").update({is_active:false,left_at:new Date().toISOString().slice(0,10),updated_at:new Date().toISOString()}).eq("id",m.id).eq("is_active",true).select("id").maybeSingle();
+  const {data,error}=await supabase.from("athlete_team_memberships").update({is_active:false,left_at:localDateKey(),updated_at:new Date().toISOString()}).eq("id",m.id).eq("is_active",true).select("id").maybeSingle();
   if(error)setError(error.message);else if(!data)setError("Membership was not changed. Check team-level permissions.");else{setNotice("Membership ended; its history has been retained.");await loadRoster()}
   setBusy(false);
  }
@@ -2748,7 +2751,7 @@ function AdminAthletes({roles,user}) {
      const team=teams.find(t=>t.id===form.team_id);
      const values={position:form.position.trim()||null,squad_number:form.squad_number===""?null:Number(form.squad_number)};
      const membershipResult=existing
-      ?await supabase.from("athlete_team_memberships").update({...values,is_active:true,joined_at:existing.is_active?existing.joined_at:new Date().toISOString().slice(0,10),left_at:null,updated_at:new Date().toISOString()}).eq("id",existing.id).select("id").maybeSingle()
+      ?await supabase.from("athlete_team_memberships").update({...values,is_active:true,joined_at:existing.is_active?existing.joined_at:localDateKey(),left_at:null,updated_at:new Date().toISOString()}).eq("id",existing.id).select("id").maybeSingle()
       :await supabase.from("athlete_team_memberships").insert({athlete_id:result.data.id,team_id:form.team_id,sport_id:team?.sport_id||form.sport_id,created_by:user.id,...values}).select("id").maybeSingle();
      if(membershipResult.error)membershipFailure=membershipResult.error.message;
      else if(!membershipResult.data)membershipFailure="Your account may not have permission to manage the selected team.";
@@ -2772,7 +2775,7 @@ function AdminAthletes({roles,user}) {
   const values={position:membershipPosition.trim()||null,squad_number:number};
   let result;
   if(existing){
-   result=await supabase.from("athlete_team_memberships").update({...values,is_active:true,joined_at:existing.is_active?existing.joined_at:new Date().toISOString().slice(0,10),left_at:null,updated_at:new Date().toISOString()}).eq("id",existing.id).select("id").maybeSingle();
+   result=await supabase.from("athlete_team_memberships").update({...values,is_active:true,joined_at:existing.is_active?existing.joined_at:localDateKey(),left_at:null,updated_at:new Date().toISOString()}).eq("id",existing.id).select("id").maybeSingle();
   }else{
    result=await supabase.from("athlete_team_memberships").insert({athlete_id:membershipAthlete.id,team_id:team.id,sport_id:team.sport_id,created_by:user.id,...values}).select("id").maybeSingle();
   }
@@ -2784,7 +2787,7 @@ function AdminAthletes({roles,user}) {
  async function deactivateMembership(membership){
   if(!supabase||membershipBusy)return;
   setMembershipBusy(true);setMembershipError("");
-  const {data,error}=await supabase.from("athlete_team_memberships").update({is_active:false,left_at:new Date().toISOString().slice(0,10),updated_at:new Date().toISOString()}).eq("id",membership.id).eq("is_active",true).select("id").maybeSingle();
+  const {data,error}=await supabase.from("athlete_team_memberships").update({is_active:false,left_at:localDateKey(),updated_at:new Date().toISOString()}).eq("id",membership.id).eq("is_active",true).select("id").maybeSingle();
   if(error)setMembershipError(error.message);else if(!data)setMembershipError("This membership was not changed. Check your team-level permissions.");
   else await openMemberships(membershipAthlete);
   setMembershipBusy(false);
@@ -2869,7 +2872,7 @@ function AdminSports({roles,user,setSports}) {
    .is("team_id",null).eq("is_active",true);
   if(assignmentError){setError(assignmentError.message);setEditableIds([])}
   else{
-   const today=new Date().toISOString().slice(0,10);
+   const today=localDateKey();
    setEditableIds((assignments||[]).filter(x=>(!x.starts_on||x.starts_on<=today)&&(!x.ends_on||x.ends_on>=today)).map(x=>x.sport_id));
   }
   setBusy(false);
@@ -3282,7 +3285,7 @@ function AdminInternationalAppearances({roles,user}) {
  const allowed=roles.some(r=>["sport_admin","super_admin"].includes(r));
  const isSuper=roles.includes("super_admin");
  const [players,setPlayers]=useState([]),[sports,setSports]=useState([]),[competitions,setCompetitions]=useState([]),[pending,setPending]=useState([]);
- const [playerId,setPlayerId]=useState(""),[sportId,setSportId]=useState(""),[country,setCountry]=useState("South Africa"),[nationalTeam,setNationalTeam]=useState(""),[eventName,setEventName]=useState(""),[competitionId,setCompetitionId]=useState(""),[season,setSeason]=useState(""),[appearanceDate,setAppearanceDate]=useState(new Date().toISOString().slice(0,10)),[opponent,setOpponent]=useState(""),[sourceUrl,setSourceUrl]=useState(""),[metricsText,setMetricsText]=useState("{}");
+ const [playerId,setPlayerId]=useState(""),[sportId,setSportId]=useState(""),[country,setCountry]=useState("South Africa"),[nationalTeam,setNationalTeam]=useState(""),[eventName,setEventName]=useState(""),[competitionId,setCompetitionId]=useState(""),[season,setSeason]=useState(""),[appearanceDate,setAppearanceDate]=useState(localDateKey()),[opponent,setOpponent]=useState(""),[sourceUrl,setSourceUrl]=useState(""),[metricsText,setMetricsText]=useState("{}");
  const [busy,setBusy]=useState(false),[error,setError]=useState(""),[message,setMessage]=useState("");
  async function load(){
   if(!supabase||!allowed)return;
