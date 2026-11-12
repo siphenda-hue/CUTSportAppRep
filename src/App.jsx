@@ -468,9 +468,9 @@ function AdminTeamSeasons({roles=[],user}) {
  async function loadSeasons(id=teamId){
   if(!supabase||!id){setSeasons([]);setSeasonId("");return;}
   const selectedTeam=teams.find(t=>t.id===id);if(!selectedTeam){setSeasons([]);return;}
-  const {data,error:e}=await supabase.from("team_hub_seasons").select("id,team_id,sport_id,season_label,status,starts_on,ends_on,squad_submitted_at,closed_at,team_name_snapshot,team_category_snapshot").eq("sport_id",selectedTeam.sport_id).order("created_at",{ascending:false});
-  if(e){setError(e.message);return;}const scoped=(data||[]).filter(row=>row.team_name_snapshot===selectedTeam.name&&row.team_category_snapshot===selectedTeam.category);setSeasons(scoped);
-  if(!seasonId&&data?.length)setSeasonId(data[0].id);else if(seasonId&&!data?.some(x=>x.id===seasonId))setSeasonId(data?.[0]?.id||"");
+  const {data,error:e}=await supabase.from("team_hub_seasons").select("id,team_id,sport_id,season_label,status,starts_on,ends_on,squad_submitted_at,closed_at,team_name_snapshot,team_category_snapshot").eq("team_id",selectedTeam.id).eq("sport_id",selectedTeam.sport_id).order("created_at",{ascending:false});
+  if(e){setError(e.message);return;}const scoped=data||[];setSeasons(scoped);
+  if(!seasonId&&scoped.length)setSeasonId(scoped[0].id);else if(seasonId&&!scoped.some(x=>x.id===seasonId))setSeasonId(scoped[0]?.id||"");
  }
  async function loadMembers(id=seasonId){
   if(!supabase||!id){setMembers([]);return;}
@@ -479,7 +479,7 @@ function AdminTeamSeasons({roles=[],user}) {
  }
  async function loadAthletes(){
   const selected=teams.find(t=>t.id===teamId);if(!selected)return;
-  const {data,error:e}=await supabase.from("athletes").select("id,full_name,preferred_name,position,squad_number,player_profile_id,approval_status").eq("approval_status","approved").eq("sport_id",selected.sport_id).order("full_name").limit(1000);
+  const {data,error:e}=await supabase.from("athletes").select("id,full_name,preferred_name,position,squad_number,player_profile_id,approval_status").eq("approval_status","approved").eq("sport_id",selected.sport_id).eq("team_id",selected.id).order("full_name").limit(1000);
   if(e)setError(e.message);else setAthletes(data||[]);
  }
  useEffect(()=>{loadTeams()},[allowed,user?.id,roles.join("|")]);
