@@ -1,7 +1,22 @@
 import React from 'react';
-import { Home, ShoppingBag, Trophy, UserRound } from 'lucide-react';
+import { Home, Trophy, CalendarDays, UserRound } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
+
 export default function BottomNav() {
-  const items = [{ to: '/', label: 'Home', Icon: Home }, { to: '/shop', label: 'Shop', Icon: ShoppingBag }, { to: '/sport', label: 'Sport', Icon: Trophy }, { to: '/profile', label: 'Profile', Icon: UserRound }];
-  return <nav className="bottom-nav">{items.map(({ to, label, Icon }) => <NavLink key={to} to={to} end={to === '/'} className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}><Icon size={20}/><span>{label}</span></NavLink>)}</nav>;
+  const items = [
+    { to: '/', label: 'Home', Icon: Home, end: true },
+    { to: '/sport', label: 'Sport', Icon: Trophy },
+    { to: '/calendar', label: 'Calendar', Icon: CalendarDays },
+    { to: '/profile', label: 'Me', Icon: UserRound }
+  ];
+  return (
+    <nav className="bottom-nav" aria-label="Main navigation">
+      {items.map(({ to, label, Icon, end }) => (
+        <NavLink key={to} to={to} end={end} className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
+          <Icon size={20} aria-hidden="true"/>
+          <span>{label}</span>
+        </NavLink>
+      ))}
+    </nav>
+  );
 }
