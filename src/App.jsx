@@ -1280,13 +1280,13 @@ function AdminPlanningCentre({roles,user}) {
  const missingNumber=activeMembers.filter(m=>m.squad_number===null||m.squad_number===undefined).length;
  const missingProfile=activeMembers.filter(m=>!m.athletes?.player_profile_id).length;
  const openOpportunities=opportunities.filter(o=>o.status==="open").length;
- const pendingApplications=applications.filter(a=>["pending","submitted","under_review"].includes(a.status)).length;
+ const pendingApplications=applications.filter(a=>a.status==="submitted").length;
  const teamReadiness=teams.map(t=>{
   const roster=activeMembers.filter(m=>m.team_id===t.id);
   const complete=roster.filter(m=>m.position?.trim()&&m.squad_number!==null&&m.squad_number!==undefined&&m.athletes?.player_profile_id).length;
   const pipeline=opportunities.filter(o=>o.team_id===t.id||(o.team_id===null&&o.sport_id===t.sport_id));
   const applicants=applications.filter(a=>pipeline.some(o=>o.id===a.opportunity_id));
-  return {...t,rosterCount:roster.length,complete,missing:roster.length-complete,opportunityCount:pipeline.length,applicantCount:applicants.length,pending:applicants.filter(a=>["pending","submitted","under_review"].includes(a.status)).length};
+  return {...t,rosterCount:roster.length,complete,missing:roster.length-complete,opportunityCount:pipeline.length,applicantCount:applicants.length,pending:applicants.filter(a=>a.status==="submitted").length};
  });
  const pct=activeMembers.length?Math.round(completeMembers.length/activeMembers.length*100):0;
  return <><Header title="Sport administration planning" back/><main className="page">
@@ -1297,7 +1297,7 @@ function AdminPlanningCentre({roles,user}) {
    <div><b>{activeMembers.length}</b><small>Active roster memberships</small></div>
    <div><b>{pct}%</b><small>Core roster data complete</small></div>
    <div><b>{openOpportunities}</b><small>Open recruitment opportunities</small></div>
-   <div><b>{pendingApplications}</b><small>Applications awaiting review</small></div>
+   <div><b>{pendingApplications}</b><small>Submitted applications</small></div>
   </div>
   <Section title="Team readiness overview">{teamReadiness.length?<div className="metric-trend">{teamReadiness.map(t=><article className="performance-record" key={t.id}>
    <div className="performance-record-head"><div><b>{t.name}</b><small>{t.sports?.name||"Sport"} · {t.category||"Category not recorded"} · {t.season||"Season not recorded"}</small></div><span className="status-pill">{t.rosterCount} active</span></div>
@@ -1308,8 +1308,8 @@ function AdminPlanningCentre({roles,user}) {
   <Section title="Squad data completeness">{activeMembers.length?<><p className="muted">A roster record is counted as core-complete only when its position, squad number and canonical player-profile link are present. This is a data-quality check, not a judgement of athlete readiness or selection.</p><div className="performance-metric-chips"><span><b>{completeMembers.length}</b> complete</span><span><b>{missingPosition}</b> missing position</span><span><b>{missingNumber}</b> missing squad number</span><span><b>{missingProfile}</b> missing canonical profile</span></div><p className="muted">Use <Link to="/admin/rosters">Team rosters</Link> to correct approved membership details and <Link to="/admin/verification">Athlete Verification Centre</Link> to review canonical profile links.</p></>:<Empty title="No active roster memberships" body="No roster completeness percentage is calculated until active team membership records are available in this scope."/>}</Section>
   <Section title="Recruitment workflow">{opportunities.length?<div className="metric-trend">{opportunities.map(o=>{
    const apps=applications.filter(a=>a.opportunity_id===o.id);
-   const pending=apps.filter(a=>["pending","submitted","under_review"].includes(a.status)).length;
-   return <article className="performance-record" key={o.id}><div className="performance-record-head"><div><b>{o.title}</b><small>{o.sports?.name||"Sport"} · {o.teams?.name||"Sport-wide opportunity"}</small></div><span className="status-pill">{o.status}</span></div><div className="performance-metric-chips"><span><b>{apps.length}</b> applications</span><span><b>{pending}</b> awaiting review</span><span><b>{apps.filter(a=>a.status==="selected").length}</b> selected</span></div><small className="muted">{o.closes_at?"Closes "+dateLabel(o.closes_at):"No closing date recorded"}</small></article>;
+   const pending=apps.filter(a=>a.status==="submitted").length;
+   return <article className="performance-record" key={o.id}><div className="performance-record-head"><div><b>{o.title}</b><small>{o.sports?.name||"Sport"} · {o.teams?.name||"Sport-wide opportunity"}</small></div><span className="status-pill">{o.status}</span></div><div className="performance-metric-chips"><span><b>{apps.length}</b> applications</span><span><b>{pending}</b> awaiting review</span><span><b>{apps.filter(a=>a.status==="shortlisted").length}</b> shortlisted</span><span><b>{apps.filter(a=>a.status==="selected").length}</b> selected</span></div><small className="muted">{o.closes_at?"Closes "+dateLabel(o.closes_at):"No closing date recorded"}</small></article>;
   })}</div>:<Empty title="No recruitment opportunities in scope" body="Recruitment activity will appear here when a real opportunity is created for an assigned team or sport."/>}
    <p className="muted">Manage opportunities, applicant reviews and evaluation criteria in <Link to="/admin/recruitment">Trials & recruitment</Link>.</p>
   </Section>
