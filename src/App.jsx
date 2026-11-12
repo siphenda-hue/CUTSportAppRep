@@ -59,8 +59,8 @@ function App() {
   return()=>{active=false;};
  },[dataRefresh]);
  useEffect(()=>{localStorage.setItem('cut-cart',JSON.stringify(cart))},[cart]);
- useEffect(()=>{if(!supabase)return;supabase.auth.getSession().then(({data})=>setUser(data.session?.user||null));const {data:{subscription}}=supabase.auth.onAuthStateChange((_e,session)=>setUser(session?.user||null));return()=>subscription.unsubscribe()},[]);
- useEffect(()=>{if(!user){setProfile(null);setRoles([]);return}Promise.all([api.profile(user.id),api.roles(user.id)]).then(([p,r])=>{setProfile(p.data);setRoles((r.data||[]).map(x=>x.role))})},[user]);
+ useEffect(()=>{if(!supabase)return;let active=true;supabase.auth.getSession().then(({data,error})=>{if(active&&!error)setUser(data.session?.user||null)});const {data:{subscription}}=supabase.auth.onAuthStateChange((_e,session)=>setUser(session?.user||null));return()=>{active=false;subscription.unsubscribe()}},[]);
+ useEffect(()=>{let active=true;if(!user){setProfile(null);setRoles([]);return()=>{active=false}}setProfile(null);setRoles([]);Promise.all([api.profile(user.id),api.roles(user.id)]).then(([p,r])=>{if(active){setProfile(p.data||null);setRoles((r.data||[]).map(x=>x.role))}}).catch(()=>{if(active){setProfile(null);setRoles([])}});return()=>{active=false}},[user?.id]);
  const add=p=>{setCart(old=>{const found=old.find(x=>x.id===p.id);return found?old.map(x=>x.id===p.id?{...x,qty:x.qty+1}:x):[...old,{id:p.id,name:p.name,price_cents:p.price_cents,image_url:p.image_url,qty:1}]});setToast('Added to your bag');setTimeout(()=>setToast(''),2200)};
  const common={sports,teams,competitions,products,fixtures,articles,events,ticketTypes,sponsors,athletes,user,profile,roles,cart,setCart,add,dataLoading,dataError,retryPublicData};
  return <div className="app-shell"><div className="app-frame">{dataLoading&&<p className="data-sync-note" role="status">Refreshing the latest CUT Sport information…</p>}{dataError&&<div className="data-sync-error" role="alert"><div><b>Some information is unavailable</b><p>{dataError}</p></div><button type="button" onClick={retryPublicData} className="btn secondary">Try again</button></div>}<Routes>
@@ -69,44 +69,68 @@ function App() {
 }
 function localDateKey(value=new Date()) { const d=new Date(value); return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-'); }
 function MyTeam({user,roles=[]}) {
- const [seasons,setSeasons]=useState([]),[busy,setBusy]=useState(true),[error,setError]=useState("");
+ const [seasons,setSeasons]=useState([]),[memberships,setMemberships]=useState([]),[busy,setBusy]=useState(true),[error,setError]=useState("");
  useEffect(()=>{
   let active=true;
   async function load(){
-   if(!user?.id||!supabase){setSeasons([]);setBusy(false);return;}
+   if(!user?.id||!supabase){setSeasons([]);setMemberships([]);setBusy(false);return;}
    setBusy(true);setError("");
-   const [profiles,assignments]=await Promise.all([
+   const [profiles,athletes,assignments]=await Promise.all([
     supabase.from("player_profiles").select("id").eq("claimed_by",user.id),
+    supabase.from("athletes").select("id").eq("profile_id",user.id),
     supabase.from("sport_admin_assignments").select("sport_id,team_id,assignment_role,starts_on,ends_on,is_active").eq("admin_profile_id",user.id).eq("is_active",true)
    ]);
    if(!active)return;
-   if(profiles.error||assignments.error){setError(profiles.error?.message||assignments.error?.message||"Your team access could not be checked.");setBusy(false);return;}
+   const failed=[profiles,athletes,assignments].find(x=>x.error);
+   if(failed){setError(failed.error.message);setBusy(false);return;}
+   const playerIds=(profiles.data||[]).map(x=>x.id),athleteIds=(athletes.data||[]).map(x=>x.id);
+   const memberQueries=[];
+   if(playerIds.length)memberQueries.push(supabase.from("team_hub_season_members").select("season_id").in("player_profile_id",playerIds).in("membership_status",["selected","retained"]));
+   if(athleteIds.length)memberQueries.push(supabase.from("team_hub_season_members").select("season_id").in("athlete_id",athleteIds).in("membership_status",["selected","retained"]));
+   const [memberResults,teamMemberships]=await Promise.all([
+    Promise.all(memberQueries),
+    athleteIds.length
+     ?supabase.from("athlete_team_memberships").select("id,team_id,sport_id,position,squad_number,joined_at,teams(id,name,sport_id,sports(name,slug))").in("athlete_id",athleteIds).eq("is_active",true).order("joined_at",{ascending:false})
+     :Promise.resolve({data:[],error:null})
+   ]);
+   if(!active)return;
+   const memberFailure=memberResults.find(x=>x.error);
+   if(memberFailure||teamMemberships.error){setError(memberFailure?.error?.message||teamMemberships.error?.message||"Your squad information could not be loaded.");setBusy(false);return;}
+   const memberSeasonIds=memberResults.flatMap(x=>(x.data||[]).map(row=>row.season_id));
    const today=localDateKey(),staff=(assignments.data||[]).filter(a=>(!a.starts_on||a.starts_on<=today)&&(!a.ends_on||a.ends_on>=today));
    const canSeeAll=roles.some(r=>["super_admin","sport_admin"].includes(r));
-   const playerIds=(profiles.data||[]).map(x=>x.id);
-   let memberSeasonIds=[];
-   if(playerIds.length){
-    const {data,error:e}=await supabase.from("team_hub_season_members").select("season_id").in("player_profile_id",playerIds).in("membership_status",["selected","retained"]);
-    if(e){setError(e.message);setBusy(false);return;}
-    memberSeasonIds=(data||[]).map(x=>x.season_id);
-   }
-   let query=supabase.from("team_hub_seasons").select("id,team_id,sport_id,season_label,status,starts_on,ends_on,team_name_snapshot,team_category_snapshot,sports(name)").eq("status","in_progress").order("starts_on",{ascending:false});
+   const query=supabase.from("team_hub_seasons").select("id,team_id,sport_id,season_label,status,starts_on,ends_on,team_name_snapshot,team_category_snapshot,sports(name,slug),teams(name)").eq("status","in_progress").order("starts_on",{ascending:false});
+   let visibleSeasonIds=[...new Set(memberSeasonIds)];
    if(!canSeeAll){
-    if(staff.length){const teamIds=[...new Set(staff.map(x=>x.team_id).filter(Boolean))];const sportIds=[...new Set(staff.filter(x=>!x.team_id).map(x=>x.sport_id))];let staffSeasonIds=[];
-     if(teamIds.length){const {data,error:e}=await supabase.from("team_hub_seasons").select("id").eq("status","in_progress").in("team_id",teamIds);if(e){setError(e.message);setBusy(false);return;}staffSeasonIds=(data||[]).map(x=>x.id);}
-     for(const sportId of sportIds){const {data,error:e}=await supabase.from("team_hub_seasons").select("id").eq("status","in_progress").eq("sport_id",sportId);if(e){setError(e.message);setBusy(false);return;}staffSeasonIds.push(...(data||[]).map(x=>x.id));}
-     const ids=[...new Set([...memberSeasonIds,...staffSeasonIds])];if(!ids.length){setSeasons([]);setBusy(false);return;}query=query.in("id",ids);
-    }else{if(!memberSeasonIds.length){setSeasons([]);setBusy(false);return;}query=query.in("id",memberSeasonIds);}
+    const teamIds=[...new Set([...(staff.map(x=>x.team_id)),...(teamMemberships.data||[]).map(x=>x.team_id)].filter(Boolean))];
+    const sportIds=[...new Set(staff.filter(x=>!x.team_id).map(x=>x.sport_id).filter(Boolean))];
+    const lookups=[];
+    if(teamIds.length)lookups.push(supabase.from("team_hub_seasons").select("id").eq("status","in_progress").in("team_id",teamIds));
+    for(const sportId of sportIds)lookups.push(supabase.from("team_hub_seasons").select("id").eq("status","in_progress").eq("sport_id",sportId));
+    const lookupResults=await Promise.all(lookups);
+    if(!active)return;
+    const lookupFailure=lookupResults.find(x=>x.error);
+    if(lookupFailure){setError(lookupFailure.error.message);setBusy(false);return;}
+    visibleSeasonIds.push(...lookupResults.flatMap(x=>(x.data||[]).map(row=>row.id)));
+    visibleSeasonIds=[...new Set(visibleSeasonIds)];
+    if(!visibleSeasonIds.length){setSeasons([]);setMemberships(teamMemberships.data||[]);setBusy(false);return;}
    }
-   const {data,error:e}=await query;
+   const seasonQuery=canSeeAll?query:query.in("id",visibleSeasonIds);
+   const {data,error:seasonError}=await seasonQuery;
    if(!active)return;
-   if(e)setError(e.message);else setSeasons(data||[]);
+   if(seasonError){setError(seasonError.message);setBusy(false);return;}
+   setSeasons(data||[]);
+   setMemberships(teamMemberships.data||[]);
    setBusy(false);
   }
-  load();return()=>{active=false;};
+  load();
+  return()=>{active=false;};
  },[user?.id,roles.join("|")]);
  return <><Header title="My team"/><main className="page"><div className="page-intro"><span className="eyebrow">CUT SPORT · YOUR SQUAD</span><h1>Your team, in one place.</h1><p>Team announcements, training updates, attendance and squad information from your active team hub.</p></div>
- {!user?<><Empty title="Sign in to see your team" body="Sign in with your CUT Sport account to view a team you have been selected for or assigned to manage."/><Link className="btn primary" to="/profile">Sign in</Link></>:busy?<p className="muted">Checking your active team access…</p>:error?<p className="form-error">{error}</p>:seasons.length?seasons.map(s=><article className="event-card my-team-card" key={s.id}><span className="eyebrow">{s.sports?.name||"CUT SPORT"} · ACTIVE SEASON</span><h2>{s.team_name_snapshot||"CUT Team"}</h2><p>{s.season_label}{s.team_category_snapshot?" · "+s.team_category_snapshot:""}</p><Link className="btn primary" to={"/team-hub/"+s.id}>Open team hub <ChevronRight size={16}/></Link></article>):<><Empty title="No active team hub linked yet" body="When your coach selects you for a squad and links your athlete profile to your CUT Sport account, your team updates will appear here."/><div className="review-actions"><Link className="btn primary" to="/trials">Explore trials</Link><Link className="btn secondary" to="/sport">Explore sport codes</Link></div></>}
+ {!user?<><Empty title="Sign in to see your team" body="Sign in with your CUT Sport account to view a team you have been selected for or assigned to manage."/><Link className="btn primary" to="/profile">Sign in</Link></>:busy?<p className="muted">Checking your active team access…</p>:error?<><p className="form-error">{error}</p><button type="button" className="btn secondary" onClick={()=>setBusy(true)}>Refresh by reopening this page</button></>:seasons.length||memberships.length?<>
+  {seasons.map(s=><article className="event-card my-team-card" key={s.id}><span className="eyebrow">{s.sports?.name||"CUT SPORT"} · ACTIVE SEASON</span><h2>{s.team_name_snapshot||s.teams?.name||"CUT Team"}</h2><p>{s.season_label}{s.team_category_snapshot?" · "+s.team_category_snapshot:""}</p><Link className="btn primary" to={"/team-hub/"+s.id}>Open team hub <ChevronRight size={16}/></Link></article>)}
+  {memberships.filter(m=>!seasons.some(s=>s.team_id===m.team_id)).map(m=><article className="event-card my-team-card" key={m.id}><span className="eyebrow">{m.teams?.sports?.name||"CUT SPORT"} · SQUAD MEMBERSHIP</span><h2>{m.teams?.name||"Your team"}</h2><p>{[m.position,m.squad_number?"#"+m.squad_number:null].filter(Boolean).join(" · ")||"Current team membership"}</p><Link className="btn secondary" to={m.teams?.sports?.slug?"/sport/"+m.teams.sports.slug:"/sport"}>Explore this sport <ChevronRight size={16}/></Link></article>)}
+ </>:<><Empty title="Your team space is not linked yet" body="Find your player profile and request a verified link. Once your coach selects you for a squad, your team hub and updates will appear here."/><div className="review-actions"><Link className="btn primary" to="/players">Find my athlete profile</Link><Link className="btn secondary" to="/trials">Explore trials</Link></div></>}
  </main></>;
 }
 function NotFound() { return <><Header title="Page not found" back/><main className="page"><div className="page-intro"><span className="eyebrow">CUT SPORT · THE BLUES</span><h1>We couldn't find that page.</h1><p>The link may have moved, or the address may be incorrect. Your CUT Sport journey is still here.</p></div><div className="review-actions"><Link className="btn primary" to="/">Back to home</Link><Link className="btn secondary" to="/sport">Explore sport</Link><Link className="btn secondary" to="/calendar">Open calendar</Link></div></main></>; }
@@ -1004,24 +1028,46 @@ function TeamHub({user,roles=[]}) {
  </main></>;}
 
 function AthletePerformance({user}) {
- const [athlete,setAthlete]=useState(null),[records,setRecords]=useState([]),[achievements,setAchievements]=useState([]);
+ const [athlete,setAthlete]=useState(null),[legacyProfile,setLegacyProfile]=useState(null),[records,setRecords]=useState([]),[achievements,setAchievements]=useState([]),[squadAppearances,setSquadAppearances]=useState([]);
  const [season,setSeason]=useState(""),[metric,setMetric]=useState(""),[busy,setBusy]=useState(false),[error,setError]=useState("");
  useEffect(()=>{
   let active=true;
   async function load(){
-   if(!supabase||!user?.id){setAthlete(null);setRecords([]);setAchievements([]);return;}
+   if(!supabase||!user?.id){setAthlete(null);setLegacyProfile(null);setRecords([]);setAchievements([]);setSquadAppearances([]);setBusy(false);return;}
    setBusy(true);setError("");
-   const {data:a,error:ae}=await supabase.from("athletes").select("id,full_name,preferred_name,position,squad_number,approval_status,sports(name),teams(name)").eq("profile_id",user.id).maybeSingle();
-   if(!active)return;
-   if(ae){setError(ae.message);setBusy(false);return;}
-   if(!a){setAthlete(null);setRecords([]);setAchievements([]);setBusy(false);return;}
-   const [stats,awards]=await Promise.all([
-    supabase.from("athlete_statistics").select("id,competition_id,fixture_id,season,period_label,metrics,created_at,competitions(name),fixtures(opponent,starts_at)").eq("athlete_id",a.id).eq("approval_status","approved").order("created_at",{ascending:true}).limit(500),
-    supabase.from("athlete_achievements").select("id,title,description,category,award_date,competition_id,created_at").eq("athlete_id",a.id).eq("review_status","approved").order("award_date",{ascending:false}).limit(100)
+   const [athleteResult,profileResult]=await Promise.all([
+    supabase.from("athletes").select("id,full_name,preferred_name,position,squad_number,approval_status,sports(name),teams(name)").eq("profile_id",user.id).maybeSingle(),
+    supabase.from("player_profiles").select("id,full_name,display_name,claimed_at").eq("claimed_by",user.id).limit(1).maybeSingle()
    ]);
    if(!active)return;
-   if(stats.error||awards.error)setError(stats.error?.message||awards.error?.message||"Unable to load performance data.");
-   setAthlete(a);setRecords(stats.data||[]);setAchievements(awards.data||[]);setBusy(false);
+   if(athleteResult.error||profileResult.error){setError(athleteResult.error?.message||profileResult.error?.message||"Unable to load your athlete profile.");setBusy(false);return;}
+   if(athleteResult.data){
+    const a=athleteResult.data;
+    const [stats,awards]=await Promise.all([
+     supabase.from("athlete_statistics").select("id,competition_id,fixture_id,season,period_label,metrics,created_at,competitions(name),fixtures(opponent,starts_at)").eq("athlete_id",a.id).eq("approval_status","approved").order("created_at",{ascending:true}).limit(500),
+     supabase.from("athlete_achievements").select("id,title,description,category,award_date,competition_id,created_at").eq("athlete_id",a.id).eq("review_status","approved").order("award_date",{ascending:false}).limit(100)
+    ]);
+    if(!active)return;
+    if(stats.error||awards.error)setError(stats.error?.message||awards.error?.message||"Unable to load approved performance data.");
+    setAthlete(a);setLegacyProfile(null);setRecords(stats.data||[]);setAchievements(awards.data||[]);setSquadAppearances([]);setBusy(false);return;
+   }
+   if(profileResult.data){
+    const {data:history,error:historyError}=await supabase.from("player_profile_records").select("id,record_type,competition_name,season,sport_name,team_name,record_label,squad_number,position,role,is_captain,is_vice_captain,details,record_date").eq("player_profile_id",profileResult.data.id).order("record_date",{ascending:true,nullsFirst:true}).limit(1000);
+    if(!active)return;
+    if(historyError){setError(historyError.message);setBusy(false);return;}
+    const rows=history||[];
+    const stats=rows.filter(r=>r.record_type==="competition_statistics").map(r=>{
+     const details=r.details&&typeof r.details==="object"?r.details:{};
+     const source=details.statistics&&typeof details.statistics==="object"?details.statistics:{};
+     const metrics={...source};
+     ["field_goals","penalty_corner_goals","penalty_stroke_goals","total_goals"].forEach(k=>{if(details[k]!==null&&details[k]!==undefined)metrics[k]=details[k];});
+     return {id:r.id,season:r.season,period_label:r.record_label||r.competition_name||"Competition record",metrics,created_at:r.record_date||null,competitions:r.competition_name?{name:r.competition_name}:null,fixtures:null};
+    });
+    const appearances=rows.filter(r=>r.record_type==="squad_appearance");
+    const awards=rows.filter(r=>["player_award","athlete_achievement"].includes(r.record_type)).map(r=>({id:r.id,title:r.record_label||r.details?.title||"Achievement",description:r.details?.description||"",category:r.details?.category||r.record_type,award_date:r.record_date}));
+    setAthlete(null);setLegacyProfile(profileResult.data);setRecords(stats);setAchievements(awards);setSquadAppearances(appearances);setBusy(false);return;
+   }
+   setAthlete(null);setLegacyProfile(null);setRecords([]);setAchievements([]);setSquadAppearances([]);setBusy(false);
   }
   load();return()=>{active=false;};
  },[user?.id]);
@@ -1030,23 +1076,24 @@ function AthletePerformance({user}) {
  const metricKeys=[...new Set(filtered.flatMap(r=>Object.entries(r.metrics||{}).filter(([,v])=>typeof v==="number"&&Number.isFinite(v)).map(([k])=>k)))].sort();
  const selectedMetric=metricKeys.includes(metric)?metric:(metricKeys[0]||"");
  const metricRows=filtered.filter(r=>typeof r.metrics?.[selectedMetric]==="number");
- const competitionCount=new Set(filtered.map(r=>r.competition_id).filter(Boolean)).size;
- if(!user)return <><Header title="My performance" back/><main className="page"><Empty title="Sign in to view performance" body="Sign in to see your approved CUT Sport statistics and achievements."/></main></>;
+ const competitionCount=new Set(filtered.map(r=>r.competition_id||r.competitions?.name).filter(Boolean)).size;
+ const identity=athlete||legacyProfile;
+ if(!user)return <><Header title="My performance" back/><main className="page"><Empty title="Sign in to view performance" body="Sign in to see your CUT Sport statistics, competition history and achievements."/><Link className="btn primary" to="/profile">Sign in</Link></main></>;
  return <><Header title="My performance" back/><main className="page">
   <div className="page-intro"><span className="eyebrow">THE BLUES · ATHLETE DEVELOPMENT</span><h1>My performance.</h1><p>Your approved statistics, competition records and achievements in one place.</p></div>
   {error&&<p className="form-error">{error}</p>}
-  {busy&&!athlete?<p className="muted">Loading your athlete profile…</p>:!athlete?<Empty title="No athlete profile linked" body="Ask your coach or sport administrator to link your CUT Sport account to your athlete profile."/>:<>
-   <div className="admin-notice"><Trophy size={18}/><div><b>{athlete.preferred_name||athlete.full_name}</b><p>{athlete.sports?.name||"CUT Sport"}{athlete.teams?.name?" · "+athlete.teams.name:""}{athlete.position?" · "+athlete.position:""} · Profile {athlete.approval_status}</p></div></div>
+  {busy&&!identity?<p className="muted">Loading your athlete profile…</p>:!identity?<><Empty title="No athlete profile linked" body="Find your existing CUT player profile and request a verified link, or ask your coach or sport administrator to create your athlete record."/><div className="review-actions"><Link className="btn primary" to="/players">Find my athlete profile</Link><Link className="btn secondary" to="/profile">Open my account</Link></div></>:<>
+   <div className="admin-notice"><Trophy size={18}/><div><b>{athlete?.preferred_name||athlete?.full_name||legacyProfile?.display_name||legacyProfile?.full_name}</b><p>{athlete?[(athlete.sports?.name||"CUT Sport"),athlete.teams?.name,athlete.position,"Profile "+athlete.approval_status].filter(Boolean).join(" · "):"Verified historical player profile · Claim approved"}</p></div></div>
    <div className="performance-filters"><label>Season<select value={season} onChange={e=>setSeason(e.target.value)}><option value="">All seasons</option>{seasons.map(x=><option key={x} value={x}>{x}</option>)}</select></label></div>
-   <div className="admin-stats"><div><b>{filtered.length}</b><small>Approved stat entries</small></div><div><b>{competitionCount}</b><small>Competitions recorded</small></div><div><b>{achievements.length}</b><small>Verified achievements</small></div><div><b>{metricKeys.length}</b><small>Numeric metrics</small></div></div>
-   <Section title="Performance trends">{metricKeys.length?<><label className="metric-picker">Choose a recorded metric<select value={selectedMetric} onChange={e=>setMetric(e.target.value)}>{metricKeys.map(k=><option key={k} value={k}>{k.replaceAll("_"," ")}</option>)}</select></label><div className="metric-trend">{metricRows.slice(-20).map(r=><div className="metric-trend-row" key={r.id}><span>{r.period_label||r.competitions?.name||r.season||dateLabel(r.created_at)}<small>{r.competitions?.name||r.fixtures?.opponent||dateLabel(r.created_at)}</small></span><div className="metric-bar"><i style={{width:Math.max(3,Number(r.metrics[selectedMetric])/Math.max(1,...metricRows.map(x=>Number(x.metrics[selectedMetric])))*100)+"%"}}/></div><b>{r.metrics[selectedMetric]}</b></div>)}</div></>:<Empty title={busy?"Refreshing performance":"No approved numeric metrics yet"} body="Once your statistics have been submitted and approved, recorded metrics will appear here. No sample results are displayed."/>}</Section>
-   <Section title="Approved statistics">{filtered.length?filtered.slice().reverse().map(r=><article className="performance-record" key={r.id}><div className="performance-record-head"><div><b>{r.period_label||r.competitions?.name||"Performance entry"}</b><small>{r.season||"Season not set"} · {r.competitions?.name||r.fixtures?.opponent||"Competition not linked"}</small></div><span>{dateLabel(r.created_at)}</span></div><div className="performance-metric-chips">{Object.entries(r.metrics||{}).map(([k,v])=><span key={k}><b>{String(v)}</b> {k.replaceAll("_"," ")}</span>)}</div></article>):<Empty title="No approved statistics yet" body="Approved match and training statistics will be listed here when your sport staff records them."/>}</Section>
-   <Section title="Achievements">{achievements.length?achievements.map(a=><article className="performance-record" key={a.id}><div className="performance-record-head"><div><b>{a.title}</b><small>{a.category||"Achievement"}</small></div><span>{a.award_date?dateLabel(a.award_date):dateLabel(a.created_at)}</span></div>{a.description&&<p>{a.description}</p>}</article>):<Empty title="No verified achievements yet" body="Achievements appear here after they have been approved by your sport administrator."/>}</Section>
-   <p className="muted">Only approved statistics and achievements are shown. Pending or rejected submissions remain available in your Profile review section.</p>
+   <div className="admin-stats"><div><b>{filtered.length}</b><small>{legacyProfile?"Historical stat records":"Approved stat entries"}</small></div><div><b>{competitionCount}</b><small>Competitions recorded</small></div><div><b>{achievements.length}</b><small>Achievements</small></div><div><b>{legacyProfile?squadAppearances.length:metricKeys.length}</b><small>{legacyProfile?"Squad appearances":"Numeric metrics"}</small></div></div>
+   <Section title="Performance trends">{metricKeys.length?<><label className="metric-picker">Choose a recorded metric<select value={selectedMetric} onChange={e=>setMetric(e.target.value)}>{metricKeys.map(k=><option key={k} value={k}>{k.replaceAll("_"," ")}</option>)}</select></label><div className="metric-trend">{metricRows.slice(-20).map(r=><div className="metric-trend-row" key={r.id}><span>{r.period_label||r.competitions?.name||r.season||dateLabel(r.created_at)}<small>{r.competitions?.name||r.fixtures?.opponent||dateLabel(r.created_at)}</small></span><div className="metric-bar"><i style={{width:Math.max(3,Number(r.metrics[selectedMetric])/Math.max(1,...metricRows.map(x=>Number(x.metrics[selectedMetric])))*100)+"%"}}/></div><b>{r.metrics[selectedMetric]}</b></div>)}</div></>:<Empty title={busy?"Refreshing performance":"No numeric performance metrics yet"} body="Recorded statistics will appear here when verified CUT Sport data is linked to your profile. No sample results are displayed."/>}</Section>
+   <Section title={legacyProfile?"Historical competition records":"Approved statistics"}>{filtered.length?filtered.slice().reverse().map(r=><article className="performance-record" key={r.id}><div className="performance-record-head"><div><b>{r.period_label||r.competitions?.name||"Performance entry"}</b><small>{r.season||"Season not set"} · {r.competitions?.name||r.fixtures?.opponent||"Competition not linked"}</small></div><span>{dateLabel(r.created_at)}</span></div><div className="performance-metric-chips">{Object.entries(r.metrics||{}).map(([k,v])=><span key={k}><b>{String(v)}</b> {k.replaceAll("_"," ")}</span>)}</div></article>):<Empty title="No statistics recorded yet" body="Your competition and performance records will be listed here once they are published and linked to your account."/>}</Section>
+   {legacyProfile&&<Section title="Squad appearances">{squadAppearances.length?squadAppearances.map(r=><article className="performance-record" key={r.id}><div className="performance-record-head"><div><b>{r.record_label||r.competition_name||"Squad appearance"}</b><small>{[r.season,r.sport_name,r.team_name,r.squad_number?"#"+r.squad_number:null,r.position,r.role].filter(Boolean).join(" · ")}</small></div><span>{dateLabel(r.record_date)}</span></div></article>):<Empty title="No squad appearances recorded" body="Published squad selection history will appear here when available."/ >}</Section>}
+   <Section title="Achievements">{achievements.length?achievements.map(a=><article className="performance-record" key={a.id}><div className="performance-record-head"><div><b>{a.title}</b><small>{a.category||"Achievement"}</small></div><span>{a.award_date?dateLabel(a.award_date):dateLabel(a.created_at)}</span></div>{a.description&&<p>{a.description}</p>}</article>):<Empty title="No verified achievements yet" body="Achievements appear here after they have been approved by your sport administrator."/ >}</Section>
+   <p className="muted">Only approved statistics and published historical records are shown. Pending or rejected submissions remain available in your Profile review section.</p>
   </>}
  </main></>;
 }
-
 function Profile({user,profile,roles}) {
  const [mode,setMode]=useState("login"),[email,setEmail]=useState(""),[password,setPassword]=useState(""),[newPassword,setNewPassword]=useState(""),[name,setName]=useState(profile?.full_name||""),[message,setMessage]=useState(""),[busy,setBusy]=useState(false);
  const [athleteReview,setAthleteReview]=useState({athlete:null,statistics:[],achievements:[],media:[],history:[],memberships:[]});
