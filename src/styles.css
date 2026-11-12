@@ -298,3 +298,11 @@ body{background:var(--cut-cream);color:var(--ink)}
 .order-status.is-paid,.checkin-status.checked-in{background:#e8f4eb;color:#17643a}
 .order-status:not(.is-paid){background:#f2f0e9;color:#5c5a52}
 @media(max-width:600px){.topbar{border-image:none;border-top:5px solid var(--cut-blue);position:sticky}}
+
+.personal-quick-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.personal-quick-grid a{display:grid;align-content:start;justify-items:start;gap:8px;padding:14px 12px;background:#fff;border:1px solid #e2eaf4;border-radius:14px;color:var(--cut-blue);min-width:0;transition:transform .15s,border-color .15s}
+.personal-quick-grid a:hover{transform:translateY(-2px);border-color:var(--cut-highlight-blue)}
+.personal-quick-grid a svg{width:21px;height:21px}
+.personal-quick-grid a b{font-size:13px;color:var(--cut-deep-navy)}
+.personal-quick-grid a small{font-size:11px;line-height:1.35;color:var(--muted)}
+@media(max-width:420px){.personal-quick-grid{grid-template-columns:1fr}.personal-quick-grid a{grid-template-columns:28px 1fr;align-items:center;column-gap:10px}.personal-quick-grid a svg{grid-row:span 2}.personal-quick-grid a small{grid-column:2}}
