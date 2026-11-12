@@ -466,8 +466,9 @@ function AdminTeamSeasons({roles=[],user}) {
  }
  async function loadSeasons(id=teamId){
   if(!supabase||!id){setSeasons([]);setSeasonId("");return;}
-  const {data,error:e}=await supabase.from("team_hub_seasons").select("id,team_id,sport_id,season_label,status,starts_on,ends_on,squad_submitted_at,closed_at").eq("team_id",id).order("created_at",{ascending:false});
-  if(e){setError(e.message);return;}setSeasons(data||[]);
+  const selectedTeam=teams.find(t=>t.id===id);if(!selectedTeam){setSeasons([]);return;}
+  const {data,error:e}=await supabase.from("team_hub_seasons").select("id,team_id,sport_id,season_label,status,starts_on,ends_on,squad_submitted_at,closed_at,teams(name,season)").eq("sport_id",selectedTeam.sport_id).order("created_at",{ascending:false});
+  if(e){setError(e.message);return;}const scoped=(data||[]).filter(row=>row.teams?.name===selectedTeam.name);setSeasons(scoped);
   if(!seasonId&&data?.length)setSeasonId(data[0].id);else if(seasonId&&!data?.some(x=>x.id===seasonId))setSeasonId(data?.[0]?.id||"");
  }
  async function loadMembers(id=seasonId){
