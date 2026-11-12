@@ -488,7 +488,7 @@ function AdminTeamSeasons({roles=[],user}) {
   setBusy(true);setError("");setNotice("");
   const {data,error:e1}=await supabase.from("team_hub_seasons").insert({team_id:team.id,sport_id:team.sport_id,season_label:seasonLabel.trim(),starts_on:startsOn||null,ends_on:endsOn||null,created_by:user.id}).select("id").single();
   if(e1)setError(e1.code==="23505"?"A season with that name already exists for this team.":e1.message);
-  else{setSeasonLabel("");setStartsOn("");setEndsOn("");setSeasonId(data.id);setNotice("Season draft created. Add or retain players, then submit the squad to activate its team hub.");await loadSeasons(team.id);}
+  else{setSeasonLabel("");setStartsOn("");setEndsOn("");await loadSeasons(team.id);setSeasonId(data.id);setNotice("Season draft created. Add or retain players, then submit the squad to activate its team hub.");}
   setBusy(false);
  }
  async function addPlayer(e){
@@ -566,7 +566,9 @@ function TeamHub({user,roles=[]}) {
   ]);
   const failure=m.error||p.error||pl.error||prof.error;
   if(failure)setError(failure.message);
-  setSeason(s);setMembers(m.data||[]);setPosts(p.data||[]);setPolls(pl.data||[]);setMyProfiles((prof.data||[]).map(x=>x.id));\n  if(roles.some(r=>["super_admin","sport_admin"].includes(r)))setStaffScope(true);else{const {data:assignments}=await supabase.from("sport_admin_assignments").select("assignment_role,starts_on,ends_on,is_active").eq("admin_profile_id",user.id).eq("sport_id",s.sport_id).eq("team_id",s.team_id).eq("is_active",true);const today=new Date().toISOString().slice(0,10);setStaffScope((assignments||[]).some(x=>["coach","team_manager"].includes(x.assignment_role)&&(!x.starts_on||x.starts_on<=today)&&(!x.ends_on||x.ends_on>=today)));}
+  setSeason(s);setMembers(m.data||[]);setPosts(p.data||[]);setPolls(pl.data||[]);setMyProfiles((prof.data||[]).map(x=>x.id));
+  setStaffScope(false);
+  if(roles.some(r=>["super_admin","sport_admin"].includes(r)))setStaffScope(true);else{const {data:assignments}=await supabase.from("sport_admin_assignments").select("assignment_role,starts_on,ends_on,is_active").eq("admin_profile_id",user.id).eq("sport_id",s.sport_id).eq("team_id",s.team_id).eq("is_active",true);const today=new Date().toISOString().slice(0,10);setStaffScope((assignments||[]).some(x=>["coach","team_manager"].includes(x.assignment_role)&&(!x.starts_on||x.starts_on<=today)&&(!x.ends_on||x.ends_on>=today)));}
   const pollIds=(pl.data||[]).map(x=>x.id);
   if(pollIds.length){
    const [o,r]=await Promise.all([
@@ -578,8 +580,7 @@ function TeamHub({user,roles=[]}) {
   }else{setOptions([]);setResponses([]);}
   setBusy(false);
  }
- useEffect(()=>{load()},[seasonId,user?.id]);
- const canManage=roles.some(r=>["super_admin","sport_admin"].includes(r));
+ useEffect(()=>{load()},[seasonId,user?.id,roles.join("|")]);
  const myMember=members.find(m=>myProfiles.includes(m.player_profile_id));
  const active=season?.status==="in_progress",playerCanInteract=!!myMember&&active,staffCanInteract=staffScope;
  async function createPost(e){
