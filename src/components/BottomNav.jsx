@@ -4,7 +4,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 
 export default function BottomNav() {
   const { pathname } = useLocation();
-  const homeContext = pathname === '/' || ['/sport', '/news', '/sponsors', '/shop', '/players'].some(path => pathname === path || pathname.startsWith(path + '/'));
+  const homeContext = pathname === '/' || ['/sport', '/news', '/sponsors', '/shop', '/players', '/cart', '/checkout', '/payment'].some(path => pathname === path || pathname.startsWith(path + '/'));
   const teamContext = ['/my-team', '/performance', '/trials', '/messages'].includes(pathname) || pathname.startsWith('/team-hub/');
   const calendarContext = pathname === '/calendar' || pathname.startsWith('/events/');
   const profileContext = ['/profile', '/orders', '/tickets', '/notifications'].includes(pathname) || pathname === '/admin' || pathname.startsWith('/admin/');
