@@ -473,6 +473,7 @@ function AdminTeamSeasons({roles=[],user}) {
  const [athletes,setAthletes]=useState([]),[members,setMembers]=useState([]),[seasonLabel,setSeasonLabel]=useState(""),[startsOn,setStartsOn]=useState(""),[endsOn,setEndsOn]=useState(""),[athleteId,setAthleteId]=useState("");
  const [busy,setBusy]=useState(false),[error,setError]=useState(""),[notice,setNotice]=useState("");
  const [announcementTitle,setAnnouncementTitle]=useState("Our squad is set!"),[announcementMessage,setAnnouncementMessage]=useState("Congratulations to every athlete selected to represent CUT Sport. We look forward to seeing you represent The Blues with pride.");
+ const [socialPlatform,setSocialPlatform]=useState("Instagram"),[socialFormat,setSocialFormat]=useState("Post"),[socialDate,setSocialDate]=useState(new Date().toISOString().slice(0,10)),[socialTime,setSocialTime]=useState("18:00"),[socialIdea,setSocialIdea]=useState(""),[socialCaption,setSocialCaption]=useState(""),[socialPlan,setSocialPlan]=useState([]);
  const superAdmin=roles.includes("super_admin"),sportAdmin=roles.includes("sport_admin");
  const allowed=!!user?.id;
  async function loadTeams(){
@@ -532,6 +533,25 @@ function AdminTeamSeasons({roles=[],user}) {
    if(navigator.share){await navigator.share({title:announcementTeamName+" · Squad announcement",text:announcementText});setNotice("Share sheet opened for the squad announcement.");}
    else{await navigator.clipboard.writeText(announcementText);setNotice("This browser does not offer a share sheet, so the announcement text was copied instead.");}
   }catch(e){if(e?.name!=="AbortError")setError("The announcement could not be shared from this browser.");}
+ }
+ function addSocialPlanItem(e){
+  e.preventDefault();
+  if(!socialDate||!socialIdea.trim()||!socialCaption.trim())return;
+  setSocialPlan(current=>[...current,{id:Date.now()+"-"+current.length,platform:socialPlatform,format:socialFormat,date:socialDate,time:socialTime,idea:socialIdea.trim(),caption:socialCaption.trim()}].sort((a,b)=>(a.date+"T"+a.time).localeCompare(b.date+"T"+b.time)));
+  setSocialIdea("");setSocialCaption("");setNotice("Content item added to this planning session.");
+ }
+ function removeSocialPlanItem(id){setSocialPlan(current=>current.filter(item=>item.id!==id));}
+ function copySocialPlan(){
+  const content=socialPlan.map((item,i)=>(i+1)+". "+item.date+" "+item.time+" · "+item.platform+" · "+item.format+"\\n"+item.idea+"\\n"+item.caption).join("\\n\\n");
+  if(!content)return;
+  navigator.clipboard.writeText(content).then(()=>setNotice("Social media schedule copied." )).catch(()=>setError("Copy is unavailable in this browser. Use Print to export the schedule."));
+ }
+ function printSocialPlan(){
+  if(!socialPlan.length)return;
+  const esc=escapeAnnouncementHtml;
+  const rows=socialPlan.map((item,i)=>'<tr><td>'+(i+1)+'</td><td>'+esc(item.date)+' · '+esc(item.time)+'</td><td>'+esc(item.platform)+'</td><td>'+esc(item.format)+'</td><td>'+esc(item.idea)+'</td><td>'+esc(item.caption).replace(/\\n/g,"<br>")+'</td></tr>').join("");
+  const content='<p><b>'+esc(announcementTeamName)+'</b> · Season '+esc(season?.season_label||"—")+'</p><p>Prepared content items: '+socialPlan.length+'</p><table><thead><tr><th>#</th><th>Publish date / time</th><th>Platform</th><th>Format</th><th>Content idea</th><th>Caption</th></tr></thead><tbody>'+rows+'</tbody></table><p class="muted">Planning document only. Posts are not scheduled or published automatically.</p>';
+  if(!openCutPrintableReport(announcementTeamName+" · Social media content plan","CUT SPORT · SOCIAL MEDIA PLANNER",content,false))setError("Allow pop-ups for CUT Sport to print the content plan.");
  }
  function printGeneratedSquadAnnouncement(){
   if(season?.status!=="in_progress"||!announcementMembers.length)return;
@@ -613,6 +633,24 @@ function AdminTeamSeasons({roles=[],user}) {
     <small className="muted">Sharing uses your device's share sheet when supported. Otherwise, the text is copied. This tool does not publish automatically to CUT Sport social accounts.</small>
    </div>
   </Section>}
+  <Section title="Social media content planner">
+   <p className="muted">Build a practical posting schedule for this team and season. Drafts stay in this planning session until copied or printed; nothing is automatically published.</p>
+   <form className="form-card" onSubmit={addSocialPlanItem}>
+    <div className="form-grid">
+     <label>Platform<select value={socialPlatform} onChange={e=>setSocialPlatform(e.target.value)}><option>Instagram</option><option>Facebook</option><option>TikTok</option><option>YouTube</option><option>CUT official platforms</option></select></label>
+     <label>Content format<select value={socialFormat} onChange={e=>setSocialFormat(e.target.value)}><option>Post</option><option>Story</option><option>Reel / Short</option><option>Video</option><option>Graphic</option><option>Carousel</option></select></label>
+     <label>Planned date<input type="date" required value={socialDate} onChange={e=>setSocialDate(e.target.value)}/></label>
+     <label>Planned time<input type="time" value={socialTime} onChange={e=>setSocialTime(e.target.value)}/></label>
+    </div>
+    <label>Content idea<input required maxLength="160" value={socialIdea} onChange={e=>setSocialIdea(e.target.value)} placeholder="e.g. Training week highlights"/></label>
+    <label>Caption / copy<textarea required rows={4} maxLength={1800} value={socialCaption} onChange={e=>setSocialCaption(e.target.value)} placeholder="Write the caption, call to action and relevant hashtags."/></label>
+    <button className="btn primary" type="submit" disabled={!socialDate||!socialIdea.trim()||!socialCaption.trim()}>Add to content schedule</button>
+   </form>
+   <div className="performance-record-head"><div><b>Planned content</b><small>{socialPlan.length} item(s) · ordered by date and time</small></div><span className="status-pill">{socialPlan.length?"Draft schedule":"No items yet"}</span></div>
+   {socialPlan.length?socialPlan.map((item,index)=><article className="performance-record" key={item.id}><div className="performance-record-head"><div><b>{item.date} · {item.time}</b><small>{item.platform} · {item.format}</small></div><button type="button" className="btn secondary" onClick={()=>removeSocialPlanItem(item.id)}>Remove</button></div><b>{index+1}. {item.idea}</b><p>{item.caption}</p></article>):<Empty title="Your schedule is empty" body="Add the first post, story, reel or video above to start planning this team's content."/ >}
+   <div className="review-actions"><button type="button" className="btn secondary" disabled={!socialPlan.length} onClick={copySocialPlan}>Copy schedule</button><button type="button" className="btn primary" disabled={!socialPlan.length} onClick={printSocialPlan}>Print content plan</button></div>
+   <small className="muted">This is a working planner for the current browser session. Copy or print the schedule before leaving the page; entries are not yet saved to a shared database calendar.</small>
+  </Section>
   <div className="admin-notice"><ShieldCheck/><div><b>Season access rules</b><p>Only approved athletes whose canonical player profile is claimed by their own account can participate. Coaches and team managers retain access to previous seasons. Completed seasons are read-only for players; a newly submitted squad activates the next season.</p></div></div>
  </main></>;
 }
