@@ -996,7 +996,7 @@ function AdminVerificationCentre({roles}) {
   const athleteIds=athleteRows.map(a=>a.id);
   if(athleteIds.length){
    const [reviewResult,historyResult]=await Promise.all([
-    supabase.from("athlete_data_quality_reviews").select("id,athlete_id,issue_key,issue_type,status,review_note,reviewed_by,reviewed_at,updated_at").in("athlete_id",athleteIds),
+    supabase.from("athlete_data_quality_reviews").select("id,athlete_id,issue_key,issue_type,status,review_note,reviewed_by,reviewed_at,created_at,updated_at").in("athlete_id",athleteIds),
     supabase.from("athlete_data_quality_review_history").select("id,athlete_id,issue_key,issue_type,previous_status,new_status,previous_note,new_note,changed_by,changed_at").in("athlete_id",athleteIds).order("changed_at",{ascending:false}).limit(500)
    ]);
    if(reviewResult.error)setError(reviewResult.error.message);else setQualityReviews(reviewResult.data||[]);
@@ -1085,6 +1085,16 @@ function AdminVerificationCentre({roles}) {
  const qualityReviewByKey=new Map();
  qualityReviews.forEach(row=>{const current=qualityReviewByKey.get(row.issue_key);if(!current||new Date(row.updated_at)>new Date(current.updated_at))qualityReviewByKey.set(row.issue_key,row)});
  const filteredQualityQueue=qualityQueue.filter(item=>{const saved=qualityReviewByKey.get(item.key);const status=saved?.status||"open";return (qualityIssueFilter==="all"||item.type===qualityIssueFilter)&&(qualityStatusFilter==="all"||status===qualityStatusFilter)&&(!qualitySearch.trim()||(item.title+" "+item.detail+" "+item.recordIds.join(" ")).toLowerCase().includes(qualitySearch.trim().toLowerCase()))});
+ const qualityStatusCounts={open:0,reviewed:0,resolved:0,dismissed:0};
+ qualityQueue.forEach(item=>{const status=qualityReviewByKey.get(item.key)?.status||"open";qualityStatusCounts[status]=(qualityStatusCounts[status]||0)+1;});
+ const qualityTypeLabels={duplicate:"Possible duplicates",team:"Missing team",position:"Missing position / event",number:"Missing squad number",mismatch:"Team / sport mismatch"};
+ const qualityTypeCounts=Object.fromEntries(Object.keys(qualityTypeLabels).map(type=>[type,qualityQueue.filter(item=>item.type===type).length]));
+ const qualitySportStats=new Map();
+ qualityQueue.forEach(item=>{const sport=athletes.find(a=>item.recordIds.includes(a.id))?.sports?.name||"Sport not recorded";if(!qualitySportStats.has(sport))qualitySportStats.set(sport,{sport,total:0,open:0,resolved:0,dismissed:0});const row=qualitySportStats.get(sport);row.total++;const status=qualityReviewByKey.get(item.key)?.status||"open";if(status==="open")row.open++;if(status==="resolved")row.resolved++;if(status==="dismissed")row.dismissed++;});
+ const qualitySportRows=[...qualitySportStats.values()].sort((a,b)=>b.total-a.total);
+ const reviewDurations=qualityReviews.filter(r=>r.created_at&&r.reviewed_at).map(r=>(new Date(r.reviewed_at)-new Date(r.created_at))/3600000).filter(hours=>Number.isFinite(hours)&&hours>=0);
+ const averageReviewHours=reviewDurations.length?reviewDurations.reduce((sum,h)=>sum+h,0)/reviewDurations.length:null;
+ const resolvedQualityRate=qualityQueue.length?Math.round((qualityStatusCounts.resolved/qualityQueue.length)*100):0;
  if(!allowed)return <><Header title="Verification access required" back/><main className="page"><Empty title="Restricted area" body="An assigned sport administrator, coach or super administrator role is required."/></main></>;
  return <><Header title="Athlete Verification" back/><main className="page">
   <div className="page-intro"><span className="eyebrow">CUT SPORT · TRUST & IDENTITY</span><h1>Verification Centre.</h1><p>A single review workspace for athlete publication status, canonical player-profile links and ownership claims. Existing role and database permissions remain in force.</p></div>
@@ -1104,6 +1114,36 @@ function AdminVerificationCentre({roles}) {
     <Link className="btn secondary" to="/admin/athletes">Open athlete management</Link>
    </article>):<Empty title="No pending athlete approvals" body="There are no pending athlete records in the scope available to your account."/>}
    {roles.some(r=>["sport_admin","super_admin"].includes(r))&&<p><Link to="/admin/approvals">Open Athlete Approvals <ChevronRight size={15}/></Link></p>}
+  </Section>
+  <Section title="Data Quality Analytics">
+   <p className="muted">Live summary of the currently loaded athlete records and saved review decisions within your assigned sport/team access. The source queue is limited to the first 500 athlete records returned by the verification workspace; these figures are not an institution-wide audit.</p>
+   <div className="admin-stats">
+    <div><b>{qualityQueue.length}</b><small>Current issue flags</small></div>
+    <div><b>{qualityStatusCounts.open}</b><small>Open flags</small></div>
+    <div><b>{qualityStatusCounts.resolved}</b><small>Resolved flags</small></div>
+    <div><b>{resolvedQualityRate}%</b><small>Resolved rate</small></div>
+    <div><b>{averageReviewHours===null?"—":averageReviewHours.toFixed(1)+"h"}</b><small>Average review time</small></div>
+   </div>
+   <div className="form-card">
+    <b>Issue distribution</b>
+    {Object.entries(qualityTypeLabels).map(([type,label])=><div key={type} style={{marginTop:12}}>
+     <div className="performance-record-head"><span>{label}</span><b>{qualityTypeCounts[type]}</b></div>
+     <div style={{height:8,background:"var(--surface-muted, #e8edf3)",borderRadius:99,overflow:"hidden"}}><div style={{height:"100%",width:(qualityQueue.length?qualityTypeCounts[type]/qualityQueue.length*100:0)+"%",background:"var(--accent, #2457a6)",borderRadius:99}}/></div>
+    </div>)}
+   </div>
+   <div className="form-card">
+    <b>Review outcome</b>
+    {Object.entries({Open:qualityStatusCounts.open,Reviewed:qualityStatusCounts.reviewed,Resolved:qualityStatusCounts.resolved,Dismissed:qualityStatusCounts.dismissed}).map(([label,count])=><div key={label} className="performance-record-head" style={{padding:"8px 0"}}><span>{label}</span><b>{count}</b></div>)}
+    <p className="muted">“Reviewed” means examined, not necessarily corrected. The resolved rate counts only flags explicitly marked resolved.</p>
+   </div>
+   <div className="form-card">
+    <b>Sport-by-sport overview</b>
+    {qualitySportRows.length?qualitySportRows.map(row=><div key={row.sport} style={{padding:"12px 0",borderBottom:"1px solid var(--border, #e5e9ef)"}}>
+     <div className="performance-record-head"><b>{row.sport}</b><span>{row.total} flags</span></div>
+     <small className="muted">{row.open} open · {row.resolved} resolved · {row.dismissed} dismissed</small>
+    </div>):<p className="muted">No data-quality flags in the currently loaded records.</p>}
+   </div>
+   <p className="muted">{reviewDurations.length?("Average review time is calculated from "+reviewDurations.length+" saved review record(s), using record creation to latest review timestamp."):"Average review time will appear after review decisions have been saved."}</p>
   </Section>
   <Section title="Athlete Data Quality Resolution Queue">
    <p className="muted">Review flags are saved in Supabase and remain available across sessions. Access follows the same assigned sport/team permissions as the athlete records. Duplicate candidates use exact, case-sensitive full names with matching sport, primary team and canonical profile reference; same-name athletes in different teams are not grouped.</p>
