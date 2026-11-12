@@ -1063,7 +1063,7 @@ function AthletePerformance({user}) {
      ["field_goals","penalty_corner_goals","penalty_stroke_goals","total_goals"].forEach(k=>{if(details[k]!==null&&details[k]!==undefined)metrics[k]=details[k];});
      return {id:r.record_id,season:r.season,period_label:r.record_label||r.competition_name||"Competition record",metrics:{...((details.metrics&&typeof details.metrics==="object")?details.metrics:source),...metrics},created_at:r.record_date||null,competitions:r.competition_name?{name:r.competition_name}:null,fixtures:details.opponent?{opponent:details.opponent}:null};
     });
-    const appearances=rows.filter(r=>r.record_type==="squad_appearance"||r.record_type==="team_membership"||r.record_type==="match_appearance"||r.record_type==="international_appearance");
+    const appearances=rows.filter(r=>r.record_type==="squad_appearance"||r.record_type==="team_membership"||r.record_type==="match_appearance"||r.record_type==="international_appearance").map(r=>({...r,id:r.record_id}));
     const awards=rows.filter(r=>["player_award","athlete_achievement"].includes(r.record_type)).map(r=>({id:r.record_id,title:r.record_label||r.details?.title||"Achievement",description:r.details?.description||"",category:r.details?.award_category||r.details?.category||r.record_type,award_date:r.record_date}));
     setAthlete(null);setLegacyProfile(profileResult.data);setRecords(stats);setAchievements(awards);setSquadAppearances(appearances);setBusy(false);return;
    }
