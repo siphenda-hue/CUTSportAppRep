@@ -83,7 +83,16 @@ function MyTeam({user,roles=[]}) {
    if(!active)return;
    const failed=[profiles,athletes,assignments].find(x=>x.error);
    if(failed){setError(failed.error.message);setBusy(false);return;}
-   const playerIds=(profiles.data||[]).map(x=>x.id),athleteIds=(athletes.data||[]).map(x=>x.id);setHasPlayerProfile(Boolean(playerIds.length||athleteIds.length));
+   const playerIds=(profiles.data||[]).map(x=>x.id);
+   let linkedAthletes=athletes.data||[];
+   if(playerIds.length){
+    const {data:linked,error:linkError}=await supabase.from("athletes").select("id").in("player_profile_id",playerIds);
+    if(!active)return;
+    if(linkError){setError(linkError.message);setBusy(false);return;}
+    linkedAthletes=[...linkedAthletes,...(linked||[])];
+   }
+   const athleteIds=[...new Set(linkedAthletes.map(x=>x.id))];
+   setHasPlayerProfile(Boolean(playerIds.length||athleteIds.length));
    const memberQueries=[];
    if(playerIds.length)memberQueries.push(supabase.from("team_hub_season_members").select("season_id").in("player_profile_id",playerIds).in("membership_status",["selected","retained"]));
    if(athleteIds.length)memberQueries.push(supabase.from("team_hub_season_members").select("season_id").in("athlete_id",athleteIds).in("membership_status",["selected","retained"]));
@@ -1041,8 +1050,15 @@ function AthletePerformance({user}) {
    ]);
    if(!active)return;
    if(athleteResult.error||profileResult.error){setError(athleteResult.error?.message||profileResult.error?.message||"Unable to load your athlete profile.");setBusy(false);return;}
-   if(athleteResult.data){
-    const a=athleteResult.data;
+   let linkedAthlete=athleteResult.data;
+   if(!linkedAthlete&&profileResult.data){
+    const {data:linked,error:linkedError}=await supabase.from("athletes").select("id,full_name,preferred_name,position,squad_number,approval_status,sports(name),teams(name)").eq("player_profile_id",profileResult.data.id).maybeSingle();
+    if(!active)return;
+    if(linkedError){setError(linkedError.message);setBusy(false);return;}
+    linkedAthlete=linked||null;
+   }
+   if(linkedAthlete){
+    const a=linkedAthlete;
     const [stats,awards]=await Promise.all([
      supabase.from("athlete_statistics").select("id,competition_id,fixture_id,season,period_label,metrics,created_at,competitions(name),fixtures(opponent,starts_at)").eq("athlete_id",a.id).eq("approval_status","approved").order("created_at",{ascending:true}).limit(500),
      supabase.from("athlete_achievements").select("id,title,description,category,award_date,competition_id,created_at").eq("athlete_id",a.id).eq("review_status","approved").order("award_date",{ascending:false}).limit(100)
