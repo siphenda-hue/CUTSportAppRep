@@ -2173,7 +2173,7 @@ function AdminMediaLibrary({roles=[],user}) {
  </main></>;
 }
 
-function AdminOverview({sports,teams,competitions,fixtures,articles,events,sponsors,athletes,roles}) {
+function AdminOverview({sports,teams,competitions,fixtures,articles,events,sponsors,products,athletes,roles}) {
  const allowed=roles.some(r=>["sport_admin","super_admin"].includes(r));
  const [live,setLive]=useState({seasons:null,opportunities:null,applications:null});
  const [busy,setBusy]=useState(true),[error,setError]=useState("");
@@ -2201,6 +2201,7 @@ function AdminOverview({sports,teams,competitions,fixtures,articles,events,spons
   ["Published stories",articles.length,"/admin/editorial"],
   ["Events",events.length,"/admin/editorial"],
   ["Active sponsors",sponsors.length,"/admin/sponsors"],
+  ["Active products",products.length,"/admin/products"],
   ["In-progress Team Hub seasons",live.seasons,"/admin/team-seasons"],
   ["Open recruitment opportunities",live.opportunities,"/admin/recruitment"],
   ["Trial applications recorded",live.applications,"/admin/recruitment"]
@@ -2210,6 +2211,16 @@ function AdminOverview({sports,teams,competitions,fixtures,articles,events,spons
   <div className="page-intro"><span className="eyebrow">CUT SPORT · OPERATIONS</span><h1>Management overview</h1><p>A live snapshot of the sporting programme, publishing activity and team operations visible to your administrator account.</p></div>
   <div className="admin-stats">{metrics.map(([label,value,to])=><Link key={label} to={to} className="admin-stat-link"><b>{value===null||value===undefined?"—":value}</b><small>{label}</small></Link>)}</div>
   <div className="admin-notice"><ShieldCheck size={18}/><div><b>{busy?"Refreshing operational totals…":"Live database snapshot"}</b><p>Figures follow the current Supabase access policies and existing records. Public catalogue totals come from the app's loaded data; operational totals are queried directly. No records are created or changed here.</p>{error&&<p>{error}</p>}<button className="btn secondary" onClick={refresh} disabled={busy}>Refresh overview</button></div></div>
+  <Section title="Student usefulness priorities"><p className="muted">These are the next data tasks that will make CUT Sport more useful to students and athletes. Only verified, published information should be added.</p><div className="launch-priority-grid">{[
+   ...(!upcoming.length?[{title:"Publish upcoming fixtures",detail:"Give students confirmed match dates, venues and opponents.",to:"/admin/operations"}]:[]),
+   ...(live.seasons===0?[{title:"Activate team seasons",detail:"Open the correct team hubs for squads, notices and attendance.",to:"/admin/team-seasons"}]:[]),
+   ...(!athletes.length?[{title:"Verify athlete profiles",detail:"Publish approved athlete profiles and connect canonical player records.",to:"/admin/verification"}]:[]),
+   ...(!articles.length?[{title:"Publish team stories",detail:"Keep students informed with results, achievements and sport updates.",to:"/admin/editorial"}]:[]),
+   ...(!events.length?[{title:"Publish upcoming events",detail:"Add confirmed campus sport events and ticket information.",to:"/admin/editorial"}]:[]),
+   ...(live.opportunities===0?[{title:"Open recruitment opportunities",detail:"Show verified trial dates and application information.",to:"/admin/recruitment"}]:[]),
+   ...(!sponsors.length?[{title:"Publish official partners",detail:"Show the organisations supporting CUT Sport.",to:"/admin/sponsors"}]:[]),
+   ...(!products.length?[{title:"Stock the Heritage Collection",detail:"Publish real products and current prices in the shop.",to:"/admin/products"}]:[])
+  ].slice(0,6).map((x,i)=><Link className="launch-priority" to={x.to} key={x.title}><span>{String(i+1).padStart(2,"0")}</span><div><b>{x.title}</b><small>{x.detail}</small></div><ChevronRight size={18}/></Link>)}</div>{!upcoming.length&&!athletes.length&&!articles.length&&!events.length&&!sponsors.length&&!products.length&&live.seasons===0&&live.opportunities===0&&<p className="muted">The app structure is in place; verified institutional content is the remaining launch dependency.</p>}</Section>
   <Section title="Upcoming fixtures">{upcoming.length?upcoming.map(f=><Fixture key={f.id} f={f}/>):<Empty title="No upcoming fixtures found" body="No scheduled or live fixtures are currently visible in the loaded calendar data."/>}</Section>
   <Section title="Management workspaces"><div className="admin-module-grid">{[{title:"Teams & staff",to:"/admin/teams",icon:Users},{title:"Athlete verification",to:"/admin/verification",icon:ShieldCheck},{title:"Fixtures & competitions",to:"/admin/operations",icon:CalendarClock},{title:"Trials & recruitment",to:"/admin/recruitment",icon:ClipboardList},{title:"Reports & downloads",to:"/admin/reports",icon:FileText},{title:"Events & publishing",to:"/admin/editorial",icon:Newspaper}].map(x=><article className="admin-module" key={x.title}><div className="admin-module-icon"><x.icon size={20}/></div><div className="admin-module-copy"><b>{x.title}</b><p>Open the existing CUT Sport workspace.</p></div><Link to={x.to} aria-label={"Open "+x.title}><ChevronRight/></Link></article>)}</div></Section>
  </main></>;
