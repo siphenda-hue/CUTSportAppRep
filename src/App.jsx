@@ -810,26 +810,27 @@ function AdminTeamSeasons({roles=[],user}) {
 
 function TeamHub({user,roles=[]}) {
  const {seasonId}=useParams();
- const [season,setSeason]=useState(null),[members,setMembers]=useState([]),[posts,setPosts]=useState([]),[polls,setPolls]=useState([]),[options,setOptions]=useState([]),[responses,setResponses]=useState([]),[attendanceRows,setAttendanceRows]=useState([]),[developmentNotes,setDevelopmentNotes]=useState([]),[playerActions,setPlayerActions]=useState([]),[myProfiles,setMyProfiles]=useState([]),[staffScope,setStaffScope]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState(""),[notice,setNotice]=useState("");
+ const [season,setSeason]=useState(null),[members,setMembers]=useState([]),[posts,setPosts]=useState([]),[polls,setPolls]=useState([]),[options,setOptions]=useState([]),[responses,setResponses]=useState([]),[attendanceRows,setAttendanceRows]=useState([]),[developmentNotes,setDevelopmentNotes]=useState([]),[playerActions,setPlayerActions]=useState([]),[myProfiles,setMyProfiles]=useState([]),[myAthletes,setMyAthletes]=useState([]),[staffScope,setStaffScope]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState(""),[notice,setNotice]=useState("");
  const [postType,setPostType]=useState("practice"),[title,setTitle]=useState(""),[body,setBody]=useState(""),[startsAt,setStartsAt]=useState(""),[venue,setVenue]=useState("");
  const [pollType,setPollType]=useState("attendance"),[question,setQuestion]=useState(""),[pollOptions,setPollOptions]=useState("Attending\nNot attending\nUnsure"),[attendancePracticeId,setAttendancePracticeId]=useState("");
  const [reviewMemberId,setReviewMemberId]=useState(""),[reviewDate,setReviewDate]=useState(localDateKey()),[reviewCategory,setReviewCategory]=useState("technical"),[progressSummary,setProgressSummary]=useState(""),[developmentFocus,setDevelopmentFocus]=useState(""),[nextAction,setNextAction]=useState(""),[followUpOn,setFollowUpOn]=useState("");
  async function load(){
-  if(!supabase||!user?.id){setSeason(null);setMembers([]);setPlayerActions([]);return;}
+  if(!supabase||!user?.id){setSeason(null);setMembers([]);setPlayerActions([]);setMyProfiles([]);setMyAthletes([]);return;}
   setBusy(true);setError("");
   const {data:s,error:se}=await supabase.from("team_hub_seasons").select("id,team_id,sport_id,season_label,status,starts_on,ends_on,team_name_snapshot,team_category_snapshot,sports(name)").eq("id",seasonId).maybeSingle();
   if(se||!s){setError(se?.message||"This team hub is unavailable or you are not authorised to view it.");setSeason(null);setBusy(false);return;}
-  const [m,p,pl,prof,attendance,development]=await Promise.all([
+  const [m,p,pl,prof,athletes,attendance,development]=await Promise.all([
    supabase.from("team_hub_season_members").select("id,athlete_id,player_profile_id,player_name,membership_status,position,squad_number").eq("season_id",seasonId).in("membership_status",["selected","retained"]),
    supabase.from("team_hub_posts").select("id,post_type,status,title,body,starts_at,ends_at,venue,status_note,created_at,updated_at,created_by").eq("season_id",seasonId).order("created_at",{ascending:false}).limit(100),
    supabase.from("team_hub_polls").select("id,post_id,poll_type,question,status,closes_at,created_at").eq("season_id",seasonId).order("created_at",{ascending:false}).limit(100),
    supabase.from("player_profiles").select("id").eq("claimed_by",user.id),
+   supabase.from("athletes").select("id,player_profile_id").eq("profile_id",user.id),
    supabase.from("team_hub_practice_attendance").select("id,practice_post_id,season_member_id,status,note,marked_by,marked_at").eq("season_id",seasonId),
    supabase.from("team_hub_player_development_notes").select("id,season_member_id,review_date,category,progress_summary,development_focus,next_action,follow_up_on,created_by,created_at").eq("season_id",seasonId).order("review_date",{ascending:false}).order("created_at",{ascending:false})
   ]);
   const failure=m.error||p.error||pl.error||prof.error||attendance.error||development.error;
   if(failure)setError(failure.message);
-  setSeason(s);setMembers(m.data||[]);setPosts(p.data||[]);setPolls(pl.data||[]);setAttendanceRows(attendance.data||[]);setDevelopmentNotes(development.data||[]);setMyProfiles((prof.data||[]).map(x=>x.id));
+  setSeason(s);setMembers(m.data||[]);setPosts(p.data||[]);setPolls(pl.data||[]);setAttendanceRows(attendance.data||[]);setDevelopmentNotes(development.data||[]);setMyProfiles((prof.data||[]).map(x=>x.id));setMyAthletes(athletes.data||[]);
   let canViewStaffRecords=roles.some(r=>["super_admin","sport_admin"].includes(r));
   if(!canViewStaffRecords){const {data:assignments}=await supabase.from("sport_admin_assignments").select("assignment_role,starts_on,ends_on,is_active").eq("admin_profile_id",user.id).eq("sport_id",s.sport_id).eq("team_id",s.team_id).eq("is_active",true);const today=localDateKey();canViewStaffRecords=(assignments||[]).some(x=>["coach","team_manager"].includes(x.assignment_role)&&(!x.starts_on||x.starts_on<=today)&&(!x.ends_on||x.ends_on>=today));}
   setStaffScope(canViewStaffRecords);
@@ -860,7 +861,8 @@ function TeamHub({user,roles=[]}) {
    .subscribe();
   return()=>{supabase.removeChannel(channel);};
  },[seasonId,user?.id,roles.join("|")]);
- const myMember=members.find(m=>myProfiles.includes(m.player_profile_id));
+ const myMember=members.find(m=>myProfiles.includes(m.player_profile_id)||myAthletes.some(a=>a.id===m.athlete_id));
+ const myPlayerProfileId=myMember?.player_profile_id||myAthletes.find(a=>a.id===myMember?.athlete_id)?.player_profile_id||null;
  const localDate=new Date(),todayKey=[localDate.getFullYear(),String(localDate.getMonth()+1).padStart(2,"0"),String(localDate.getDate()).padStart(2,"0")].join("-");
  const active=season?.status==="in_progress"&&(!season.starts_on||season.starts_on<=todayKey)&&(!season.ends_on||season.ends_on>=todayKey),playerCanInteract=!!myMember&&active,staffCanInteract=staffScope;
  const analyticsPractices=posts.filter(p=>p.post_type==="practice"&&p.status!=="cancelled").sort((a,b)=>new Date(a.starts_at||a.created_at)-new Date(b.starts_at||b.created_at));
@@ -953,11 +955,12 @@ function TeamHub({user,roles=[]}) {
  }
  async function vote(poll,option){
   if(!playerCanInteract||!myMember)return;
+  if(!myPlayerProfileId){setError("Your athlete record is linked to this squad, but its player profile link is missing. Please ask the team manager to link your player profile before voting.");return;}
   setBusy(true);setError("");
   const existing=myResponse(poll);
   const result=existing
    ? await supabase.from("team_hub_poll_responses").update({option_id:option.id}).eq("id",existing.id).select("id").maybeSingle()
-   : await supabase.from("team_hub_poll_responses").insert({poll_id:poll.id,option_id:option.id,season_id:season.id,team_id:season.team_id,sport_id:season.sport_id,player_profile_id:myMember.player_profile_id,user_id:user.id}).select("id").maybeSingle();
+   : await supabase.from("team_hub_poll_responses").insert({poll_id:poll.id,option_id:option.id,season_id:season.id,team_id:season.team_id,sport_id:season.sport_id,player_profile_id:myPlayerProfileId,user_id:user.id}).select("id").maybeSingle();
   if(result.error)setError("Unable to save your response: "+result.error.message);
   else{setNotice(existing?"Your response has been updated.":"Your response has been recorded.");await load();}setBusy(false);
  }
