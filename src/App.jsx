@@ -1945,6 +1945,15 @@ function AdminRecruitment({roles,user}) {
   if(scoreError)setError(scoreError.message);else setScores(scoreRows||[]);
  }
  useEffect(()=>{load()},[allowed]);
+ const sportAnalytics=sports.map(sport=>{
+  const sportOps=opportunities.filter(o=>o.sport_id===sport.id),sportApps=applications.filter(a=>sportOps.some(o=>o.id===a.opportunity_id));
+  return {id:sport.id,name:sport.name,opportunities:sportOps.length,open:sportOps.filter(o=>o.status==="open").length,applications:sportApps.length,awaiting:sportApps.filter(a=>!a.reviewed_at).length,shortlisted:sportApps.filter(a=>a.status==="shortlisted").length,selected:sportApps.filter(a=>a.status==="selected").length,notSelected:sportApps.filter(a=>a.status==="not_selected").length};
+ }).filter(x=>x.opportunities||x.applications);
+ const opportunityAnalytics=opportunities.map(o=>{
+  const rows=applications.filter(a=>a.opportunity_id===o.id),cs=criteria.filter(c=>c.opportunity_id===o.id);
+  const completed=rows.filter(a=>cs.length>0&&cs.every(c=>scores.some(sc=>sc.application_id===a.id&&sc.criterion_id===c.id))).length;
+  return {...o,applicantCount:rows.length,awaitingCount:rows.filter(a=>!a.reviewed_at).length,shortlistedCount:rows.filter(a=>a.status==="shortlisted").length,selectedCount:rows.filter(a=>a.status==="selected").length,notSelectedCount:rows.filter(a=>a.status==="not_selected").length,evaluationComplete:completed};
+ });
  const availableTeams=teams.filter(t=>!form.sport_id||t.sport_id===form.sport_id);
  const completenessFor=a=>{
   const missing=[];
@@ -2031,6 +2040,21 @@ function AdminRecruitment({roles,user}) {
  if(!allowed)return <><Header title="Admin access required" back/><main className="page"><Empty title="Restricted area" body="An assigned sport administrator, team manager or coach role is required."/></main></>;
  return <><Header title="Recruitment management" back/><main className="page">
   <div className="page-intro"><span className="eyebrow">TALENT IDENTIFICATION</span><h1>Trials, evaluation & squads.</h1><p>Publish opportunities, configure sport-specific assessment criteria, score applicants, select candidates and allocate linked athlete profiles to teams.</p></div>
+  <Section title="Recruitment analytics"><div className="admin-stats">
+   <div><b>{applications.length}</b><small>Applications visible to your role</small></div>
+   <div><b>{opportunities.filter(o=>o.status==="open").length}</b><small>Open opportunities</small></div>
+   <div><b>{applications.filter(a=>a.status==="shortlisted").length}</b><small>Shortlisted</small></div>
+   <div><b>{applications.filter(a=>a.status==="selected").length}</b><small>Selected</small></div>
+   <div><b>{applications.filter(a=>a.status==="not_selected").length}</b><small>Not selected</small></div>
+   <div><b>{applications.filter(a=>!a.reviewed_at).length}</b><small>Awaiting first review</small></div>
+  </div>
+  <p className="muted">Aggregated figures only. Results reflect the opportunities and applications your current staff role is permitted to access; they are not necessarily institution-wide totals.</p>
+  <h4>By sport</h4>
+  {sportAnalytics.length?<div className="admin-module-grid">{sportAnalytics.map(x=><article className="performance-record" key={x.id}><div className="performance-record-head"><b>{x.name}</b><span>{x.applications} applications</span></div><div className="admin-stats"><div><b>{x.opportunities}</b><small>Opportunities</small></div><div><b>{x.open}</b><small>Open</small></div><div><b>{x.awaiting}</b><small>Awaiting review</small></div><div><b>{x.shortlisted}</b><small>Shortlisted</small></div><div><b>{x.selected}</b><small>Selected</small></div><div><b>{x.notSelected}</b><small>Not selected</small></div></div></article>)}</div>:<Empty title="No sport activity to analyse" body="Create an opportunity or wait for applications to appear."/></>}
+  <h4>By opportunity</h4>
+  {opportunityAnalytics.length?<div className="admin-module-grid">{opportunityAnalytics.map(x=><article className="performance-record" key={x.id}><div className="performance-record-head"><div><b>{x.title}</b><small>{x.sports?.name||"Sport"} · {x.teams?.name||"Whole sport"}</small></div><span>{x.status}</span></div><div className="admin-stats"><div><b>{x.applicantCount}</b><small>Applications</small></div><div><b>{x.awaitingCount}</b><small>Awaiting review</small></div><div><b>{x.shortlistedCount}</b><small>Shortlisted</small></div><div><b>{x.selectedCount}</b><small>Selected</small></div><div><b>{x.notSelectedCount}</b><small>Not selected</small></div><div><b>{x.evaluationComplete}</b><small>Evaluation complete</small></div></div></article>)}</div>:<Empty title="No opportunities to analyse" body="Recruitment analytics will appear when opportunities are created."/></>}
+  </Section>
+  <Section title="Recruitment pipeline"><div className="admin-stats">
   <Section title="Recruitment pipeline"><div className="admin-stats">
    <div><b>{opportunities.length}</b><small>Total opportunities</small></div>
    <div><b>{opportunities.filter(x=>x.status==="open").length}</b><small>Open opportunities</small></div>
