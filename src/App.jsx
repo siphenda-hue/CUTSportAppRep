@@ -600,8 +600,8 @@ function TeamHub({user,roles=[]}) {
  const myMember=members.find(m=>myProfiles.includes(m.player_profile_id));
  const localDate=new Date(),todayKey=[localDate.getFullYear(),String(localDate.getMonth()+1).padStart(2,"0"),String(localDate.getDate()).padStart(2,"0")].join("-");
  const active=season?.status==="in_progress"&&(!season.starts_on||season.starts_on<=todayKey)&&(!season.ends_on||season.ends_on>=todayKey),playerCanInteract=!!myMember&&active,staffCanInteract=staffScope;
- async function createPost(e){
-  e.preventDefault();if(!active||!title.trim())return;
+ async function createPost(event){
+  event.preventDefault();if(!active||!title.trim())return;
   setBusy(true);setError("");setNotice("");
   const {data:createdPost,error:e}=await supabase.from("team_hub_posts").insert({season_id:season.id,team_id:season.team_id,sport_id:season.sport_id,post_type:postType,title:title.trim(),body:body.trim()||null,starts_at:postType==="practice"&&startsAt?new Date(startsAt).toISOString():null,venue:postType==="practice"?venue.trim()||null:null,created_by:user.id}).select("id").single();
   if(e)setError(e.message);else{
