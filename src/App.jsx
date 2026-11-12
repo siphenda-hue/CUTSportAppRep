@@ -578,6 +578,9 @@ function Profile({user,profile,roles}) {
    <button className="btn primary" disabled={saving}>{saving?"Submitting…":"Resubmit for review"}</button>
   </form>;
  }
+ function beginCorrection(r){
+  setEditingRecordId(r.id);setSportId(r.sport_id);setTeamId(r.team_id||"");setTeamName(r.team_name||"");setCompetitionId(r.competition_id||"");setFixtureId(r.fixture_id||"");setPlayerId(r.player_profile_id||"");setOpponent(r.opponent||"");setMatchDate(r.match_date||localDate());setSourceUrl(r.source_url||"");setMetrics(Object.entries(r.metrics||{}).map(([key,value])=>({key,value:String(value)})).concat([]).length?Object.entries(r.metrics||{}).map(([key,value])=>({key,value:String(value)})):[{key:"",value:""}]);setError("");setMessage("Correct the details below, then resubmit. The original review note will remain in the audit history.");window.scrollTo({top:0,behavior:"smooth"});
+ }
  async function submit(e){
   e.preventDefault();if(!supabase){setMessage("Connect Supabase environment variables first.");return}
   setBusy(true);setMessage("");
@@ -1989,25 +1992,26 @@ function AdminInternationalAppearances({roles,user}) {
 
 function AdminMatchStatistics({roles,user}) {
  const allowed=roles.some(r=>["sport_admin","super_admin","coach"].includes(r));
- const [sports,setSports]=useState([]),[teams,setTeams]=useState([]),[competitions,setCompetitions]=useState([]),[fixtures,setFixtures]=useState([]),[players,setPlayers]=useState([]),[records,setRecords]=useState([]);
+ const [sports,setSports]=useState([]),[teams,setTeams]=useState([]),[competitions,setCompetitions]=useState([]),[fixtures,setFixtures]=useState([]),[players,setPlayers]=useState([]),[records,setRecords]=useState([]),[reviewHistory,setReviewHistory]=useState([]);
  const localDate=()=>{const d=new Date();return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10)};
  const [sportId,setSportId]=useState(""),[teamId,setTeamId]=useState(""),[teamName,setTeamName]=useState(""),[competitionId,setCompetitionId]=useState(""),[fixtureId,setFixtureId]=useState(""),[playerId,setPlayerId]=useState(""),[opponent,setOpponent]=useState(""),[matchDate,setMatchDate]=useState(localDate),[sourceUrl,setSourceUrl]=useState(""),[metrics,setMetrics]=useState([{key:"",value:""}]);
- const [reviewNotes,setReviewNotes]=useState({});
+ const [reviewNotes,setReviewNotes]=useState({}),[editingRecordId,setEditingRecordId]=useState(null);
  const [busy,setBusy]=useState(false),[error,setError]=useState(""),[message,setMessage]=useState("");
  async function load(){
   if(!supabase||!allowed)return;
   setBusy(true);setError("");
-  const [s,t,c,f,p,m]=await Promise.all([
+  const [s,t,c,f,p,m,h]=await Promise.all([
    supabase.from("sports").select("id,name").eq("is_active",true).order("display_order"),
    supabase.from("teams").select("id,name,sport_id,is_active").eq("is_active",true).order("name"),
    supabase.from("competitions").select("id,name,sport_id,season,status").neq("status","archived").order("start_date",{ascending:false}),
    supabase.from("fixtures").select("id,sport_id,team_id,competition_id,opponent,starts_at,status").order("starts_at",{ascending:false}).limit(500),
    supabase.from("player_profiles").select("id,full_name,display_name").order("full_name").limit(1000),
-   supabase.from("player_match_statistics").select("id,player_name,player_profile_id,sport_id,team_id,competition_id,team_name,opponent,match_date,metrics,source_url,approval_status,review_note,approved_by,approved_at,created_at,sports(name),teams(name),competitions(name)").order("match_date",{ascending:false}).limit(300)
+   supabase.from("player_match_statistics").select("id,player_name,player_profile_id,sport_id,team_id,competition_id,team_name,opponent,match_date,metrics,source_url,approval_status,review_note,approved_by,approved_at,created_at,sports(name),teams(name),competitions(name)").order("match_date",{ascending:false}).limit(300),
+   supabase.from("player_match_statistics_review_history").select("id,record_id,previous_status,new_status,review_note,reviewer_id,reviewed_at").order("reviewed_at",{ascending:false}).limit(500)
   ]);
-  const failed=[s,t,c,f,p,m].find(x=>x.error);
+  const failed=[s,t,c,f,p,m,h].find(x=>x.error);
   if(failed)setError(failed.error.message);
-  setSports(s.data||[]);setTeams(t.data||[]);setCompetitions(c.data||[]);setFixtures(f.data||[]);setPlayers(p.data||[]);setRecords(m.data||[]);
+  setSports(s.data||[]);setTeams(t.data||[]);setCompetitions(c.data||[]);setFixtures(f.data||[]);setPlayers(p.data||[]);setRecords(m.data||[]);setReviewHistory(h.data||[]);
   setBusy(false);
  }
  useEffect(()=>{load()},[allowed]);
@@ -2028,14 +2032,16 @@ function AdminMatchStatistics({roles,user}) {
   if(!Object.keys(parsed).length){setError("Add at least one numeric statistic. Use a value of 0 only when a zero is verified.");return}
   setBusy(true);setError("");setMessage("");
   const payload={player_name:selectedPlayer.full_name,player_profile_id:selectedPlayer.id,sport_id:sportId,team_id:teamId||null,competition_id:competitionId||null,fixture_id:fixtureId||null,team_name:teamName.trim()||selectedTeam?.name||"CUT",opponent:opponent.trim(),match_date:matchDate,metrics:parsed,source_url:sourceUrl.trim(),approval_status:"pending",recorded_by:user.id};
-  const {error}=await supabase.from("player_match_statistics").insert(payload);
-  if(error)setError(error.message);else{setMessage("Match record submitted for review. It will appear on the public player profile after approval.");setPlayerId("");setFixtureId("");setOpponent("");setSourceUrl("");setMetrics([{key:"",value:""}]);await load()}
+  const result=editingRecordId
+   ? await supabase.from("player_match_statistics").update({...payload,review_note:null}).eq("id",editingRecordId).eq("approval_status","correction_requested")
+   : await supabase.from("player_match_statistics").insert(payload);
+  if(result.error)setError(result.error.message);else{setMessage(editingRecordId?"Corrected record resubmitted. It is pending a fresh administrator review.":"Match record submitted for review. It will appear on the public player profile after approval.");setEditingRecordId(null);setPlayerId("");setFixtureId("");setOpponent("");setSourceUrl("");setMetrics([{key:"",value:""}]);await load()}
   setBusy(false);
  }
  async function review(record,status){
   if(!supabase||busy)return;
   const note=(reviewNotes[record.id]||"").trim();
-  if(status==="rejected"&&!note){setError("Add a review note explaining why this record is being rejected.");return}
+  if((status==="rejected"||status==="correction_requested")&&!note){setError("Add a review note explaining the rejection or required correction.");return}
   setBusy(true);setError("");setMessage("");
   const patch={approval_status:status,approved_by:status==="approved"?user.id:null,approved_at:status==="approved"?new Date().toISOString():null,review_note:note||null,updated_at:new Date().toISOString()};
   const {error}=await supabase.from("player_match_statistics").update(patch).eq("id",record.id).eq("approval_status","pending");
@@ -2045,12 +2051,14 @@ function AdminMatchStatistics({roles,user}) {
  const pending=records.filter(r=>r.approval_status==="pending");
  const approved=records.filter(r=>r.approval_status==="approved");
  const rejected=records.filter(r=>r.approval_status==="rejected");
+ const corrections=records.filter(r=>r.approval_status==="correction_requested"&&r.recorded_by===user?.id);
  if(!allowed)return <><Header title="Match statistics access required" back/><main className="page"><Empty title="Restricted area" body="A coach, assigned sport administrator or super administrator role is required."/></main></>;
  return <><Header title="Match statistics" back/><main className="page">
   <div className="page-intro"><span className="eyebrow">CUT SPORT · PERFORMANCE DATA</span><h1>Match-by-match records.</h1><p>Review the player identity, match details and published source before approving a record. Pending and rejected records are never shown on public player profiles.</p></div>
   <div className="admin-stats"><div><b>{records.length}</b><small>Records loaded</small></div><div><b>{pending.length}</b><small>Awaiting review</small></div><div><b>{approved.length}</b><small>Approved & published</small></div><div><b>{rejected.length}</b><small>Rejected records</small></div></div>
   <form className="form-card" onSubmit={submit}>
-   <h3>Record a match appearance</h3>
+   <h3>{editingRecordId?"Correct and resubmit match record":"Record a match appearance"}</h3>
+   {editingRecordId&&<p className="admin-notice">You are editing a record returned for correction. Its player identity is locked, and the original review note remains in its audit history. <button type="button" className="btn secondary" onClick={()=>{setEditingRecordId(null);setMessage("");}}>Cancel correction</button></p>}
    <label>Sport<select required value={sportId} onChange={e=>{setSportId(e.target.value);setTeamId("");setTeamName("");setCompetitionId("");setFixtureId("");}}><option value="">Choose sport</option>{sports.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select></label>
    <label>Existing team (optional link)<select value={teamId} onChange={e=>{const v=e.target.value;setTeamId(v);setFixtureId("");const t=teams.find(x=>x.id===v);if(t)setTeamName(t.name)}}><option value="">Enter team name manually</option>{availableTeams.map(t=><option key={t.id} value={t.id}>{t.name}</option>)}</select></label><label>Team / franchise name<input required maxLength="160" value={teamName} onChange={e=>setTeamName(e.target.value)} placeholder="e.g. Free State Crinums, Cape Town Tigers, CUT Ixias"/></label>
    <label>Player profile<select required value={playerId} onChange={e=>setPlayerId(e.target.value)}><option value="">Choose player</option>{players.map(p=><option key={p.id} value={p.id}>{p.display_name||p.full_name}</option>)}</select></label>
@@ -2068,11 +2076,14 @@ function AdminMatchStatistics({roles,user}) {
    <p><b>Player profile:</b> {r.player_profile_id?players.find(p=>p.id===r.player_profile_id)?.full_name||r.player_name:"No linked profile — do not approve until identity is resolved."}</p>
    <div className="performance-metric-chips">{Object.entries(r.metrics||{}).map(([k,v])=><span key={k}><b>{String(v)}</b> {k.replaceAll("_"," ")}</span>)}</div>
    <p><b>Source:</b> <a href={r.source_url} target="_blank" rel="noreferrer">Open original source ↗</a></p>
+   {reviewHistory.filter(h=>h.record_id===r.id).length>0&&<details className="review-history"><summary>Review history ({reviewHistory.filter(h=>h.record_id===r.id).length})</summary>{reviewHistory.filter(h=>h.record_id===r.id).map(h=><p key={h.id}>{h.previous_status||"submitted"} → {h.new_status.replaceAll("_"," ")} · {dateLabel(h.reviewed_at)}{h.review_note?": "+h.review_note:""}</p>)}</details>}
    <label className="review-note-field">Administrator review note<textarea rows="2" value={reviewNotes[r.id]||""} onChange={e=>setReviewNotes(old=>({...old,[r.id]:e.target.value}))} placeholder="Optional for approval; required to reject. Record what was checked or what needs correction."/></label>
-   <div className="match-review-actions"><button disabled={busy||!r.player_profile_id} onClick={()=>review(r,"approved")}>Approve & publish</button><button disabled={busy} onClick={()=>review(r,"rejected")}>Reject with reason</button></div>
+   <div className="match-review-actions"><button disabled={busy||!r.player_profile_id} onClick={()=>review(r,"approved")}>Approve & publish</button><button disabled={busy} onClick={()=>review(r,"correction_requested")}>Return for correction</button><button disabled={busy} onClick={()=>review(r,"rejected")}>Reject permanently</button></div>
   </article>):<Empty title="No pending match records" body="Newly submitted match statistics will appear here for review."/>}</Section>
   <Section title={"Approved & published · "+approved.length}>{approved.slice(0,100).map(r=><article className="performance-record" key={r.id}><div className="performance-record-head"><div><b>{r.player_name}</b><small>{r.sports?.name||"Sport"} · {r.team_name} · vs {r.opponent}</small></div><span>{dateLabel(r.match_date)}</span></div><div className="performance-metric-chips">{Object.entries(r.metrics||{}).map(([k,v])=><span key={k}><b>{String(v)}</b> {k.replaceAll("_"," ")}</span>)}</div><a href={r.source_url} target="_blank" rel="noreferrer">Published source ↗</a>{r.review_note&&<p className="muted">Review note: {r.review_note}</p>}{r.approved_at&&<small>Approved {dateLabel(r.approved_at)}</small>}</article>)}</Section>
+  <Section title={"Returned to you for correction · "+corrections.length}>{corrections.map(r=><article className="performance-record" key={r.id}><div className="performance-record-head"><div><b>{r.player_name}</b><small>{r.team_name} · vs {r.opponent}</small></div><span>{dateLabel(r.match_date)}</span></div><p><b>Administrator's correction request:</b> {r.review_note}</p><a href={r.source_url} target="_blank" rel="noreferrer">Review source ↗</a><button className="btn primary" disabled={busy} onClick={()=>beginCorrection(r)}>Correct and resubmit</button></article>)}</Section>
   <Section title={"Rejected records · "+rejected.length}>{rejected.slice(0,100).map(r=><article className="performance-record" key={r.id}><div className="performance-record-head"><div><b>{r.player_name}</b><small>{r.sports?.name||"Sport"} · {r.team_name} · vs {r.opponent}</small></div><span>{dateLabel(r.match_date)}</span></div><p>{r.review_note||"No review note was recorded."}</p><a href={r.source_url} target="_blank" rel="noreferrer">Source ↗</a></article>)}</Section>
+  <Section title="Review audit history">{reviewHistory.slice(0,100).map(h=><article className="performance-record" key={h.id}><b>{records.find(r=>r.id===h.record_id)?.player_name||"Player record"}</b><p>{h.previous_status||"submitted"} → {h.new_status.replaceAll("_"," ")} · {dateLabel(h.reviewed_at)}</p>{h.review_note&&<p>{h.review_note}</p>}</article>)}</Section>
   <div className="admin-notice"><ShieldCheck/><div><b>Review and accuracy controls</b><p>Every entry is tied to one exact player profile and a sport/team scope. A squad selection alone does not create a match appearance. Only approved match records contribute to public appearance and statistic totals. Rejections retain the administrator's reason.</p></div></div>
  </main></>;
 }
