@@ -49,7 +49,7 @@ function App() {
     const [s,t,c,p,f,a,e,tt,sp,ath]=await Promise.all([api.sports(),api.teams(),api.competitions(),api.products(),api.fixtures(),api.articles(),api.events(),api.ticketTypes(),api.sponsors(),api.athletes()]);
     if(!active)return;
     if(s.data?.length)setSports(s.data);
-    setTeams(t.data||[]);setCompetitions(c.data||[]);setProducts(p.data||[]);setFixtures(f.data||[]);setArticles(a.data||[]);setEvents(e.data||[]);setTicketTypes(tt.data||[]);setSponsors(sp.data||[]);setAthletes(ath.data||[]);
+    if(!t.error)setTeams(t.data||[]);if(!c.error)setCompetitions(c.data||[]);if(!p.error)setProducts(p.data||[]);if(!f.error)setFixtures(f.data||[]);if(!a.error)setArticles(a.data||[]);if(!e.error)setEvents(e.data||[]);if(!tt.error)setTicketTypes(tt.data||[]);if(!sp.error)setSponsors(sp.data||[]);if(!ath.error)setAthletes(ath.data||[]);
     const failed=[["sport codes",s],["teams",t],["competitions",c],["products",p],["fixtures",f],["news",a],["events",e],["tickets",tt],["sponsors",sp],["athletes",ath]].filter(([,r])=>r.error).map(([label])=>label);
     setDataError(failed.length?"Some CUT Sport information could not load: "+failed.join(", ")+".":"");
    }catch(err){if(active)setDataError("CUT Sport information could not be refreshed. Please try again.");}
