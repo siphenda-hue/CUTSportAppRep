@@ -1992,7 +1992,7 @@ function AdminInternationalAppearances({roles,user}) {
 
 function AdminMatchStatistics({roles,user}) {
  const allowed=roles.some(r=>["sport_admin","super_admin","coach"].includes(r));
- const [sports,setSports]=useState([]),[teams,setTeams]=useState([]),[competitions,setCompetitions]=useState([]),[fixtures,setFixtures]=useState([]),[players,setPlayers]=useState([]),[records,setRecords]=useState([]),[reviewHistory,setReviewHistory]=useState([]);
+ const [sports,setSports]=useState([]),[teams,setTeams]=useState([]),[competitions,setCompetitions]=useState([]),[fixtures,setFixtures]=useState([]),[players,setPlayers]=useState([]),[records,setRecords]=useState([]),[reviewHistory,setReviewHistory]=useState([]),[submitters,setSubmitters]=useState([]);
  const localDate=()=>{const d=new Date();return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10)};
  const [sportId,setSportId]=useState(""),[teamId,setTeamId]=useState(""),[teamName,setTeamName]=useState(""),[competitionId,setCompetitionId]=useState(""),[fixtureId,setFixtureId]=useState(""),[playerId,setPlayerId]=useState(""),[opponent,setOpponent]=useState(""),[matchDate,setMatchDate]=useState(localDate),[sourceUrl,setSourceUrl]=useState(""),[metrics,setMetrics]=useState([{key:"",value:""}]);
  const [reviewNotes,setReviewNotes]=useState({}),[editingRecordId,setEditingRecordId]=useState(null);
@@ -2000,18 +2000,19 @@ function AdminMatchStatistics({roles,user}) {
  async function load(){
   if(!supabase||!allowed)return;
   setBusy(true);setError("");
-  const [s,t,c,f,p,m,h]=await Promise.all([
+  const [s,t,c,f,p,m,h,u]=await Promise.all([
    supabase.from("sports").select("id,name").eq("is_active",true).order("display_order"),
    supabase.from("teams").select("id,name,sport_id,is_active").eq("is_active",true).order("name"),
    supabase.from("competitions").select("id,name,sport_id,season,status").neq("status","archived").order("start_date",{ascending:false}),
    supabase.from("fixtures").select("id,sport_id,team_id,competition_id,opponent,starts_at,status").order("starts_at",{ascending:false}).limit(500),
    supabase.from("player_profiles").select("id,full_name,display_name").order("full_name").limit(1000),
    supabase.from("player_match_statistics").select("id,player_name,player_profile_id,sport_id,team_id,competition_id,team_name,opponent,match_date,metrics,source_url,approval_status,review_note,approved_by,approved_at,recorded_by,created_at,sports(name),teams(name),competitions(name)").order("match_date",{ascending:false}).limit(300),
-   supabase.from("player_match_statistics_review_history").select("id,record_id,previous_status,new_status,review_note,reviewer_id,reviewed_at").order("reviewed_at",{ascending:false}).limit(500)
+   supabase.from("player_match_statistics_review_history").select("id,record_id,previous_status,new_status,review_note,reviewer_id,reviewed_at").order("reviewed_at",{ascending:false}).limit(500),
+   supabase.rpc("match_statistics_submitters")
   ]);
-  const failed=[s,t,c,f,p,m,h].find(x=>x.error);
+  const failed=[s,t,c,f,p,m,h,u].find(x=>x.error);
   if(failed)setError(failed.error.message);
-  setSports(s.data||[]);setTeams(t.data||[]);setCompetitions(c.data||[]);setFixtures(f.data||[]);setPlayers(p.data||[]);setRecords(m.data||[]);setReviewHistory(h.data||[]);
+  setSports(s.data||[]);setTeams(t.data||[]);setCompetitions(c.data||[]);setFixtures(f.data||[]);setPlayers(p.data||[]);setRecords(m.data||[]);setReviewHistory(h.data||[]);setSubmitters(u.data||[]);
   setBusy(false);
  }
  useEffect(()=>{load()},[allowed]);
@@ -2052,10 +2053,13 @@ function AdminMatchStatistics({roles,user}) {
  const approved=records.filter(r=>r.approval_status==="approved");
  const rejected=records.filter(r=>r.approval_status==="rejected");
  const corrections=records.filter(r=>r.approval_status==="correction_requested"&&r.recorded_by===user?.id);
+ const overdue=pending.filter(r=>r.created_at&&Date.now()-new Date(r.created_at).getTime()>48*60*60*1000);
+ const submitterByRecord=Object.fromEntries(submitters.map(x=>[x.record_id,x.submitter_name]));
+ const waitingLabel=value=>{const ms=Date.now()-new Date(value).getTime();if(!Number.isFinite(ms)||ms<0)return "just submitted";const hours=Math.floor(ms/3600000);return hours<1?"less than 1 hour":hours<24?hours+"h":Math.floor(hours/24)+"d "+(hours%24)+"h"};
  if(!allowed)return <><Header title="Match statistics access required" back/><main className="page"><Empty title="Restricted area" body="A coach, assigned sport administrator or super administrator role is required."/></main></>;
  return <><Header title="Match statistics" back/><main className="page">
   <div className="page-intro"><span className="eyebrow">CUT SPORT · PERFORMANCE DATA</span><h1>Match-by-match records.</h1><p>Review the player identity, match details and published source before approving a record. Pending and rejected records are never shown on public player profiles.</p></div>
-  <div className="admin-stats"><div><b>{records.length}</b><small>Records loaded</small></div><div><b>{pending.length}</b><small>Awaiting review</small></div><div><b>{approved.length}</b><small>Approved & published</small></div><div><b>{rejected.length}</b><small>Rejected records</small></div></div>
+  <div className="admin-stats"><div><b>{records.length}</b><small>Records loaded</small></div><div><b>{pending.length}</b><small>Awaiting review</small></div><div><b>{overdue.length}</b><small>Waiting over 48 hours</small></div><div><b>{approved.length}</b><small>Approved & published</small></div><div><b>{rejected.length}</b><small>Rejected records</small></div></div>
   <form className="form-card" onSubmit={submit}>
    <h3>{editingRecordId?"Correct and resubmit match record":"Record a match appearance"}</h3>
    {editingRecordId&&<p className="admin-notice">You are editing a record returned for correction. Its player identity is locked, and the original review note remains in its audit history. <button type="button" className="btn secondary" onClick={()=>{setEditingRecordId(null);setMessage("");}}>Cancel correction</button></p>}
@@ -2074,6 +2078,7 @@ function AdminMatchStatistics({roles,user}) {
   <Section title={"Pending review queue · "+pending.length}>{pending.length?pending.map(r=><article className="performance-record" key={r.id}>
    <div className="performance-record-head"><div><b>{r.player_name}</b><small>{r.sports?.name||"Sport"} · {r.team_name} · vs {r.opponent}</small></div><span>{dateLabel(r.match_date)}</span></div>
    <p><b>Player profile:</b> {r.player_profile_id?players.find(p=>p.id===r.player_profile_id)?.full_name||r.player_name:"No linked profile — do not approve until identity is resolved."}</p>
+   <p className="muted"><b>Submitted by:</b> {submitterByRecord[r.id]|| (r.recorded_by?"Account holder":"Legacy import / unknown submitter")} · <b>Waiting:</b> {r.created_at?waitingLabel(r.created_at):"Unknown"}</p>
    <div className="performance-metric-chips">{Object.entries(r.metrics||{}).map(([k,v])=><span key={k}><b>{String(v)}</b> {k.replaceAll("_"," ")}</span>)}</div>
    <p><b>Source:</b> <a href={r.source_url} target="_blank" rel="noreferrer">Open original source ↗</a></p>
    {reviewHistory.filter(h=>h.record_id===r.id).length>0&&<details className="review-history"><summary>Review history ({reviewHistory.filter(h=>h.record_id===r.id).length})</summary>{reviewHistory.filter(h=>h.record_id===r.id).map(h=><p key={h.id}>{h.previous_status||"submitted"} → {h.new_status.replaceAll("_"," ")} · {dateLabel(h.reviewed_at)}{h.review_note?": "+h.review_note:""}</p>)}</details>}
