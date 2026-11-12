@@ -585,6 +585,16 @@ function TeamHub({user,roles=[]}) {
   setBusy(false);
  }
  useEffect(()=>{load()},[seasonId,user?.id,roles.join("|")]);
+ useEffect(()=>{
+  if(!supabase||!user?.id||!seasonId)return;
+  const channel=supabase.channel("team-hub:"+seasonId)
+   .on("postgres_changes",{event:"*",schema:"public",table:"team_hub_seasons",filter:"id=eq."+seasonId},()=>load())
+   .on("postgres_changes",{event:"*",schema:"public",table:"team_hub_posts",filter:"season_id=eq."+seasonId},()=>load())
+   .on("postgres_changes",{event:"*",schema:"public",table:"team_hub_polls",filter:"season_id=eq."+seasonId},()=>load())
+   .on("postgres_changes",{event:"*",schema:"public",table:"team_hub_poll_responses",filter:"season_id=eq."+seasonId},()=>load())
+   .subscribe();
+  return()=>{supabase.removeChannel(channel);};
+ },[seasonId,user?.id,roles.join("|")]);
  const myMember=members.find(m=>myProfiles.includes(m.player_profile_id));
  const localDate=new Date(),todayKey=[localDate.getFullYear(),String(localDate.getMonth()+1).padStart(2,"0"),String(localDate.getDate()).padStart(2,"0")].join("-");
  const active=season?.status==="in_progress"&&(!season.starts_on||season.starts_on<=todayKey)&&(!season.ends_on||season.ends_on>=todayKey),playerCanInteract=!!myMember&&active,staffCanInteract=staffScope;
