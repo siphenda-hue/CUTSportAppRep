@@ -278,7 +278,6 @@
   --cut-accent-gold:var(--cut-gold);
   --cut-accent-red:var(--cut-red);
   --cut-paper:var(--cut-cream);
-  --cut-neutral:var(--cut-neutral);
   --cut-heritage-stripe:linear-gradient(90deg,var(--cut-blue) 0 68%,var(--cut-gold) 68% 84%,var(--cut-red) 84% 100%);
 }
 body{background:var(--cut-cream);color:var(--ink)}
