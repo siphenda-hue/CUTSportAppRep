@@ -2017,12 +2017,17 @@ function AdminRecruitment({roles,user}) {
   const team=teams.find(t=>t.id===teamId);
   if(!team){setError("Choose a valid active team.");return;}
   setError("");setNotice("");
-  const {data:existing,error:lookupError}=await supabase.from("athlete_team_memberships").select("id").eq("athlete_id",application.athlete_id).eq("team_id",team.id).maybeSingle();
+  const {data:existingRows,error:lookupError}=await supabase.from("athlete_team_memberships").select("id,is_active").eq("athlete_id",application.athlete_id).eq("team_id",team.id);
   if(lookupError){setError(lookupError.message);return;}
-  const result=existing
-   ? await supabase.from("athlete_team_memberships").update({is_active:true,left_at:null,position:application.playing_position||null,updated_at:new Date().toISOString()}).eq("id",existing.id)
-   : await supabase.from("athlete_team_memberships").insert({athlete_id:application.athlete_id,team_id:team.id,sport_id:team.sport_id,position:application.playing_position||null,created_by:user.id});
-  if(result.error)setError(result.error.message);else setNotice("Athlete added to "+team.name+" ("+(team.sports?.name||"sport")+") without changing their other team memberships.");
+  const activeRows=(existingRows||[]).filter(x=>x.is_active);
+  if(activeRows.length>1){setError("This athlete already has multiple active memberships for this team. Resolve the duplicate records before finalising the squad allocation.");return;}
+  const existingActive=activeRows[0];
+  const result=existingActive
+   ? {error:null}
+   : (existingRows||[]).length
+    ? await supabase.from("athlete_team_memberships").update({is_active:true,left_at:null,position:application.playing_position||null,updated_at:new Date().toISOString()}).eq("id",existingRows[0].id)
+    : await supabase.from("athlete_team_memberships").insert({athlete_id:application.athlete_id,team_id:team.id,sport_id:team.sport_id,position:application.playing_position||null,created_by:user.id});
+  if(result.error)setError(result.error.message);else{setNotice("Squad allocation confirmed for "+team.name+" ("+(team.sports?.name||"sport")+"). Existing active membership was preserved where already present.");await load();}
  }
  function exportReport(opportunity){
   const opCriteria=criteria.filter(c=>c.opportunity_id===opportunity.id);
@@ -2050,9 +2055,27 @@ function AdminRecruitment({roles,user}) {
   </div>
   <p className="muted">Aggregated figures only. Results reflect the opportunities and applications your current staff role is permitted to access; they are not necessarily institution-wide totals.</p>
   <h4>By sport</h4>
-  {sportAnalytics.length?<div className="admin-module-grid">{sportAnalytics.map(x=><article className="performance-record" key={x.id}><div className="performance-record-head"><b>{x.name}</b><span>{x.applications} applications</span></div><div className="admin-stats"><div><b>{x.opportunities}</b><small>Opportunities</small></div><div><b>{x.open}</b><small>Open</small></div><div><b>{x.awaiting}</b><small>Awaiting review</small></div><div><b>{x.shortlisted}</b><small>Shortlisted</small></div><div><b>{x.selected}</b><small>Selected</small></div><div><b>{x.notSelected}</b><small>Not selected</small></div></div></article>)}</div>:<Empty title="No sport activity to analyse" body="Create an opportunity or wait for applications to appear."/></>}
+  {sportAnalytics.length?<div className="admin-module-grid">{sportAnalytics.map(x=><article className="performance-record" key={x.id}><div className="performance-record-head"><b>{x.name}</b><span>{x.applications} applications</span></div><div className="admin-stats"><div><b>{x.opportunities}</b><small>Opportunities</small></div><div><b>{x.open}</b><small>Open</small></div><div><b>{x.awaiting}</b><small>Awaiting review</small></div><div><b>{x.shortlisted}</b><small>Shortlisted</small></div><div><b>{x.selected}</b><small>Selected</small></div><div><b>{x.notSelected}</b><small>Not selected</small></div></div></article>)}</div>:<Empty title="No sport activity to analyse" body="Create an opportunity or wait for applications to appear."/>}
   <h4>By opportunity</h4>
-  {opportunityAnalytics.length?<div className="admin-module-grid">{opportunityAnalytics.map(x=><article className="performance-record" key={x.id}><div className="performance-record-head"><div><b>{x.title}</b><small>{x.sports?.name||"Sport"} · {x.teams?.name||"Whole sport"}</small></div><span>{x.status}</span></div><div className="admin-stats"><div><b>{x.applicantCount}</b><small>Applications</small></div><div><b>{x.awaitingCount}</b><small>Awaiting review</small></div><div><b>{x.shortlistedCount}</b><small>Shortlisted</small></div><div><b>{x.selectedCount}</b><small>Selected</small></div><div><b>{x.notSelectedCount}</b><small>Not selected</small></div><div><b>{x.evaluationComplete}</b><small>Evaluation complete</small></div></div></article>)}</div>:<Empty title="No opportunities to analyse" body="Recruitment analytics will appear when opportunities are created."/></>}
+  {opportunityAnalytics.length?<div className="admin-module-grid">{opportunityAnalytics.map(x=><article className="performance-record" key={x.id}><div className="performance-record-head"><div><b>{x.title}</b><small>{x.sports?.name||"Sport"} · {x.teams?.name||"Whole sport"}</small></div><span>{x.status}</span></div><div className="admin-stats"><div><b>{x.applicantCount}</b><small>Applications</small></div><div><b>{x.awaitingCount}</b><small>Awaiting review</small></div><div><b>{x.shortlistedCount}</b><small>Shortlisted</small></div><div><b>{x.selectedCount}</b><small>Selected</small></div><div><b>{x.notSelectedCount}</b><small>Not selected</small></div><div><b>{x.evaluationComplete}</b><small>Evaluation complete</small></div></div></article>)}</div>:<Empty title="No opportunities to analyse" body="Recruitment analytics will appear when opportunities are created."/>}
+  </Section>
+  <Section title="Squad selection & finalisation">
+   <div className="admin-stats">
+    <div><b>{applications.filter(a=>a.status==="selected").length}</b><small>Selected applicants</small></div>
+    <div><b>{applications.filter(a=>a.status==="selected"&&!!a.athlete_id).length}</b><small>Linked athlete profiles</small></div>
+    <div><b>{applications.filter(a=>a.status==="selected"&&!a.athlete_id).length}</b><small>Awaiting profile link</small></div>
+    <div><b>{applications.filter(a=>a.status==="selected"&&!!a.athlete_id&&!!teamAssignments[a.id]).length}</b><small>Ready for allocation</small></div>
+   </div>
+   <p className="muted">Only applicants already marked Selected are listed. Confirming an allocation uses the existing athlete profile and team membership; it does not create another athlete record or remove other team memberships.</p>
+   {applications.filter(a=>a.status==="selected").length?applications.filter(a=>a.status==="selected").map(a=>{
+    const opportunity=opportunities.find(o=>o.id===a.opportunity_id);
+    const selectedTeam=teams.find(t=>t.id===teamAssignments[a.id]);
+    return <article className="performance-record" key={"squad-"+a.id}>
+     <div className="performance-record-head"><div><b>{a.full_name}</b><small>{opportunity?.title||"Recruitment opportunity"} · {opportunity?.sports?.name||"Sport"}</small></div><span>{a.athlete_id?"Profile linked":"Profile required"}</span></div>
+     <p>{a.playing_position||"Position not specified"} · {a.athlete_id?"Ready for team allocation":"Link an approved athlete profile before allocation"}</p>
+     {a.athlete_id&&<><label>Final squad team<select value={teamAssignments[a.id]||""} onChange={e=>setTeamAssignments(current=>({...current,[a.id]:e.target.value}))}><option value="">Choose an active team</option>{teams.filter(t=>!opportunity?.sport_id||t.sport_id===opportunity.sport_id).map(t=><option key={t.id} value={t.id}>{t.name} — {t.sports?.name||"Sport"}</option>)}</select></label><div className="review-actions"><button type="button" className="btn primary" disabled={!selectedTeam} onClick={()=>allocateTeam(a)}>Confirm squad allocation</button></div></>}
+    </article>;
+   }):<Empty title="No selected applicants yet" body="Applicants marked Selected will appear here for final squad allocation."/>}
   </Section>
   <Section title="Recruitment pipeline"><div className="admin-stats">
    <div><b>{opportunities.length}</b><small>Total opportunities</small></div>
