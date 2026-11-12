@@ -2071,6 +2071,7 @@ function AdminMatchStatistics({roles,user}) {
  const approved=records.filter(r=>r.approval_status==="approved");
  const rejected=records.filter(r=>r.approval_status==="rejected");
  const corrections=records.filter(r=>r.approval_status==="correction_requested"&&r.recorded_by===user?.id);
+ const returnedForCorrection=records.filter(r=>r.approval_status==="correction_requested");
  const overdue=pending.filter(r=>r.created_at&&Date.now()-new Date(r.created_at).getTime()>48*60*60*1000);
  const submitterByRecord=Object.fromEntries(submitters.map(x=>[x.record_id,x.submitter_name]));
  const firstReviewHours=records.flatMap(r=>{const first=reviewHistory.filter(h=>h.record_id===r.id&&["approved","rejected","correction_requested"].includes(h.new_status)).sort((a,b)=>new Date(a.reviewed_at)-new Date(b.reviewed_at))[0];if(!first||!r.created_at)return [];const hours=(new Date(first.reviewed_at)-new Date(r.created_at))/3600000;return Number.isFinite(hours)&&hours>=0?[hours]:[]});
@@ -2079,7 +2080,7 @@ function AdminMatchStatistics({roles,user}) {
  if(!allowed)return <><Header title="Match statistics access required" back/><main className="page"><Empty title="Restricted area" body="A coach, assigned sport administrator or super administrator role is required."/></main></>;
  return <><Header title="Match statistics" back/><main className="page">
   <div className="page-intro"><span className="eyebrow">CUT SPORT · PERFORMANCE DATA</span><h1>Match-by-match records.</h1><p>Review the player identity, match details and published source before approving a record. Pending and rejected records are never shown on public player profiles.</p></div>
-  <div className="admin-stats"><div><b>{records.length}</b><small>Records loaded</small></div><div><b>{pending.length}</b><small>Awaiting review</small></div><div><b>{overdue.length}</b><small>Waiting over 48 hours</small></div><div><b>{approved.length}</b><small>Approved & published</small></div><div><b>{rejected.length}</b><small>Rejected records</small></div><div><b>{corrections.length}</b><small>Returned for correction</small></div><div><b>{averageFirstReviewHours===null?"—":averageFirstReviewHours.toFixed(1)+"h"}</b><small>Average first review time</small></div></div>
+  <div className="admin-stats"><div><b>{records.length}</b><small>Records loaded</small></div><div><b>{pending.length}</b><small>Awaiting review</small></div><div><b>{overdue.length}</b><small>Waiting over 48 hours</small></div><div><b>{approved.length}</b><small>Approved & published</small></div><div><b>{rejected.length}</b><small>Rejected records</small></div><div><b>{returnedForCorrection.length}</b><small>Returned for correction</small></div><div><b>{averageFirstReviewHours===null?"—":averageFirstReviewHours.toFixed(1)+"h"}</b><small>Average first review time</small></div></div>
   <form className="form-card" onSubmit={submit}>
    <h3>{editingRecordId?"Correct and resubmit match record":"Record a match appearance"}</h3>
    {editingRecordId&&<p className="admin-notice">You are editing a record returned for correction. Its player identity is locked, and the original review note remains in its audit history. <button type="button" className="btn secondary" onClick={()=>{setEditingRecordId(null);setMessage("");}}>Cancel correction</button></p>}
