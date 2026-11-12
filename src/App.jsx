@@ -982,7 +982,8 @@ function AdminVerificationCentre({roles}) {
  const [athletes,setAthletes]=useState([]),[claims,setClaims]=useState([]),[auditEvents,setAuditEvents]=useState([]);
  const [loading,setLoading]=useState(false),[error,setError]=useState("");
  const [matches,setMatches]=useState({}),[matchingId,setMatchingId]=useState(""),[linkingId,setLinkingId]=useState(""),[linkMessage,setLinkMessage]=useState("");
- const [qualityIssueFilter,setQualityIssueFilter]=useState("all"),[qualitySearch,setQualitySearch]=useState(""),[qualityStatusFilter,setQualityStatusFilter]=useState("open"),[qualityReviewed,setQualityReviewed]=useState({});
+ const [qualityIssueFilter,setQualityIssueFilter]=useState("all"),[qualitySearch,setQualitySearch]=useState(""),[qualityStatusFilter,setQualityStatusFilter]=useState("open");
+ const [qualityReviews,setQualityReviews]=useState([]),[qualityHistory,setQualityHistory]=useState([]),[qualityDrafts,setQualityDrafts]=useState({}),[qualitySaving,setQualitySaving]=useState("");
  async function load(){
   if(!supabase||!allowed)return;
   setLoading(true);setError("");
@@ -990,7 +991,17 @@ function AdminVerificationCentre({roles}) {
    .select("id,full_name,preferred_name,position,squad_number,approval_status,player_profile_id,sport_id,team_id,created_at,sports(name),teams(name,sport_id)")
    .order("full_name").limit(500);
   if(athleteResult.error){setError(athleteResult.error.message);setLoading(false);return;}
-  setAthletes(athleteResult.data||[]);
+  const athleteRows=athleteResult.data||[];
+  setAthletes(athleteRows);
+  const athleteIds=athleteRows.map(a=>a.id);
+  if(athleteIds.length){
+   const [reviewResult,historyResult]=await Promise.all([
+    supabase.from("athlete_data_quality_reviews").select("id,athlete_id,issue_key,issue_type,status,review_note,reviewed_by,reviewed_at,updated_at").in("athlete_id",athleteIds),
+    supabase.from("athlete_data_quality_review_history").select("id,athlete_id,issue_key,issue_type,previous_status,new_status,previous_note,new_note,changed_by,changed_at").in("athlete_id",athleteIds).order("changed_at",{ascending:false}).limit(500)
+   ]);
+   if(reviewResult.error)setError(reviewResult.error.message);else setQualityReviews(reviewResult.data||[]);
+   if(historyResult.error)setError(historyResult.error.message);else setQualityHistory(historyResult.data||[]);
+  }else{setQualityReviews([]);setQualityHistory([]);}
   if(isSuper){
    const [claimResult,auditResult]=await Promise.all([
     supabase.from("player_profile_claims").select("id,player_profile_id,user_id,evidence_note,created_at,player_profiles(full_name)").eq("status","pending").order("created_at",{ascending:true}).limit(100),
@@ -1004,6 +1015,21 @@ function AdminVerificationCentre({roles}) {
   setLoading(false);
  }
  useEffect(()=>{load()},[allowed,isSuper]);
+ async function saveQualityReview(item){
+  if(!supabase||!allowed||qualitySaving)return;
+  const saved=qualityReviewByKey.get(item.key);
+  const draft=qualityDrafts[item.key]||{};
+  const status=draft.status||saved?.status||"reviewed";
+  const note=(draft.note??saved?.review_note??"").trim();
+  if((status==="resolved"||status==="dismissed")&&!note){setError("Add an evidence note before resolving or dismissing this flag.");return;}
+  setQualitySaving(item.key);setError("");
+  const payload=item.recordIds.map(athlete_id=>({athlete_id,issue_key:item.key,issue_type:item.type,status,review_note:note||null}));
+  const results=await Promise.all(payload.map(row=>supabase.from("athlete_data_quality_reviews").upsert(row,{onConflict:"issue_key,athlete_id"})));
+  const failure=results.find(result=>result.error)?.error;
+  if(failure)setError(failure.message);
+  else{setQualityDrafts(current=>{const next={...current};delete next[item.key];return next;});await load();}
+  setQualitySaving("");
+ }
  async function findExactProfile(a){
   if(!supabase||!allowed||a.player_profile_id)return;
   setMatchingId(a.id);setLinkMessage("");setError("");
@@ -1050,13 +1076,15 @@ function AdminVerificationCentre({roles}) {
  const teamSportMismatch=athletes.filter(a=>a.team_id&&a.sport_id&&a.teams?.sport_id&&a.teams.sport_id!==a.sport_id);
  const qualityIssueCount=possibleDuplicates.length+missingTeam.length+missingPosition.length+missingSquadNumber.length+teamSportMismatch.length;
  const qualityQueue=[
-  ...possibleDuplicates.map(group=>({key:"duplicate:"+group[0].id,type:"duplicate",label:"Possible duplicate",title:group[0].full_name,detail:(group[0].sports?.name||"Sport not recorded")+" · "+(group[0].teams?.name||"No primary team"),recordIds:group.map(a=>a.id),description:"Exact name, sport, team and canonical profile reference match across multiple athlete records."})),
+  ...possibleDuplicates.map(group=>({key:"duplicate:"+group.map(a=>a.id).sort().join(":"),type:"duplicate",label:"Possible duplicate",title:group[0].full_name,detail:(group[0].sports?.name||"Sport not recorded")+" · "+(group[0].teams?.name||"No primary team"),recordIds:group.map(a=>a.id),description:"Exact name, sport, team and canonical profile reference match across multiple athlete records."})),
   ...missingTeam.map(a=>({key:"team:"+a.id,type:"team",label:"Missing primary team",title:a.full_name,detail:a.sports?.name||"Sport not recorded",recordIds:[a.id],description:"No primary team is assigned to this athlete record."})),
   ...missingPosition.map(a=>({key:"position:"+a.id,type:"position",label:"Missing position / event",title:a.full_name,detail:(a.sports?.name||"Sport not recorded")+" · "+(a.teams?.name||"No primary team"),recordIds:[a.id],description:"The playing position or event field is empty."})),
   ...missingSquadNumber.map(a=>({key:"number:"+a.id,type:"number",label:"Missing squad number",title:a.full_name,detail:(a.sports?.name||"Sport not recorded")+" · "+(a.teams?.name||"No primary team"),recordIds:[a.id],description:"The squad number field is empty."})),
   ...teamSportMismatch.map(a=>({key:"mismatch:"+a.id,type:"mismatch",label:"Team / sport mismatch",title:a.full_name,detail:"Recorded sport: "+(a.sports?.name||a.sport_id)+" · Team: "+(a.teams?.name||a.team_id),recordIds:[a.id],description:"The selected team belongs to a different sport than the athlete record."}))
  ];
- const filteredQualityQueue=qualityQueue.filter(item=>(qualityIssueFilter==="all"||item.type===qualityIssueFilter)&&(qualityStatusFilter==="all"||(qualityStatusFilter==="reviewed"?Boolean(qualityReviewed[item.key]):!qualityReviewed[item.key]))&&(!qualitySearch.trim()||(item.title+" "+item.detail+" "+item.recordIds.join(" ")).toLowerCase().includes(qualitySearch.trim().toLowerCase())));
+ const qualityReviewByKey=new Map();
+ qualityReviews.forEach(row=>{const current=qualityReviewByKey.get(row.issue_key);if(!current||new Date(row.updated_at)>new Date(current.updated_at))qualityReviewByKey.set(row.issue_key,row)});
+ const filteredQualityQueue=qualityQueue.filter(item=>{const saved=qualityReviewByKey.get(item.key);const status=saved?.status||"open";return (qualityIssueFilter==="all"||item.type===qualityIssueFilter)&&(qualityStatusFilter==="all"||status===qualityStatusFilter)&&(!qualitySearch.trim()||(item.title+" "+item.detail+" "+item.recordIds.join(" ")).toLowerCase().includes(qualitySearch.trim().toLowerCase()))});
  if(!allowed)return <><Header title="Verification access required" back/><main className="page"><Empty title="Restricted area" body="An assigned sport administrator, coach or super administrator role is required."/></main></>;
  return <><Header title="Athlete Verification" back/><main className="page">
   <div className="page-intro"><span className="eyebrow">CUT SPORT · TRUST & IDENTITY</span><h1>Verification Centre.</h1><p>A single review workspace for athlete publication status, canonical player-profile links and ownership claims. Existing role and database permissions remain in force.</p></div>
@@ -1078,30 +1106,41 @@ function AdminVerificationCentre({roles}) {
    {roles.some(r=>["sport_admin","super_admin"].includes(r))&&<p><Link to="/admin/approvals">Open Athlete Approvals <ChevronRight size={15}/></Link></p>}
   </Section>
   <Section title="Athlete Data Quality Resolution Queue">
-   <p className="muted">Review and triage data-quality flags from athlete records visible under your current assigned sport/team permissions. Duplicate candidates use exact, case-sensitive full names with matching sport, primary team and canonical profile reference. Same-name athletes in different teams are not grouped.</p>
+   <p className="muted">Review flags are saved in Supabase and remain available across sessions. Access follows the same assigned sport/team permissions as the athlete records. Duplicate candidates use exact, case-sensitive full names with matching sport, primary team and canonical profile reference; same-name athletes in different teams are not grouped.</p>
    <div className="admin-stats">
     <div><b>{qualityQueue.length}</b><small>Total review flags</small></div>
-    <div><b>{qualityQueue.filter(x=>!qualityReviewed[x.key]).length}</b><small>Open</small></div>
-    <div><b>{qualityQueue.filter(x=>qualityReviewed[x.key]).length}</b><small>Marked reviewed</small></div>
+    <div><b>{qualityQueue.filter(x=>(qualityReviewByKey.get(x.key)?.status||"open")==="open").length}</b><small>Open</small></div>
+    <div><b>{qualityQueue.filter(x=>qualityReviewByKey.get(x.key)?.status==="reviewed").length}</b><small>Reviewed</small></div>
+    <div><b>{qualityQueue.filter(x=>qualityReviewByKey.get(x.key)?.status==="resolved").length}</b><small>Resolved</small></div>
     <div><b>{possibleDuplicates.length}</b><small>Possible duplicate groups</small></div>
    </div>
    <div className="form-card">
     <label>Search athlete, team or record ID<input value={qualitySearch} onChange={e=>setQualitySearch(e.target.value)} placeholder="Search the review queue"/></label>
     <label>Issue type<select value={qualityIssueFilter} onChange={e=>setQualityIssueFilter(e.target.value)}><option value="all">All issue types</option><option value="duplicate">Possible duplicates</option><option value="team">Missing primary team</option><option value="position">Missing position / event</option><option value="number">Missing squad number</option><option value="mismatch">Team / sport mismatch</option></select></label>
-    <label>Review status<select value={qualityStatusFilter} onChange={e=>setQualityStatusFilter(e.target.value)}><option value="open">Open only</option><option value="reviewed">Marked reviewed</option><option value="all">All statuses</option></select></label>
-    <p className="muted">“Marked reviewed” is a temporary status for this signed-in session only; it is not saved to the database and does not certify that a record is correct.</p>
+    <label>Review status<select value={qualityStatusFilter} onChange={e=>setQualityStatusFilter(e.target.value)}><option value="open">Open</option><option value="reviewed">Reviewed</option><option value="resolved">Resolved</option><option value="dismissed">Dismissed</option><option value="all">All statuses</option></select></label>
    </div>
-   {loading?<p className="muted">Loading the resolution queue…</p>:filteredQualityQueue.length?filteredQualityQueue.slice(0,100).map(item=><article className="performance-record" key={item.key}>
-    <div className="performance-record-head"><div><b>{item.title}</b><small>{item.label} · {item.detail}</small></div><span className="status-pill">{qualityReviewed[item.key]?"Reviewed this session":"Open"}</span></div>
-    <p>{item.description}</p>
-    {item.recordIds.map(id=><p key={id}><small>Record ID: {id}</small></p>)}
-    <div className="review-actions">
-     <Link className="btn secondary" to="/admin/athletes">Review athlete record{item.recordIds.length>1?"s":""}</Link>
-     <button className={qualityReviewed[item.key]?"btn secondary":"btn primary"} onClick={()=>setQualityReviewed(current=>({...current,[item.key]:!current[item.key]}))}>{qualityReviewed[item.key]?"Reopen flag":"Mark reviewed"}</button>
-    </div>
-   </article>):<Empty title="No matching review flags" body={qualityQueue.length?"Try changing the search, issue type or review-status filters.":"No data-quality flags were found in the currently loaded athlete records."}/>}
+   {loading?<p className="muted">Loading the resolution queue…</p>:filteredQualityQueue.length?filteredQualityQueue.slice(0,100).map(item=>{
+    const saved=qualityReviewByKey.get(item.key);
+    const draft=qualityDrafts[item.key]||{};
+    const status=draft.status||saved?.status||"open";
+    const note=draft.note??saved?.review_note??"";
+    const history=qualityHistory.filter(event=>event.issue_key===item.key).slice(0,3);
+    return <article className="performance-record" key={item.key}>
+     <div className="performance-record-head"><div><b>{item.title}</b><small>{item.label} · {item.detail}</small></div><span className="status-pill">{status.replaceAll("_"," ")}</span></div>
+     <p>{item.description}</p>
+     {item.recordIds.map(id=><p key={id}><small>Record ID: {id}</small></p>)}
+     <label>Review decision<select value={status} onChange={e=>setQualityDrafts(current=>({...current,[item.key]:{...current[item.key],status:e.target.value}}))}><option value="open">Open / reopen</option><option value="reviewed">Reviewed</option><option value="resolved">Resolved — corrected through Athlete Management</option><option value="dismissed">Dismissed — verified as not an issue</option></select></label>
+     <label>Evidence / review note<textarea rows="3" maxLength="2000" value={note} onChange={e=>setQualityDrafts(current=>({...current,[item.key]:{...current[item.key],note:e.target.value}}))} placeholder="Record the evidence checked, correction reference or reason for dismissal…"/></label>
+     <div className="review-actions">
+      <Link className="btn secondary" to="/admin/athletes">Review athlete record{item.recordIds.length>1?"s":""}</Link>
+      <button className="btn primary" disabled={qualitySaving===item.key} onClick={()=>saveQualityReview(item)}>{qualitySaving===item.key?"Saving…":"Save review"}</button>
+     </div>
+     {saved&&<p className="muted"><small>Last reviewed {saved.reviewed_at?new Date(saved.reviewed_at).toLocaleString():"at an unspecified time"} · Reviewer ID: {saved.reviewed_by||"Unavailable"}</small></p>}
+     {history.length>0&&<div className="review-history"><b>Review history</b>{history.map(event=><p key={event.id}><small>{new Date(event.changed_at).toLocaleString()} · {event.previous_status?event.previous_status+" → ":""}{event.new_status} · Reviewer {event.changed_by||"unavailable"}{event.new_note?" · "+event.new_note:""}</small></p>)}</div>}
+    </article>;
+   }):<Empty title="No matching review flags" body={qualityQueue.length?"Try changing the search, issue type or review-status filters.":"No data-quality flags were found in the currently loaded athlete records."}/>}
    {filteredQualityQueue.length>100&&<p className="muted">Showing the first 100 matching flags. Narrow the filters to review more efficiently.</p>}
-   <div className="admin-notice"><ShieldCheck size={18}/><div><b>Human review required</b><p>Flags are not proof of an error. This queue does not edit, merge, delete, approve or reassign athlete records. Corrections must be made through the existing authorised Athlete Management workflow.</p></div></div>
+   <div className="admin-notice"><ShieldCheck size={18}/><div><b>Human review required</b><p>“Resolved” means the issue was corrected separately through the authorised Athlete Management workflow; this queue does not change athlete data. “Dismissed” means a reviewer checked the evidence and concluded the flag is not an issue. Every save records reviewer identity, timestamp and a permanent review-history event.</p></div></div>
   </Section>
   <Section title="Canonical player-profile links">
    <p className="muted">A canonical player profile is distinct from a CUT Sport account link. Exact, case-sensitive matches are suggestions only. Linking requires a sport administrator or super administrator to inspect the record and type the candidate’s full name to confirm. Claimed profiles are reserved for super-administrator review.</p>
