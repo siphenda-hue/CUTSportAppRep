@@ -26,4 +26,5 @@ jobs:
             git commit -m "build: add npm lockfile"
             git push
           fi
-      - run: npm run build
+      - name: Build frontend (deployment credentials are checked by the hosting build)
+        run: npx vite build
