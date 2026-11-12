@@ -69,11 +69,11 @@ function App() {
 }
 function localDateKey(value=new Date()) { const d=new Date(value); return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-'); }
 function MyTeam({user,roles=[]}) {
- const [seasons,setSeasons]=useState([]),[memberships,setMemberships]=useState([]),[busy,setBusy]=useState(true),[error,setError]=useState("");
+ const [seasons,setSeasons]=useState([]),[memberships,setMemberships]=useState([]),[hasPlayerProfile,setHasPlayerProfile]=useState(false),[refreshKey,setRefreshKey]=useState(0),[busy,setBusy]=useState(true),[error,setError]=useState("");
  useEffect(()=>{
   let active=true;
   async function load(){
-   if(!user?.id||!supabase){setSeasons([]);setMemberships([]);setBusy(false);return;}
+   if(!user?.id||!supabase){setSeasons([]);setMemberships([]);setHasPlayerProfile(false);setBusy(false);return;}
    setBusy(true);setError("");
    const [profiles,athletes,assignments]=await Promise.all([
     supabase.from("player_profiles").select("id").eq("claimed_by",user.id),
@@ -83,7 +83,7 @@ function MyTeam({user,roles=[]}) {
    if(!active)return;
    const failed=[profiles,athletes,assignments].find(x=>x.error);
    if(failed){setError(failed.error.message);setBusy(false);return;}
-   const playerIds=(profiles.data||[]).map(x=>x.id),athleteIds=(athletes.data||[]).map(x=>x.id);
+   const playerIds=(profiles.data||[]).map(x=>x.id),athleteIds=(athletes.data||[]).map(x=>x.id);setHasPlayerProfile(Boolean(playerIds.length||athleteIds.length));
    const memberQueries=[];
    if(playerIds.length)memberQueries.push(supabase.from("team_hub_season_members").select("season_id").in("player_profile_id",playerIds).in("membership_status",["selected","retained"]));
    if(athleteIds.length)memberQueries.push(supabase.from("team_hub_season_members").select("season_id").in("athlete_id",athleteIds).in("membership_status",["selected","retained"]));
@@ -125,12 +125,12 @@ function MyTeam({user,roles=[]}) {
   }
   load();
   return()=>{active=false;};
- },[user?.id,roles.join("|")]);
+ },[user?.id,roles.join("|"),refreshKey]);
  return <><Header title="My team"/><main className="page"><div className="page-intro"><span className="eyebrow">CUT SPORT · YOUR SQUAD</span><h1>Your team, in one place.</h1><p>Team announcements, training updates, attendance and squad information from your active team hub.</p></div>
- {!user?<><Empty title="Sign in to see your team" body="Sign in with your CUT Sport account to view a team you have been selected for or assigned to manage."/><Link className="btn primary" to="/profile">Sign in</Link></>:busy?<p className="muted">Checking your active team access…</p>:error?<><p className="form-error">{error}</p><button type="button" className="btn secondary" onClick={()=>setBusy(true)}>Refresh by reopening this page</button></>:seasons.length||memberships.length?<>
+ {!user?<><Empty title="Sign in to see your team" body="Sign in with your CUT Sport account to view a team you have been selected for or assigned to manage."/><Link className="btn primary" to="/profile">Sign in</Link></>:busy?<p className="muted">Checking your active team access…</p>:error?<><p className="form-error">{error}</p><button type="button" className="btn secondary" onClick={()=>setRefreshKey(v=>v+1)}>Try again</button></>:seasons.length||memberships.length?<>
   {seasons.map(s=><article className="event-card my-team-card" key={s.id}><span className="eyebrow">{s.sports?.name||"CUT SPORT"} · ACTIVE SEASON</span><h2>{s.team_name_snapshot||s.teams?.name||"CUT Team"}</h2><p>{s.season_label}{s.team_category_snapshot?" · "+s.team_category_snapshot:""}</p><Link className="btn primary" to={"/team-hub/"+s.id}>Open team hub <ChevronRight size={16}/></Link></article>)}
   {memberships.filter(m=>!seasons.some(s=>s.team_id===m.team_id)).map(m=><article className="event-card my-team-card" key={m.id}><span className="eyebrow">{m.teams?.sports?.name||"CUT SPORT"} · SQUAD MEMBERSHIP</span><h2>{m.teams?.name||"Your team"}</h2><p>{[m.position,m.squad_number?"#"+m.squad_number:null].filter(Boolean).join(" · ")||"Current team membership"}</p><Link className="btn secondary" to={m.teams?.sports?.slug?"/sport/"+m.teams.sports.slug:"/sport"}>Explore this sport <ChevronRight size={16}/></Link></article>)}
- </>:<><Empty title="Your team space is not linked yet" body="Find your player profile and request a verified link. Once your coach selects you for a squad, your team hub and updates will appear here."/><div className="review-actions"><Link className="btn primary" to="/players">Find my athlete profile</Link><Link className="btn secondary" to="/trials">Explore trials</Link></div></>}
+ </>:<><Empty title={hasPlayerProfile?"Your squad is not connected yet":"Your team space is not linked yet"} body={hasPlayerProfile?"Your athlete profile is linked, but no current squad membership or active Team Hub is connected yet. Ask your coach or team manager to add you to the current squad.":"Find your existing CUT player profile and request a verified link. Once your coach selects you for a squad, your team hub and updates will appear here."}/><div className="review-actions">{hasPlayerProfile?<><Link className="btn primary" to="/performance">View my performance</Link><Link className="btn secondary" to="/trials">Explore trials</Link></>:<><Link className="btn primary" to="/players">Find my athlete profile</Link><Link className="btn secondary" to="/trials">Explore trials</Link></>}</div></>}
  </main></>;
 }
 function NotFound() { return <><Header title="Page not found" back/><main className="page"><div className="page-intro"><span className="eyebrow">CUT SPORT · THE BLUES</span><h1>We couldn't find that page.</h1><p>The link may have moved, or the address may be incorrect. Your CUT Sport journey is still here.</p></div><div className="review-actions"><Link className="btn primary" to="/">Back to home</Link><Link className="btn secondary" to="/sport">Explore sport</Link><Link className="btn secondary" to="/calendar">Open calendar</Link></div></main></>; }
