@@ -2006,7 +2006,7 @@ function AdminMatchStatistics({roles,user}) {
    supabase.from("competitions").select("id,name,sport_id,season,status").neq("status","archived").order("start_date",{ascending:false}),
    supabase.from("fixtures").select("id,sport_id,team_id,competition_id,opponent,starts_at,status").order("starts_at",{ascending:false}).limit(500),
    supabase.from("player_profiles").select("id,full_name,display_name").order("full_name").limit(1000),
-   supabase.from("player_match_statistics").select("id,player_name,player_profile_id,sport_id,team_id,competition_id,team_name,opponent,match_date,metrics,source_url,approval_status,review_note,approved_by,approved_at,created_at,sports(name),teams(name),competitions(name)").order("match_date",{ascending:false}).limit(300),
+   supabase.from("player_match_statistics").select("id,player_name,player_profile_id,sport_id,team_id,competition_id,team_name,opponent,match_date,metrics,source_url,approval_status,review_note,approved_by,approved_at,recorded_by,created_at,sports(name),teams(name),competitions(name)").order("match_date",{ascending:false}).limit(300),
    supabase.from("player_match_statistics_review_history").select("id,record_id,previous_status,new_status,review_note,reviewer_id,reviewed_at").order("reviewed_at",{ascending:false}).limit(500)
   ]);
   const failed=[s,t,c,f,p,m,h].find(x=>x.error);
