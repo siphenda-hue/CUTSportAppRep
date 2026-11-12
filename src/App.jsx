@@ -2055,7 +2055,6 @@ function AdminRecruitment({roles,user}) {
   {opportunityAnalytics.length?<div className="admin-module-grid">{opportunityAnalytics.map(x=><article className="performance-record" key={x.id}><div className="performance-record-head"><div><b>{x.title}</b><small>{x.sports?.name||"Sport"} · {x.teams?.name||"Whole sport"}</small></div><span>{x.status}</span></div><div className="admin-stats"><div><b>{x.applicantCount}</b><small>Applications</small></div><div><b>{x.awaitingCount}</b><small>Awaiting review</small></div><div><b>{x.shortlistedCount}</b><small>Shortlisted</small></div><div><b>{x.selectedCount}</b><small>Selected</small></div><div><b>{x.notSelectedCount}</b><small>Not selected</small></div><div><b>{x.evaluationComplete}</b><small>Evaluation complete</small></div></div></article>)}</div>:<Empty title="No opportunities to analyse" body="Recruitment analytics will appear when opportunities are created."/></>}
   </Section>
   <Section title="Recruitment pipeline"><div className="admin-stats">
-  <Section title="Recruitment pipeline"><div className="admin-stats">
    <div><b>{opportunities.length}</b><small>Total opportunities</small></div>
    <div><b>{opportunities.filter(x=>x.status==="open").length}</b><small>Open opportunities</small></div>
    <div><b>{applications.length}</b><small>Total applications</small></div>
