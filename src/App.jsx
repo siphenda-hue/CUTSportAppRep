@@ -2278,6 +2278,27 @@ function AdminRosters({roles,user}) {
  useEffect(()=>{loadTeams();loadAthletes()},[allowed]);
  useEffect(()=>{if(selectedTeam)loadRoster(selectedTeam);else setMembers([])},[selectedTeam]);
  const team=teams.find(t=>t.id===selectedTeam);
+ const activeApprovedMembers=members.filter(m=>m.is_active&&m.athletes?.approval_status==="approved");
+ const missingPositionMembers=activeApprovedMembers.filter(m=>!(m.position||"").trim());
+ const numberedMembers=activeApprovedMembers.filter(m=>m.squad_number!==null&&m.squad_number!==undefined);
+ const numberCounts=numberedMembers.reduce((acc,m)=>({...acc,[m.squad_number]:(acc[m.squad_number]||0)+1}),{});
+ const duplicateNumbers=Object.entries(numberCounts).filter(([,count])=>count>1).map(([number])=>number);
+ const rosterReadiness={active:members.filter(m=>m.is_active).length,approved:activeApprovedMembers.length,unapproved:members.filter(m=>m.is_active&&m.athletes?.approval_status!=="approved").length,missingPosition:missingPositionMembers.length,duplicateNumbers:duplicateNumbers.length};
+ const escapeSheet=value=>String(value??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+ function generateFinalTeamSheet(){
+  if(!team||!activeApprovedMembers.length)return;
+  const ordered=[...activeApprovedMembers].sort((a,b)=>{
+   const an=a.squad_number===null||a.squad_number===undefined?10000:Number(a.squad_number),bn=b.squad_number===null||b.squad_number===undefined?10000:Number(b.squad_number);
+   return an-bn||String(a.athletes?.full_name||"").localeCompare(String(b.athletes?.full_name||""));
+  });
+  const rows=ordered.map((m,index)=>"<tr><td>"+(m.squad_number===null||m.squad_number===undefined?"—":escapeSheet(m.squad_number))+"</td><td>"+(index+1)+"</td><td>"+escapeSheet(m.athletes?.full_name||"Athlete record")+"</td><td>"+escapeSheet(m.position||"Not recorded")+"</td></tr>").join("");
+  const warnings=[];
+  if(rosterReadiness.unapproved)warnings.push(rosterReadiness.unapproved+" active membership(s) excluded because the athlete profile is not approved.");
+  if(rosterReadiness.missingPosition)warnings.push(rosterReadiness.missingPosition+" approved squad member(s) have no position/event recorded.");
+  if(rosterReadiness.duplicateNumbers)warnings.push("Duplicate squad number(s): "+duplicateNumbers.join(", ")+".");
+  const content="<p><b>"+escapeSheet(team.sports?.name||"Sport")+" · "+escapeSheet(team.category||"Squad")+"</b> · "+escapeSheet(team.season||"Season not specified")+"</p><p>Coach: "+escapeSheet(team.coach_name||"Not recorded")+" · Confirmed active approved members: "+ordered.length+"</p>"+(warnings.length?"<div style='border:1px solid #d99b36;padding:10px;background:#fff8e8'><b>Readiness notes</b><ul>"+warnings.map(x=>"<li>"+escapeSheet(x)+"</li>").join("")+"</ul></div>":"<p><b>Readiness:</b> No missing positions or duplicate squad numbers detected in the included records.</p>")+"<h2>Confirmed team sheet</h2><table><thead><tr><th>Squad no.</th><th>#</th><th>Athlete</th><th>Position / event</th></tr></thead><tbody>"+rows+"</tbody></table><p style='margin-top:28px'>Team manager: __________________________ &nbsp;&nbsp; Coach: __________________________</p><p>Authorised sign-off: __________________________ &nbsp;&nbsp; Date: __________________</p>";
+  openCutPrintableReport(team.name+" — Final Team Sheet","CONFIRMED SQUAD · "+(team.sports?.name||"CUT Sport"),content,false,{report_type:"team_sheet",scope_label:team.name});
+ }
  async function addAthlete(e){
   e.preventDefault();if(!user?.id||!team||!athleteId||busy)return;
   setBusy(true);setError("");setNotice("");
@@ -2322,6 +2343,20 @@ function AdminRosters({roles,user}) {
    <label>Squad number<input type="number" min="0" max="999" step="1" value={number} onChange={e=>setNumber(e.target.value)}/></label>
    <button className="btn primary" disabled={busy||!athleteId}>{busy?"Saving…":"Add to roster"}</button>
   </form></Section>}
+  {team&&<Section title="Squad readiness & final team sheet">
+   <div className="admin-stats">
+    <div><b>{rosterReadiness.active}</b><small>Active memberships</small></div>
+    <div><b>{rosterReadiness.approved}</b><small>Approved players included</small></div>
+    <div><b>{rosterReadiness.unapproved}</b><small>Unapproved profiles excluded</small></div>
+    <div><b>{rosterReadiness.missingPosition}</b><small>Missing positions</small></div>
+    <div><b>{rosterReadiness.duplicateNumbers.length}</b><small>Duplicate squad numbers</small></div>
+   </div>
+   <p className="muted">The printable sheet includes only active memberships linked to approved athlete profiles. Inactive and unapproved records are excluded. Missing positions and duplicate squad numbers are disclosed on the sheet.</p>
+   {rosterReadiness.unapproved>0&&<p className="form-error">{rosterReadiness.unapproved} active membership(s) are excluded until the athlete profiles are approved.</p>}
+   {rosterReadiness.duplicateNumbers.length>0&&<p className="form-error">Duplicate squad numbers detected: {duplicateNumbers.join(", ")}. Correct these before official distribution.</p>}
+   {rosterReadiness.missingPosition>0&&<p className="muted">{rosterReadiness.missingPosition} included player(s) need a position/event recorded.</p>}
+   <button type="button" className="btn primary" disabled={!activeApprovedMembers.length||busy} onClick={generateFinalTeamSheet}>Generate final team sheet · Print / Save PDF</button>
+  </Section>}
   <Section title={team?"Squad members · "+team.name:"Squad members"}>
    {members.length?members.map(m=><article className="performance-record" key={m.id}>
     <div className="performance-record-head"><div><b>{m.athletes?.preferred_name||m.athletes?.full_name||"Athlete record"}</b><small>{m.sports?.name||"Sport"} · {m.athletes?.approval_status||"Profile status unavailable"} · Joined {dateLabel(m.joined_at)}</small></div><span className={"order-status "+(m.is_active?"is-paid":"")}>{m.is_active?"Active":"Inactive"}</span></div>
