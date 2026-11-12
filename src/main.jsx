@@ -24,8 +24,8 @@ class AppErrorBoundary extends React.Component {
 
 function StartupFailure({ error }) {
   return (
-    <main style={{ minHeight: '100vh', padding: '32px 22px', display: 'grid', alignContent: 'center', justifyItems: 'center', gap: '12px', fontFamily: 'system-ui, sans-serif', color: '#10233f', background: '#eef2f8', textAlign: 'center' }}>
-      <strong style={{ color: '#1557ad', letterSpacing: '2px' }}>CUT SPORT</strong>
+    <main style={{ minHeight: '100vh', padding: '32px 22px', display: 'grid', alignContent: 'center', justifyItems: 'center', gap: '12px', fontFamily: 'system-ui, sans-serif', color: '#10233f', background: '#FBFAF5', textAlign: 'center' }}>
+      <strong style={{ color: '#0047B3', letterSpacing: '2px' }}>CUT SPORT</strong>
       <h1 style={{ margin: 0 }}>The app could not start</h1>
       <p style={{ maxWidth: '520px', lineHeight: 1.6 }}>The page loaded, but an application component encountered an error. Please refresh the page. If the problem continues, contact the CUT Sport administrator.</p>
       <details style={{ maxWidth: '520px', width: '100%', textAlign: 'left', padding: '12px', background: '#fff', borderRadius: '10px', overflowWrap: 'anywhere' }}>
