@@ -1514,8 +1514,8 @@ function AdminVerificationCentre({roles}) {
 function AdminPlanningCentre({roles,user}) {
  const allowed=roles.some(r=>["sport_admin","super_admin","coach"].includes(r));
  const superAdmin=roles.includes("super_admin");
- const [teams,setTeams]=useState([]),[members,setMembers]=useState([]),[opportunities,setOpportunities]=useState([]),[applications,setApplications]=useState([]),[tasks,setTasks]=useState([]),[taskHistory,setTaskHistory]=useState([]),[taskAssignees,setTaskAssignees]=useState([]);
- const [taskTeam,setTaskTeam]=useState(""),[taskTitle,setTaskTitle]=useState(""),[taskDescription,setTaskDescription]=useState(""),[taskAssignee,setTaskAssignee]=useState(""),[taskDue,setTaskDue]=useState(""),[taskPriority,setTaskPriority]=useState("normal");
+ const [teams,setTeams]=useState([]),[members,setMembers]=useState([]),[opportunities,setOpportunities]=useState([]),[applications,setApplications]=useState([]),[tasks,setTasks]=useState([]),[taskHistory,setTaskHistory]=useState([]),[taskAssignees,setTaskAssignees]=useState([]),[taskSeasons,setTaskSeasons]=useState([]),[taskPlayerMembers,setTaskPlayerMembers]=useState([]);
+ const [taskTeam,setTaskTeam]=useState(""),[taskTitle,setTaskTitle]=useState(""),[taskDescription,setTaskDescription]=useState(""),[taskAssignee,setTaskAssignee]=useState(""),[taskDue,setTaskDue]=useState(""),[taskPriority,setTaskPriority]=useState("normal"),[taskSeason,setTaskSeason]=useState(""),[taskPlayer,setTaskPlayer]=useState(""),[taskOutcomeDrafts,setTaskOutcomeDrafts]=useState({});
  const [busy,setBusy]=useState(false),[error,setError]=useState(""),[scopeNote,setScopeNote]=useState("");
  async function load(){
   if(!supabase||!allowed||!user?.id)return;
@@ -1539,24 +1539,27 @@ function AdminPlanningCentre({roles,user}) {
   setTeams(visibleTeams);
   if(!superAdmin&&!visibleTeams.length)setScopeNote("No active team assignment is visible for this account. A super administrator can review staff assignments in Team management & staff.");
   const ids=visibleTeams.map(t=>t.id),sportIds=[...new Set(visibleTeams.map(t=>t.sport_id).filter(Boolean))];
-  if(!ids.length){setMembers([]);setOpportunities([]);setApplications([]);setTasks([]);setTaskHistory([]);setTaskAssignees([]);setBusy(false);return;}
-  const [memberResult,opportunityResult,taskResult,assignmentResult]=await Promise.all([
+  if(!ids.length){setMembers([]);setOpportunities([]);setApplications([]);setTasks([]);setTaskHistory([]);setTaskAssignees([]);setTaskSeasons([]);setTaskPlayerMembers([]);setBusy(false);return;}
+  const [memberResult,opportunityResult,taskResult,assignmentResult,seasonResult]=await Promise.all([
    supabase.from("athlete_team_memberships")
     .select("id,athlete_id,team_id,sport_id,position,squad_number,is_active,athletes(id,full_name,player_profile_id,approval_status,profile_visibility)")
     .in("team_id",ids).eq("is_active",true).order("joined_at",{ascending:false}),
    supabase.from("recruitment_opportunities")
     .select("id,title,sport_id,team_id,status,starts_at,closes_at,teams(name),sports(name)")
     .order("created_at",{ascending:false}),
-   supabase.from("coach_action_tasks").select("id,sport_id,team_id,title,description,assigned_to,due_date,priority,status,created_by,created_at,updated_at,completed_at")
+   supabase.from("coach_action_tasks").select("id,sport_id,team_id,title,description,assigned_to,due_date,priority,status,created_by,created_at,updated_at,completed_at,season_id,season_member_id,outcome_review,outcome_reviewed_at,outcome_reviewed_by")
     .in("team_id",ids).order("due_date",{ascending:true,nullsFirst:false}).order("created_at",{ascending:false}),
-   supabase.from("sport_admin_assignments").select("admin_profile_id,sport_id,team_id,assignment_role,starts_on,ends_on,is_active").in("team_id",ids).eq("is_active",true)
+   supabase.from("sport_admin_assignments").select("admin_profile_id,sport_id,team_id,assignment_role,starts_on,ends_on,is_active").in("team_id",ids).eq("is_active",true),
+   supabase.from("team_hub_seasons").select("id,team_id,sport_id,season_label,status").in("team_id",ids).eq("status","in_progress").order("season_label")
   ]);
-  if(memberResult.error||opportunityResult.error||taskResult.error||assignmentResult.error){setError(memberResult.error?.message||opportunityResult.error?.message||taskResult.error?.message||assignmentResult.error?.message);setBusy(false);return;}
+  if(memberResult.error||opportunityResult.error||taskResult.error||assignmentResult.error||seasonResult.error){setError(memberResult.error?.message||opportunityResult.error?.message||taskResult.error?.message||assignmentResult.error?.message||seasonResult.error?.message);setBusy(false);return;}
   const memberRows=memberResult.data||[];
   const scopedOpportunities=(opportunityResult.data||[]).filter(o=>
    (o.team_id&&ids.includes(o.team_id))||(!o.team_id&&sportIds.includes(o.sport_id))
   );
-  setMembers(memberRows);setOpportunities(scopedOpportunities);setTasks(taskResult.data||[]);
+  setMembers(memberRows);setOpportunities(scopedOpportunities);setTasks(taskResult.data||[]);setTaskSeasons(seasonResult.data||[]);
+  const seasonIds=(seasonResult.data||[]).map(s=>s.id);
+  if(seasonIds.length){const {data:seasonMembers,error:seasonMemberError}=await supabase.from("team_hub_season_members").select("id,season_id,team_id,sport_id,player_name,squad_number,membership_status").in("season_id",seasonIds).in("membership_status",["selected","retained"]).order("player_name");if(seasonMemberError){setError(seasonMemberError.message);setTaskPlayerMembers([]);}else setTaskPlayerMembers(seasonMembers||[]);}else setTaskPlayerMembers([]);
   const taskIds=(taskResult.data||[]).map(t=>t.id);
   if(taskIds.length){
    const {data:historyRows,error:historyError}=await supabase.from("coach_action_task_history")
@@ -1590,9 +1593,21 @@ function AdminPlanningCentre({roles,user}) {
   e.preventDefault();if(!supabase||!user?.id||!taskTeam||!taskTitle.trim()||!taskAssignee)return;
   const team=teams.find(t=>t.id===taskTeam),assignee=taskAssignees.find(a=>a.id===taskAssignee&&a.team_id===taskTeam);
   if(!team||!assignee){setError("Choose a staff member with an active assignment to the selected team.");return;}
+  const linkedSeason=taskSeason?taskSeasons.find(s=>s.id===taskSeason&&s.team_id===taskTeam):null;
+  const linkedPlayer=taskPlayer?taskPlayerMembers.find(m=>m.id===taskPlayer&&m.season_id===taskSeason&&m.team_id===taskTeam&&m.sport_id===team.sport_id):null;
+  if(taskPlayer&&(!linkedSeason||!linkedPlayer)){setError("Choose a player from the selected active team season.");return;}
   setBusy(true);setError("");
-  const {error:saveError}=await supabase.from("coach_action_tasks").insert({sport_id:team.sport_id,team_id:team.id,title:taskTitle.trim(),description:taskDescription.trim()||null,assigned_to:taskAssignee,due_date:taskDue||null,priority:taskPriority,created_by:user.id});
-  if(saveError)setError(saveError.message);else{setTaskTitle("");setTaskDescription("");setTaskAssignee("");setTaskDue("");setTaskPriority("normal");await load();}
+  const {error:saveError}=await supabase.from("coach_action_tasks").insert({sport_id:team.sport_id,team_id:team.id,title:taskTitle.trim(),description:taskDescription.trim()||null,assigned_to:taskAssignee,due_date:taskDue||null,priority:taskPriority,created_by:user.id,season_id:linkedPlayer?taskSeason:null,season_member_id:linkedPlayer?taskPlayer:null});
+  if(saveError)setError(saveError.message);else{setTaskTitle("");setTaskDescription("");setTaskAssignee("");setTaskDue("");setTaskPriority("normal");setTaskPlayer("");await load();}
+  setBusy(false);
+ }
+ async function saveTaskOutcome(task){
+  if(!supabase||busy||task.status!=="completed")return;
+  const outcome=(taskOutcomeDrafts[task.id]??task.outcome_review??"").trim();
+  if(!outcome){setError("Record what happened after the development action before saving the outcome review.");return;}
+  setBusy(true);setError("");
+  const {data,error:saveError}=await supabase.from("coach_action_tasks").update({outcome_review:outcome,outcome_reviewed_at:new Date().toISOString(),outcome_reviewed_by:user.id}).eq("id",task.id).select("id").maybeSingle();
+  if(saveError)setError(saveError.message);else if(!data)setError("Outcome review was not saved. Check your active team assignment.");else{setTaskOutcomeDrafts(prev=>({...prev,[task.id]:outcome}));await load();}
   setBusy(false);
  }
  async function updateTaskStatus(task,status){
@@ -1651,7 +1666,9 @@ function AdminPlanningCentre({roles,user}) {
    <form className="form-card" onSubmit={createTask}>
     <h3>Assign a team action</h3>
     <label>Team<select value={taskTeam} onChange={e=>{setTaskTeam(e.target.value);setTaskAssignee("");}} required><option value="">Choose a team</option>{teams.map(t=><option key={t.id} value={t.id}>{t.name} · {t.sports?.name||"Sport"}</option>)}</select></label>
-    <label>Task title<input value={taskTitle} onChange={e=>setTaskTitle(e.target.value)} minLength="3" maxLength="160" required placeholder="e.g. Confirm squad travel arrangements"/></label>
+    <label>Link to active season (optional)<select value={taskSeason} onChange={e=>{setTaskSeason(e.target.value);setTaskPlayer("");}}><option value="">General team action</option>{taskSeasons.filter(s=>s.team_id===taskTeam).map(s=><option key={s.id} value={s.id}>{s.season_label||"Active season"}</option>)}</select></label>
+    {taskSeason&&<label>Player (optional)<select value={taskPlayer} onChange={e=>setTaskPlayer(e.target.value)}><option value="">Team-level action</option>{taskPlayerMembers.filter(m=>m.season_id===taskSeason&&m.team_id===taskTeam).map(m=><option key={m.id} value={m.id}>{m.player_name||"Squad member"}{m.squad_number!==null&&m.squad_number!==undefined?" · #"+m.squad_number:""}</option>)}</select></label>}
+    <label>Task title<input value={taskTitle} onChange={e=>setTaskTitle(e.target.value)} minLength="3" maxLength="160" required placeholder="e.g. Complete left-side passing drill"/></label>
     <label>Details<textarea value={taskDescription} onChange={e=>setTaskDescription(e.target.value)} maxLength="3000" rows="3" placeholder="Add the action required and any useful context"/></label>
     <label>Assign to<select value={taskAssignee} onChange={e=>setTaskAssignee(e.target.value)} required><option value="">Choose assigned coach / team manager</option>{taskAssignees.filter(a=>a.team_id===taskTeam).map(a=><option key={a.id} value={a.id}>{a.profile?.full_name||a.profile?.email||"Staff member"} · {a.role==="coach"?"Coach":"Team manager"}</option>)}</select></label>
     <div className="form-grid"><label>Due date<input type="date" value={taskDue} onChange={e=>setTaskDue(e.target.value)}/></label><label>Priority<select value={taskPriority} onChange={e=>setTaskPriority(e.target.value)}><option value="low">Low</option><option value="normal">Normal</option><option value="high">High</option><option value="urgent">Urgent</option></select></label></div>
@@ -1662,10 +1679,12 @@ function AdminPlanningCentre({roles,user}) {
    {tasks.length?<div className="metric-trend">{tasks.map(task=>{const assignee=taskAssignees.find(a=>a.id===task.assigned_to);const overdue=task.due_date&&task.due_date<todayKey&&!["completed","cancelled"].includes(task.status);const dueSoon=task.due_date&&task.due_date>=todayKey&&task.due_date<=dueSoonKey&&!["completed","cancelled"].includes(task.status);const history=taskHistory.filter(event=>event.task_id===task.id).slice(0,3);return <article className="performance-record" key={task.id}>
     <div className="performance-record-head"><div><b>{task.title}</b><small>{teams.find(t=>t.id===task.team_id)?.name||"Team"} · Assigned to {task.assigned_to===user?.id?"you":(assignee?.profile?.full_name||"assigned staff")}</small></div><span className="status-pill">{task.status.replace("_"," ")}</span></div>
     {task.description&&<p>{task.description}</p>}
+    {task.season_member_id&&<p className="muted"><b>Player development action:</b> {taskPlayerMembers.find(m=>m.id===task.season_member_id)?.player_name||"Season player"} · {taskSeasons.find(s=>s.id===task.season_id)?.season_label||"Season"}</p>}
     <div className="performance-metric-chips"><span><b>{task.priority}</b> priority</span><span><b>{task.due_date||"No due date"}</b> due</span><span><b>{task.created_at?dateLabel(task.created_at):"—"}</b> created</span></div>
     {overdue&&<p className="form-error" role="status"><b>Overdue</b> · This action passed its due date.</p>}
     {dueSoon&&<p className="muted" role="status"><b>Due soon</b> · Due within the next 48 hours.</p>}
     <label>Update status<select value={task.status} disabled={busy} onChange={e=>updateTaskStatus(task,e.target.value)}><option value="todo">To do</option><option value="in_progress">In progress</option><option value="blocked">Blocked</option><option value="completed">Completed</option><option value="cancelled">Cancelled</option></select></label>
+    {task.season_member_id&&task.status==="completed"&&<div className="form-card"><h4>Review the development outcome</h4><p className="muted">Record what changed after this action. Use observed evidence; do not assume the action was successful.</p><textarea rows="3" maxLength="3000" value={taskOutcomeDrafts[task.id]??task.outcome_review??""} onChange={e=>setTaskOutcomeDrafts(prev=>({...prev,[task.id]:e.target.value}))} placeholder="What did the coach observe? What should happen next?"/><button type="button" className="button-primary" disabled={busy||!(taskOutcomeDrafts[task.id]??task.outcome_review??"").trim()} onClick={()=>saveTaskOutcome(task)}>Save outcome review</button>{task.outcome_reviewed_at&&<small>Last reviewed {dateLabel(task.outcome_reviewed_at)}</small>}{task.outcome_review&&<p><b>Recorded outcome:</b><br/>{task.outcome_review}</p>}</div>}
     {history.length>0&&<div className="task-history"><b>Recent activity</b>{history.map(event=>{const before=event.previous_values||{};const after=event.new_values||{};const description=event.action_type==="created"?"Task created":event.action_type==="assigned"?"Assignment changed":event.action_type==="status_changed"?"Status changed: "+String(before.status||"—").replace("_"," ")+" → "+String(after.status||"—").replace("_"," "):"Task details updated";return <small key={event.id}>{description} · {event.changed_by===user?.id?"You":"Staff member"} · {dateLabel(event.changed_at)}</small>})}</div>}
    </article>})}</div>:<Empty title="No coach actions assigned yet" body="Create the first action above. Only staff with an active coach or team-manager assignment to the selected team can be assigned."/>}
   </Section>
