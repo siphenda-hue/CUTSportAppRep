@@ -875,7 +875,7 @@ function TeamHub({user,roles=[]}) {
  const [attendanceScannerPracticeId,setAttendanceScannerPracticeId]=useState(""),[scannedAttendanceMember,setScannedAttendanceMember]=useState(null);
  const [fixtureAttendanceRows,setFixtureAttendanceRows]=useState([]),[seasonFixtures,setSeasonFixtures]=useState([]),[approvedMatchStats,setApprovedMatchStats]=useState([]),[availabilityRecords,setAvailabilityRecords]=useState([]),[availabilityMemberId,setAvailabilityMemberId]=useState(""),[availabilityStatus,setAvailabilityStatus]=useState("unavailable"),[availabilityReason,setAvailabilityReason]=useState("undisclosed"),[availabilityFrom,setAvailabilityFrom]=useState(localDateKey()),[availabilityExpectedReturn,setAvailabilityExpectedReturn]=useState(""),[availabilityNote,setAvailabilityNote]=useState(""),[attendanceScannerFixtureId,setAttendanceScannerFixtureId]=useState(""),[scannedFixtureAttendanceMember,setScannedFixtureAttendanceMember]=useState(null);
  async function load(){
-  if(!supabase||!user?.id){setSeason(null);setMembers([]);setPlayerActions([]);setMyProfiles([]);setMyAthletes([]);return;}
+  if(!supabase||!user?.id){setSeason(null);setMembers([]);setPlayerActions([]);setAvailabilityRecords([]);setStaffScope(false);setMyProfiles([]);setMyAthletes([]);return;}
   setBusy(true);setError("");
   const {data:s,error:se}=await supabase.from("team_hub_seasons").select("id,team_id,sport_id,season_label,status,starts_on,ends_on,team_name_snapshot,team_category_snapshot,sports(name)").eq("id",seasonId).maybeSingle();
   if(se||!s){setError(se?.message||"This team hub is unavailable or you are not authorised to view it.");setSeason(null);setBusy(false);return;}
