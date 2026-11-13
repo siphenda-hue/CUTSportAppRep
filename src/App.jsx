@@ -38,7 +38,7 @@ function PlayerProfileQr({profileId}){
   return()=>{active=false;if(target.current)target.current.innerHTML="";};
  },[profileId]);
  return <section className="player-privacy-panel" style={{display:"grid",justifyItems:"center",gap:12,textAlign:"center"}}>
-  <div><b>Your CUT Sport player QR</b><p>Show this code to an authorised coach or team manager to register your existing player identity to a team. Your profile ownership is not transferred.</p></div>
+  <div><b>Your CUT Sport player QR</b><p>Show this code to an authorised coach or team manager to find your existing player profile and register it to a team. Staff may ask to check your CUT student ID before confirming the assignment.</p></div>
   <div ref={target} aria-label="Your player QR code" style={{background:"#FBFAF5",padding:12,borderRadius:12,minHeight:240,minWidth:240,display:"grid",placeItems:"center"}}/>
   {error&&<p className="form-error">{error}</p>}
   <small className="muted">CUTPLAYER identity code · Keep your account signed in and show this code in person.</small>
@@ -3043,7 +3043,7 @@ function AdminAthletes({roles,user}) {
  {scannerOpen&&<section className="form-card"><div className="performance-record-head"><div><b>Register a claimed player profile</b><small>Scan the player's CUT Sport QR, then confirm the team assignment.</small></div><button type="button" className="btn secondary" onClick={()=>{setScannerOpen(false);setScannedPlayer(null);setScanError("");}}>Close</button></div>
   <label>Register to team<select required value={scanTeamId} onChange={e=>{setScanTeamId(e.target.value);setScannedPlayer(null);setScanError("");}}><option value="">Choose an active team you manage</option>{manageableTeams.map(t=><option key={t.id} value={t.id}>{t.sports?.name||"Sport"} · {t.name}</option>)}</select></label>
   {scanTeamId&&!scannedPlayer&&<PlayerQrScanner onScan={handlePlayerQrScan}/>}
-  {scannedPlayer&&<div className="admin-notice"><ShieldCheck/><div><b>{scannedPlayer.display_name||scannedPlayer.full_name}</b><p>Verified claimed player identity · {teams.find(t=>t.id===scanTeamId)?.name}</p><p>The existing player profile will be linked to a new athlete record for this team. No profile ownership or claim status will be changed.</p><button type="button" className="btn primary" disabled={scanBusy} onClick={registerScannedPlayer}>{scanBusy?"Registering…":"Confirm team registration"}</button></div></div>}
+  {scannedPlayer&&<div className="admin-notice"><ShieldCheck/><div><b>{scannedPlayer.display_name||scannedPlayer.full_name}</b><p>Claimed player profile · {teams.find(t=>t.id===scanTeamId)?.name}</p><p>Check the player against their CUT student ID before confirming. The existing canonical profile will be linked to a team-specific athlete record; profile ownership and claim status will not change.</p><button type="button" className="btn primary" disabled={scanBusy} onClick={registerScannedPlayer}>{scanBusy?"Registering…":"Confirm team registration"}</button></div></div>}
   {scanBusy&&!scannedPlayer&&<p className="muted">Verifying the scanned player profile…</p>}
   {scanError&&<p className="form-error" role="alert">{scanError}</p>}
   <small className="muted">Only publicly visible, owner-claimed player profiles can be registered by QR. New athlete records remain pending administrator approval.</small>
