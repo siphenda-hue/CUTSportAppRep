@@ -82,7 +82,10 @@ function Header({title='CUT Sport',back=false}) {
    if(!active)return;
    channel=supabase.channel("notification-badge:"+user.id)
     .on("postgres_changes",{event:"*",schema:"public",table:"notifications",filter:"user_id=eq."+user.id},()=>refresh(user.id))
-    .subscribe();
+   if(staffScope&&season?.team_id){channel
+   .on("postgres_changes",{event:"*",schema:"public",table:"fixtures",filter:"team_id=eq."+season.team_id},()=>load())
+   .on("postgres_changes",{event:"*",schema:"public",table:"player_match_statistics",filter:"team_id=eq."+season.team_id},()=>load());}
+   .subscribe();
   };
   supabase.auth.getUser().then(({data})=>connect(data.user||null));
   const {data:{subscription}}=supabase.auth.onAuthStateChange((_event,session)=>connect(session?.user||null));
@@ -923,8 +926,6 @@ function TeamHub({user,roles=[]}) {
    .on("postgres_changes",{event:"*",schema:"public",table:"team_hub_seasons",filter:"id=eq."+seasonId},()=>load())
    .on("postgres_changes",{event:"*",schema:"public",table:"team_hub_posts",filter:"season_id=eq."+seasonId},()=>load())
    .on("postgres_changes",{event:"*",schema:"public",table:"team_hub_fixture_attendance",filter:"season_id=eq."+seasonId},()=>load())
-   .on("postgres_changes",{event:"*",schema:"public",table:"fixtures",filter:"team_id=eq."+season?.team_id},()=>load())
-   .on("postgres_changes",{event:"*",schema:"public",table:"player_match_statistics",filter:"team_id=eq."+season?.team_id},()=>load())
    .on("postgres_changes",{event:"*",schema:"public",table:"team_hub_polls",filter:"season_id=eq."+seasonId},()=>load())
    .on("postgres_changes",{event:"*",schema:"public",table:"team_hub_season_members",filter:"season_id=eq."+seasonId},()=>load())
    .on("postgres_changes",{event:"*",schema:"public",table:"team_hub_poll_options"},()=>load())
@@ -933,7 +934,7 @@ function TeamHub({user,roles=[]}) {
    .on("postgres_changes",{event:"*",schema:"public",table:"coach_action_tasks",filter:"season_id=eq."+seasonId},()=>load())
    .subscribe();
   return()=>{supabase.removeChannel(channel);};
- },[seasonId,user?.id,roles.join("|"),season?.team_id]);
+ },[seasonId,user?.id,roles.join("|"),season?.team_id,staffScope]);
  const myMember=members.find(m=>myProfiles.includes(m.player_profile_id)||myAthletes.some(a=>a.id===m.athlete_id));
  const myPlayerProfileId=myMember?.player_profile_id||myAthletes.find(a=>a.id===myMember?.athlete_id)?.player_profile_id||null;
  const localDate=new Date(),todayKey=[localDate.getFullYear(),String(localDate.getMonth()+1).padStart(2,"0"),String(localDate.getDate()).padStart(2,"0")].join("-");
