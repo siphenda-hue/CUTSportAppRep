@@ -2813,8 +2813,8 @@ function AdminTeams({roles,user}) {
 }
 
 function AdminRosters({roles,user}) {
- const allowed=roles.some(r=>["sport_admin","super_admin","coach"].includes(r));
- const [teams,setTeams]=useState([]),[selectedTeam,setSelectedTeam]=useState("");
+ const allowed=roles.some(r=>["sport_admin","super_admin","coach","team_manager"].includes(r));
+ const [teams,setTeams]=useState([]),[selectedTeam,setSelectedTeam]=useState(""),[fixtures,setFixtures]=useState([]),[selectedFixture,setSelectedFixture]=useState("");
  const [members,setMembers]=useState([]),[athletes,setAthletes]=useState([]);
  const [athleteId,setAthleteId]=useState(""),[position,setPosition]=useState(""),[number,setNumber]=useState("");
  const [editing,setEditing]=useState({}),[busy,setBusy]=useState(false),[error,setError]=useState(""),[notice,setNotice]=useState("");
@@ -2838,6 +2838,20 @@ function AdminRosters({roles,user}) {
   if(error)setError(error.message);else setAthletes(data||[]);
  }
  useEffect(()=>{loadTeams();loadAthletes()},[allowed]);
+ useEffect(()=>{
+  let active=true;
+  async function loadTeamFixtures(){
+   setFixtures([]);setSelectedFixture("");
+   if(!supabase||!selectedTeam)return;
+   const {data,error}=await supabase.from("fixtures").select("id,opponent,venue,starts_at,status,competitions(name)").eq("team_id",selectedTeam).order("starts_at",{ascending:true}).limit(100);
+   if(!active)return;
+   if(error){setError("Unable to load team fixtures: "+error.message);return;}
+   const available=(data||[]).filter(x=>x.status!=="cancelled");
+   setFixtures(available);
+  }
+  loadTeamFixtures();
+  return()=>{active=false};
+ },[selectedTeam]);
  useEffect(()=>{if(selectedTeam)loadRoster(selectedTeam);else setMembers([])},[selectedTeam]);
  const team=teams.find(t=>t.id===selectedTeam);
  const activeApprovedMembers=members.filter(m=>m.is_active&&m.athletes?.approval_status==="approved");
@@ -2858,7 +2872,7 @@ function AdminRosters({roles,user}) {
   if(rosterReadiness.unapproved)warnings.push(rosterReadiness.unapproved+" active membership(s) excluded because the athlete profile is not approved.");
   if(rosterReadiness.missingPosition)warnings.push(rosterReadiness.missingPosition+" approved squad member(s) have no position/event recorded.");
   if(rosterReadiness.duplicateNumbers)warnings.push("Duplicate squad number(s): "+duplicateNumbers.join(", ")+".");
-  const content="<p><b>"+escapeSheet(team.sports?.name||"Sport")+" · "+escapeSheet(team.category||"Squad")+"</b> · "+escapeSheet(team.season||"Season not specified")+"</p><p>Coach: "+escapeSheet(team.coach_name||"Not recorded")+" · Confirmed active approved members: "+ordered.length+"</p>"+(warnings.length?"<div style='border:1px solid #d99b36;padding:10px;background:#fff8e8'><b>Readiness notes</b><ul>"+warnings.map(x=>"<li>"+escapeSheet(x)+"</li>").join("")+"</ul></div>":"<p><b>Readiness:</b> No missing positions or duplicate squad numbers detected in the included records.</p>")+"<h2>Confirmed team sheet</h2><table><thead><tr><th>Squad no.</th><th>#</th><th>Athlete</th><th>Position / event</th></tr></thead><tbody>"+rows+"</tbody></table><p style='margin-top:28px'>Team manager: __________________________ &nbsp;&nbsp; Coach: __________________________</p><p>Authorised sign-off: __________________________ &nbsp;&nbsp; Date: __________________</p>";
+  const fixture=fixtures.find(x=>x.id===selectedFixture);\n  const fixtureDetails=fixture?"<p><b>Match:</b> "+escapeSheet(team.name)+" vs "+escapeSheet(fixture.opponent||"Opponent TBC")+" · "+escapeSheet(dateTimeLabel(fixture.starts_at))+" · "+escapeSheet(fixture.venue||"Venue TBC")+(fixture.competitions?.name?" · "+escapeSheet(fixture.competitions.name):"")+"</p>":"<p><b>Match details:</b> To be confirmed</p>";\n  const content="<p><b>"+escapeSheet(team.sports?.name||"Sport")+" · "+escapeSheet(team.category||"Squad")+"</b> · "+escapeSheet(team.season||"Season not specified")+"</p>"+fixtureDetails+"<p>Coach: "+escapeSheet(team.coach_name||"Not recorded")+" · Confirmed active approved members: "+ordered.length+"</p>"+(warnings.length?"<div style='border:1px solid #d99b36;padding:10px;background:#fff8e8'><b>Readiness notes</b><ul>"+warnings.map(x=>"<li>"+escapeSheet(x)+"</li>").join("")+"</ul></div>":"<p><b>Readiness:</b> No missing positions or duplicate squad numbers detected in the included records.</p>")+"<h2>Confirmed team sheet</h2><table><thead><tr><th>Squad no.</th><th>#</th><th>Athlete</th><th>Position / event</th></tr></thead><tbody>"+rows+"</tbody></table><p style='margin-top:28px'>Team manager: __________________________ &nbsp;&nbsp; Coach: __________________________</p><p>Authorised sign-off: __________________________ &nbsp;&nbsp; Date: __________________</p>";
   openCutPrintableReport(team.name+" — Final Team Sheet","CONFIRMED SQUAD · "+(team.sports?.name||"CUT Sport"),content,false,{report_type:"team_sheet",scope_label:team.name});
  }
  async function addAthlete(e){
@@ -2906,6 +2920,7 @@ function AdminRosters({roles,user}) {
    <button className="btn primary" disabled={busy||!athleteId}>{busy?"Saving…":"Add to roster"}</button>
   </form></Section>}
   {team&&<Section title="Squad readiness & final team sheet">
+   <label>Match fixture (optional)<select value={selectedFixture} onChange={e=>setSelectedFixture(e.target.value)}><option value="">No fixture selected / details TBC</option>{fixtures.map(f=><option key={f.id} value={f.id}>{dateTimeLabel(f.starts_at)} · {team.name} vs {f.opponent||"Opponent TBC"}{f.venue?" · "+f.venue:""}</option>)}</select></label>
    <div className="admin-stats">
     <div><b>{rosterReadiness.active}</b><small>Active memberships</small></div>
     <div><b>{rosterReadiness.approved}</b><small>Approved players included</small></div>
