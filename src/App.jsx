@@ -2954,20 +2954,35 @@ function AdminAthletes({roles,user}) {
   setScannedPlayer(data);
  }
  async function registerScannedPlayer(){
-  const team=teams.find(t=>t.id===scanTeamId);
+  const team=manageableTeams.find(t=>t.id===scanTeamId);
   if(!team||!scannedPlayer||!user?.id||scanBusy)return;
   setScanBusy(true);setScanError("");setScanNotice("");
-  const {data:existing,error:lookupError}=await supabase.from("athletes").select("id,approval_status").eq("player_profile_id",scannedPlayer.id).eq("sport_id",team.sport_id).eq("team_id",team.id).maybeSingle();
-  if(lookupError){setScanError("Could not check for an existing team registration: "+lookupError.message);setScanBusy(false);return;}
-  if(existing){setScanError("This player already has an athlete record for "+team.name+". No duplicate was created.");setScanBusy(false);return;}
-  const payload={sport_id:team.sport_id,team_id:team.id,full_name:scannedPlayer.full_name,preferred_name:scannedPlayer.display_name&&scannedPlayer.display_name!==scannedPlayer.full_name?scannedPlayer.display_name:null,approval_status:"pending",profile_visibility:"public"};
-  const {data:athlete,error:insertError}=await supabase.from("athletes").insert(payload).select("id,player_profile_id,approval_status").single();
-  if(insertError){setScanError("Could not register this player to the selected team: "+insertError.message);setScanBusy(false);return;}
-  const {error:membershipError}=await supabase.from("athlete_team_memberships").insert({athlete_id:athlete.id,team_id:team.id,sport_id:team.sport_id,created_by:user.id});
+  const {data:matches,error:lookupError}=await supabase.from("athletes").select("id,approval_status,team_id").eq("player_profile_id",scannedPlayer.id).eq("sport_id",team.sport_id).limit(2);
+  if(lookupError){setScanError("Could not check for an existing athlete identity: "+lookupError.message);setScanBusy(false);return;}
+  if((matches||[]).length>1){setScanError("More than one athlete record is already linked to this player in this sport. Ask a sport administrator to resolve the duplicate before assigning another team.");setScanBusy(false);return;}
+  let athlete=matches?.[0]||null,created=false;
+  if(!athlete){
+   const payload={sport_id:team.sport_id,team_id:team.id,full_name:scannedPlayer.full_name,preferred_name:scannedPlayer.display_name&&scannedPlayer.display_name!==scannedPlayer.full_name?scannedPlayer.display_name:null,approval_status:"pending",profile_visibility:"public"};
+   const {data,error:insertError}=await supabase.from("athletes").insert(payload).select("id,approval_status,team_id").single();
+   if(insertError){setScanError("Could not register this player to the selected team: "+insertError.message);setScanBusy(false);return;}
+   athlete=data;created=true;
+  }
+  const {data:membership,error:membershipLookupError}=await supabase.from("athlete_team_memberships").select("id,is_active").eq("athlete_id",athlete.id).eq("team_id",team.id).maybeSingle();
+  if(membershipLookupError){setScanError("Athlete record is ready, but its existing team membership could not be checked: "+membershipLookupError.message);setScanBusy(false);return;}
+  let membershipError=null;
+  if(membership){
+   if(!membership.is_active){
+    const result=await supabase.from("athlete_team_memberships").update({is_active:true,joined_at:localDateKey(),left_at:null,updated_at:new Date().toISOString()}).eq("id",membership.id).select("id").maybeSingle();
+    membershipError=result.error||(result.data?null:new Error("Your team assignment permission could not be confirmed."));
+   }
+  }else{
+   const result=await supabase.from("athlete_team_memberships").insert({athlete_id:athlete.id,team_id:team.id,sport_id:team.sport_id,created_by:user.id}).select("id").maybeSingle();
+   membershipError=result.error||(!result.data?new Error("Your team assignment permission could not be confirmed."):null);
+  }
   setScanBusy(false);setScannerOpen(false);setScannedPlayer(null);setScanTeamId("");
   await load();
-  if(membershipError)setScanError("Athlete record created and linked to the existing player identity, but the team membership could not be saved: "+membershipError.message);
-  else setScanNotice((scannedPlayer.display_name||scannedPlayer.full_name)+" registered to "+team.name+". Athlete approval is pending; the player can be selected for a Team Hub squad after approval.");
+  if(membershipError)setScanError((created?"Athlete record created":"Existing athlete record found")+" but team membership could not be saved: "+membershipError.message);
+  else setScanNotice((scannedPlayer.display_name||scannedPlayer.full_name)+(created?" registered":" linked")+(membership?" · existing team membership confirmed":"")+" to "+team.name+". "+(athlete.approval_status==="approved"?"The athlete profile is approved.":"Athlete approval is pending; the player can be selected for a Team Hub squad after approval."));
  }
  async function openMemberships(item){
   setMembershipAthlete(item);setMembershipError("");setMembershipTeam("");setMembershipPosition("");setMembershipNumber("");setMemberships([]);
