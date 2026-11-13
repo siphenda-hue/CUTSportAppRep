@@ -464,7 +464,7 @@ function PlayerProfilePage({user,roles=[]}) {
   if(!supabase)return;
   setBusy(true);setError("");
   const [p,r]=await Promise.all([
-   supabase.from("player_profiles").select("id,full_name,display_name,claimed_at,photo_path,photo_approved_at,profile_visibility").eq("id",id).maybeSingle(),
+   supabase.from("player_profiles").select("id,full_name,display_name,claimed_by,claimed_at,photo_path,photo_approved_at,profile_visibility").eq("id",id).maybeSingle(),
    supabase.from("player_profile_records").select("*").eq("player_profile_id",id).order("record_date",{ascending:false,nullsFirst:false}).limit(1000)
   ]);
   if(p.error||r.error)setError(p.error?.message||r.error?.message||"Unable to load this player profile.");
@@ -611,7 +611,7 @@ function PlayerProfilePage({user,roles=[]}) {
  return <><Header title="Player profile" back/><main className="page">
   {busy?<p className="muted">Loading player history…</p>:!player?<Empty title="Player profile not found" body="This player profile may have been removed or the link is incorrect."/>:<>
    <div className="player-profile-hero"><span className="player-profile-avatar">{photoUrl?<img src={photoUrl} alt={player.display_name||player.full_name}/>:((player.display_name||player.full_name).slice(0,1))}</span><div><span className="eyebrow">CUT SPORT · PLAYER RECORD</span><h1>{player.display_name||player.full_name}</h1><p>{appearances.size} documented match appearance(s) · {internationalAppearances} international appearance(s) · {statisticRecords} statistics record(s) · {competitions} competition(s)</p><span className={player.claimed_at?"player-claimed":"player-unclaimed"}>{player.claimed_at?"Claim verified":"Unclaimed player profile"}</span><span className="player-visibility-tag">{player.profile_visibility==="private"?"Private profile":"Public profile"}</span></div></div>
-   {user?.id&&claim?.status==="approved"&&player.profile_visibility==="public"&&<PlayerProfileQr profileId={player.id}/>}
+   {user?.id&&claim?.status==="approved"&&player.claimed_by===user.id&&player.claimed_at&&player.profile_visibility==="public"&&<PlayerProfileQr profileId={player.id}/>}
    <div className="player-career-stats">
     <article><b>{appearances.size}</b><small>Match appearances</small></article><article><b>{statisticRecords}</b><small>Statistics records</small></article><article><b>{competitions}</b><small>Competitions</small></article><article><b>{internationalAppearances}</b><small>International appearances</small></article><article><b>{squadSelections}</b><small>Squad selections</small></article><article><b>{awardRecords}</b><small>Awards & honours</small></article>
    </div>
@@ -2946,7 +2946,7 @@ function AdminAthletes({roles,user}) {
   const match=String(decoded||"").trim().match(/^CUTPLAYER:([0-9a-f-]{36})$/i);
   if(!match){setScanError("This is not a valid CUT Sport player QR code. Ask the player to open their own player profile QR.");return;}
   setScanBusy(true);
-  const {data,error:e}=await supabase.from("player_profiles").select("id,full_name,display_name,claimed_at,profile_visibility").eq("id",match[1]).eq("profile_visibility","public").maybeSingle();
+  const {data,error:e}=await supabase.from("player_profiles").select("id,full_name,display_name,claimed_by,claimed_at,profile_visibility").eq("id",match[1]).eq("profile_visibility","public").maybeSingle();
   setScanBusy(false);
   if(e){setScanError("Could not verify this player profile: "+e.message);return;}
   if(!data){setScanError("Player profile not found or not publicly available. Ask the player to make their profile public and show their QR again.");return;}
