@@ -2914,7 +2914,9 @@ function AdminRosters({roles,user}) {
 }
 
 function AdminAthletes({roles,user}) {
- const allowed=roles.some(r=>["sport_admin","super_admin","coach","team_manager"].includes(r));
+ const roleAllowed=roles.some(r=>["sport_admin","super_admin","coach"].includes(r));
+ const [hasTeamManagerAccess,setHasTeamManagerAccess]=useState(false),[staffAssignments,setStaffAssignments]=useState([]);
+ const allowed=roleAllowed||hasTeamManagerAccess;
  const superAdmin=roles.includes("super_admin");
  const [sports,setSports]=useState([]),[teams,setTeams]=useState([]),[items,setItems]=useState([]),[profiles,setProfiles]=useState([]);
  const [busy,setBusy]=useState(false),[error,setError]=useState(""),[editing,setEditing]=useState(null);
@@ -2923,18 +2925,21 @@ function AdminAthletes({roles,user}) {
  const [form,setForm]=useState(blank);
  const [scannerOpen,setScannerOpen]=useState(false),[scanTeamId,setScanTeamId]=useState(""),[scannedPlayer,setScannedPlayer]=useState(null),[scanBusy,setScanBusy]=useState(false),[scanError,setScanError]=useState(""),[scanNotice,setScanNotice]=useState("");
  async function load(){
-  if(!supabase||!allowed)return;
-  const [s,t,a,p]=await Promise.all([
+  if(!supabase||!user?.id)return;
+  const [s,t,a,p,staff]=await Promise.all([
    supabase.from("sports").select("id,name").eq("is_active",true).order("display_order"),
    supabase.from("teams").select("id,name,sport_id,sports(name)").eq("is_active",true).order("name"),
    supabase.from("athletes").select("id,profile_id,player_profile_id,sport_id,team_id,full_name,preferred_name,position,gender,nationality,hometown,province,faculty,qualification,year_of_study,student_status,years_representing_cut,previous_clubs,squad_number,bio,photo_url,is_featured,approval_status,profile_visibility,sports(name),teams(name)").order("full_name"),
-   superAdmin?supabase.from("profiles").select("id,full_name,email,student_number").order("full_name"):Promise.resolve({data:[],error:null})
+   superAdmin?supabase.from("profiles").select("id,full_name,email,student_number").order("full_name"):Promise.resolve({data:[],error:null}),
+   supabase.from("sport_admin_assignments").select("sport_id,team_id,assignment_role,is_active,starts_on,ends_on").eq("admin_profile_id",user.id).eq("is_active",true)
   ]);
-  const failure=s.error||t.error||a.error||p.error;
+  const failure=s.error||t.error||a.error||p.error||staff.error;
   if(failure)setError(failure.message);
-  else{setSports(s.data||[]);setTeams(t.data||[]);setItems(a.data||[]);setProfiles(p.data||[]);}
+  else{setSports(s.data||[]);setTeams(t.data||[]);setItems(a.data||[]);setProfiles(p.data||[]);setStaffAssignments(staff.data||[]);setHasTeamManagerAccess((staff.data||[]).some(x=>["team_manager","coach"].includes(x.assignment_role)));}
  }
- useEffect(()=>{load()},[allowed,superAdmin]);
+ useEffect(()=>{load()},[user?.id,roles.join("|")]);
+ const today=localDateKey();
+ const manageableTeams=teams.filter(t=>superAdmin||staffAssignments.some(a=>a.is_active&&(!a.starts_on||a.starts_on<=today)&&(!a.ends_on||a.ends_on>=today)&&((a.assignment_role==="sport_admin"&&a.sport_id===t.sport_id&&(!a.team_id||a.team_id===t.id))||(["coach","team_manager"].includes(a.assignment_role)&&a.team_id===t.id))));
  const availableTeams=teams.filter(t=>!form.sport_id||t.sport_id===form.sport_id);
  async function handlePlayerQrScan(decoded){
   setScanError("");setScanNotice("");
@@ -3036,7 +3041,7 @@ function AdminAthletes({roles,user}) {
  <div className="review-actions"><button type="button" className="btn primary" onClick={()=>{setScannerOpen(true);setScannedPlayer(null);setScanError("");setScanNotice("");}}><Users size={16}/> Scan player QR to register</button></div>
  {scanNotice&&<p className="success-message">{scanNotice}</p>}
  {scannerOpen&&<section className="form-card"><div className="performance-record-head"><div><b>Register a claimed player profile</b><small>Scan the player's CUT Sport QR, then confirm the team assignment.</small></div><button type="button" className="btn secondary" onClick={()=>{setScannerOpen(false);setScannedPlayer(null);setScanError("");}}>Close</button></div>
-  <label>Register to team<select required value={scanTeamId} onChange={e=>{setScanTeamId(e.target.value);setScannedPlayer(null);setScanError("");}}><option value="">Choose an active team you manage</option>{teams.map(t=><option key={t.id} value={t.id}>{t.sports?.name||"Sport"} · {t.name}</option>)}</select></label>
+  <label>Register to team<select required value={scanTeamId} onChange={e=>{setScanTeamId(e.target.value);setScannedPlayer(null);setScanError("");}}><option value="">Choose an active team you manage</option>{manageableTeams.map(t=><option key={t.id} value={t.id}>{t.sports?.name||"Sport"} · {t.name}</option>)}</select></label>
   {scanTeamId&&!scannedPlayer&&<PlayerQrScanner onScan={handlePlayerQrScan}/>}
   {scannedPlayer&&<div className="admin-notice"><ShieldCheck/><div><b>{scannedPlayer.display_name||scannedPlayer.full_name}</b><p>Verified claimed player identity · {teams.find(t=>t.id===scanTeamId)?.name}</p><p>The existing player profile will be linked to a new athlete record for this team. No profile ownership or claim status will be changed.</p><button type="button" className="btn primary" disabled={scanBusy} onClick={registerScannedPlayer}>{scanBusy?"Registering…":"Confirm team registration"}</button></div></div>}
   {scanBusy&&!scannedPlayer&&<p className="muted">Verifying the scanned player profile…</p>}
