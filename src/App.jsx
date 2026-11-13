@@ -878,7 +878,7 @@ function TeamHub({user,roles=[]}) {
   if(!supabase||!user?.id){setSeason(null);setMembers([]);setPlayerActions([]);setAvailabilityRecords([]);setStaffScope(false);setMyProfiles([]);setMyAthletes([]);return;}
   setBusy(true);setError("");
   const {data:s,error:se}=await supabase.from("team_hub_seasons").select("id,team_id,sport_id,season_label,status,starts_on,ends_on,team_name_snapshot,team_category_snapshot,sports(name)").eq("id",seasonId).maybeSingle();
-  if(se||!s){setError(se?.message||"This team hub is unavailable or you are not authorised to view it.");setSeason(null);setBusy(false);return;}
+  if(se||!s){setError(se?.message||"This team hub is unavailable or you are not authorised to view it.");setSeason(null);setAvailabilityRecords([]);setApprovedMatchStats([]);setPlayerActions([]);setStaffScope(false);setBusy(false);return;}
   const [m,p,pl,prof,athletes,attendance,fixtureAttendance,fixtureRows,development]=await Promise.all([
    supabase.from("team_hub_season_members").select("id,athlete_id,player_profile_id,player_name,membership_status,position,squad_number").eq("season_id",seasonId).in("membership_status",["selected","retained"]),
    supabase.from("team_hub_posts").select("id,post_type,status,title,body,starts_at,ends_at,venue,status_note,created_at,updated_at,created_by").eq("season_id",seasonId).order("created_at",{ascending:false}).limit(100),
