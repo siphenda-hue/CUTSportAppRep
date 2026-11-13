@@ -82,9 +82,6 @@ function Header({title='CUT Sport',back=false}) {
    if(!active)return;
    channel=supabase.channel("notification-badge:"+user.id)
     .on("postgres_changes",{event:"*",schema:"public",table:"notifications",filter:"user_id=eq."+user.id},()=>refresh(user.id))
-   if(staffScope&&season?.team_id){channel
-   .on("postgres_changes",{event:"*",schema:"public",table:"fixtures",filter:"team_id=eq."+season.team_id},()=>load())
-   .on("postgres_changes",{event:"*",schema:"public",table:"player_match_statistics",filter:"team_id=eq."+season.team_id},()=>load());}
    .subscribe();
   };
   supabase.auth.getUser().then(({data})=>connect(data.user||null));
@@ -931,8 +928,11 @@ function TeamHub({user,roles=[]}) {
    .on("postgres_changes",{event:"*",schema:"public",table:"team_hub_poll_options"},()=>load())
    .on("postgres_changes",{event:"*",schema:"public",table:"team_hub_poll_responses",filter:"season_id=eq."+seasonId},()=>load())
    .on("postgres_changes",{event:"*",schema:"public",table:"team_hub_player_development_notes",filter:"season_id=eq."+seasonId},()=>load())
-   .on("postgres_changes",{event:"*",schema:"public",table:"coach_action_tasks",filter:"season_id=eq."+seasonId},()=>load())
-   .subscribe();
+   .on("postgres_changes",{event:"*",schema:"public",table:"coach_action_tasks",filter:"season_id=eq."+seasonId},()=>load());
+  if(staffScope&&season?.team_id){channel
+   .on("postgres_changes",{event:"*",schema:"public",table:"fixtures",filter:"team_id=eq."+season.team_id},()=>load())
+   .on("postgres_changes",{event:"*",schema:"public",table:"player_match_statistics",filter:"team_id=eq."+season.team_id},()=>load());}
+  channel.subscribe();
   return()=>{supabase.removeChannel(channel);};
  },[seasonId,user?.id,roles.join("|"),season?.team_id,staffScope]);
  const myMember=members.find(m=>myProfiles.includes(m.player_profile_id)||myAthletes.some(a=>a.id===m.athlete_id));
