@@ -7,6 +7,61 @@ import { supabase } from './lib/supabase';
 
 const fallback = ['Athletics & Cross Country','Basketball','Cheerleading','Cricket','E-Sport','Football','Golf','Hockey','Netball','Rugby','Volleyball'].map((name,i)=>({id:String(i),name,slug:name.toLowerCase().replaceAll(' ','-')}));
 function Empty({title,body}) { return <div className="empty"><Trophy/><b>{title}</b><p>{body}</p></div>; }
+
+function loadCutQrScript(key,src){
+ if(window[key])return Promise.resolve(window[key]);
+ return new Promise((resolve,reject)=>{
+  const selector='script[data-cut-qr="'+key+'"]';
+  let script=document.querySelector(selector);
+  if(script){
+   if(window[key]){resolve(window[key]);return;}
+   script.addEventListener("load",()=>resolve(window[key]),{once:true});
+   script.addEventListener("error",()=>reject(new Error("QR library could not be loaded.")),{once:true});
+   return;
+  }
+  script=document.createElement("script");script.src=src;script.async=true;script.dataset.cutQr=key;
+  script.onload=()=>window[key]?resolve(window[key]):reject(new Error("QR library did not initialise."));
+  script.onerror=()=>reject(new Error("QR library could not be loaded."));
+  document.head.appendChild(script);
+ });
+}
+
+function PlayerProfileQr({profileId}){
+ const target=useRef(null),[error,setError]=useState("");
+ useEffect(()=>{
+  let active=true;
+  loadCutQrScript("generator","https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js").then(()=>{
+   if(!active||!target.current)return;
+   target.current.innerHTML="";
+   new window.QRCode(target.current,{text:"CUTPLAYER:"+profileId,width:216,height:216,colorDark:"#1F5FBF",colorLight:"#FBFAF5",correctLevel:window.QRCode.CorrectLevel.M});
+  }).catch(e=>{if(active)setError(e.message);});
+  return()=>{active=false;if(target.current)target.current.innerHTML="";};
+ },[profileId]);
+ return <section className="player-privacy-panel" style={{display:"grid",justifyItems:"center",gap:12,textAlign:"center"}}>
+  <div><b>Your CUT Sport player QR</b><p>Show this code to an authorised coach or team manager to register your existing player identity to a team. Your profile ownership is not transferred.</p></div>
+  <div ref={target} aria-label="Your player QR code" style={{background:"#FBFAF5",padding:12,borderRadius:12,minHeight:240,minWidth:240,display:"grid",placeItems:"center"}}/>
+  {error&&<p className="form-error">{error}</p>}
+  <small className="muted">CUTPLAYER identity code · Keep your account signed in and show this code in person.</small>
+ </section>;
+}
+
+function PlayerQrScanner({onScan}){
+ const [error,setError]=useState("");
+ const onScanRef=useRef(onScan),readerRef=useRef(null);
+ useEffect(()=>{onScanRef.current=onScan;},[onScan]);
+ useEffect(()=>{
+  let scanner=null,cancelled=false,completed=false;
+  loadCutQrScript("scanner","https://unpkg.com/html5-qrcode@2.3.8/minified/html5-qrcode.min.js").then(async()=>{
+   if(cancelled)return;
+   scanner=new window.Html5Qrcode("cut-player-qr-camera");readerRef.current=scanner;
+   await scanner.start({facingMode:"environment"},{fps:10,qrbox:{width:230,height:230},aspectRatio:1},
+    decoded=>{if(cancelled||completed)return;completed=true;onScanRef.current(decoded);scanner.stop().catch(()=>{});},()=>{});
+   if(cancelled&&scanner?.isScanning)await scanner.stop();
+  }).catch(e=>{if(!cancelled)setError(e?.message||"Unable to start the camera. Check camera permission and try again.");});
+  return()=>{cancelled=true;const current=readerRef.current;readerRef.current=null;if(current?.isScanning)current.stop().then(()=>current.clear()).catch(()=>{});};
+ },[]);
+ return <div><div id="cut-player-qr-camera" style={{width:"100%",maxWidth:420,margin:"0 auto",overflow:"hidden",borderRadius:14}}/>{error&&<p className="form-error">{error}</p>}<p className="muted">Allow camera access and hold the player's QR code inside the frame. Camera scanning requires HTTPS.</p></div>;
+}
 function dateTimeLabel(value) { return value ? new Intl.DateTimeFormat("en-ZA",{day:"numeric",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"}).format(new Date(value)) : "Date to be confirmed"; }
 function Header({title='CUT Sport',back=false}) {
  const nav=useNavigate();
@@ -409,7 +464,7 @@ function PlayerProfilePage({user,roles=[]}) {
   if(!supabase)return;
   setBusy(true);setError("");
   const [p,r]=await Promise.all([
-   supabase.from("player_profiles").select("id,full_name,display_name,claimed_at,photo_path,photo_approved_at,profile_visibility").eq("id",id).maybeSingle(),
+   supabase.from("player_profiles").select("id,full_name,display_name,claimed_by,claimed_at,photo_path,photo_approved_at,profile_visibility").eq("id",id).maybeSingle(),
    supabase.from("player_profile_records").select("*").eq("player_profile_id",id).order("record_date",{ascending:false,nullsFirst:false}).limit(1000)
   ]);
   if(p.error||r.error)setError(p.error?.message||r.error?.message||"Unable to load this player profile.");
@@ -556,6 +611,7 @@ function PlayerProfilePage({user,roles=[]}) {
  return <><Header title="Player profile" back/><main className="page">
   {busy?<p className="muted">Loading player history…</p>:!player?<Empty title="Player profile not found" body="This player profile may have been removed or the link is incorrect."/>:<>
    <div className="player-profile-hero"><span className="player-profile-avatar">{photoUrl?<img src={photoUrl} alt={player.display_name||player.full_name}/>:((player.display_name||player.full_name).slice(0,1))}</span><div><span className="eyebrow">CUT SPORT · PLAYER RECORD</span><h1>{player.display_name||player.full_name}</h1><p>{appearances.size} documented match appearance(s) · {internationalAppearances} international appearance(s) · {statisticRecords} statistics record(s) · {competitions} competition(s)</p><span className={player.claimed_at?"player-claimed":"player-unclaimed"}>{player.claimed_at?"Claim verified":"Unclaimed player profile"}</span><span className="player-visibility-tag">{player.profile_visibility==="private"?"Private profile":"Public profile"}</span></div></div>
+   {user?.id&&player.claimed_by===user.id&&player.profile_visibility==="public"&&<PlayerProfileQr profileId={player.id}/>}
    <div className="player-career-stats">
     <article><b>{appearances.size}</b><small>Match appearances</small></article><article><b>{statisticRecords}</b><small>Statistics records</small></article><article><b>{competitions}</b><small>Competitions</small></article><article><b>{internationalAppearances}</b><small>International appearances</small></article><article><b>{squadSelections}</b><small>Squad selections</small></article><article><b>{awardRecords}</b><small>Awards & honours</small></article>
    </div>
@@ -2858,13 +2914,14 @@ function AdminRosters({roles,user}) {
 }
 
 function AdminAthletes({roles,user}) {
- const allowed=roles.some(r=>["sport_admin","super_admin","coach"].includes(r));
+ const allowed=roles.some(r=>["sport_admin","super_admin","coach","team_manager"].includes(r));
  const superAdmin=roles.includes("super_admin");
  const [sports,setSports]=useState([]),[teams,setTeams]=useState([]),[items,setItems]=useState([]),[profiles,setProfiles]=useState([]);
  const [busy,setBusy]=useState(false),[error,setError]=useState(""),[editing,setEditing]=useState(null);
  const [membershipAthlete,setMembershipAthlete]=useState(null),[memberships,setMemberships]=useState([]),[membershipTeam,setMembershipTeam]=useState(""),[membershipPosition,setMembershipPosition]=useState(""),[membershipNumber,setMembershipNumber]=useState(""),[membershipBusy,setMembershipBusy]=useState(false),[membershipError,setMembershipError]=useState("");
  const blank={sport_id:"",team_id:"",profile_id:"",full_name:"",preferred_name:"",position:"",gender:"",nationality:"",hometown:"",province:"",faculty:"",qualification:"",year_of_study:"",student_status:"current",years_representing_cut:"",previous_clubs:"",squad_number:"",bio:"",photo_url:"",is_featured:false,profile_visibility:"public"};
  const [form,setForm]=useState(blank);
+ const [scannerOpen,setScannerOpen]=useState(false),[scanTeamId,setScanTeamId]=useState(""),[scannedPlayer,setScannedPlayer]=useState(null),[scanBusy,setScanBusy]=useState(false),[scanError,setScanError]=useState(""),[scanNotice,setScanNotice]=useState("");
  async function load(){
   if(!supabase||!allowed)return;
   const [s,t,a,p]=await Promise.all([
@@ -2879,6 +2936,34 @@ function AdminAthletes({roles,user}) {
  }
  useEffect(()=>{load()},[allowed,superAdmin]);
  const availableTeams=teams.filter(t=>!form.sport_id||t.sport_id===form.sport_id);
+ async function handlePlayerQrScan(decoded){
+  setScanError("");setScanNotice("");
+  const match=String(decoded||"").trim().match(/^CUTPLAYER:([0-9a-f-]{36})$/i);
+  if(!match){setScanError("This is not a valid CUT Sport player QR code. Ask the player to open their own player profile QR.");return;}
+  setScanBusy(true);
+  const {data,error:e}=await supabase.from("player_profiles").select("id,full_name,display_name,claimed_by,claimed_at,profile_visibility").eq("id",match[1]).eq("profile_visibility","public").maybeSingle();
+  setScanBusy(false);
+  if(e){setScanError("Could not verify this player profile: "+e.message);return;}
+  if(!data){setScanError("Player profile not found or not publicly available. Ask the player to make their profile public and show their QR again.");return;}
+  if(!data.claimed_by||!data.claimed_at){setScanError("This player profile has not been claimed and verified by its owner yet. Ask the player to complete the profile claim process first.");return;}
+  setScannedPlayer(data);
+ }
+ async function registerScannedPlayer(){
+  const team=teams.find(t=>t.id===scanTeamId);
+  if(!team||!scannedPlayer||!user?.id||scanBusy)return;
+  setScanBusy(true);setScanError("");setScanNotice("");
+  const {data:existing,error:lookupError}=await supabase.from("athletes").select("id,approval_status").eq("player_profile_id",scannedPlayer.id).eq("sport_id",team.sport_id).eq("team_id",team.id).maybeSingle();
+  if(lookupError){setScanError("Could not check for an existing team registration: "+lookupError.message);setScanBusy(false);return;}
+  if(existing){setScanError("This player already has an athlete record for "+team.name+". No duplicate was created.");setScanBusy(false);return;}
+  const payload={sport_id:team.sport_id,team_id:team.id,full_name:scannedPlayer.full_name,preferred_name:scannedPlayer.display_name&&scannedPlayer.display_name!==scannedPlayer.full_name?scannedPlayer.display_name:null,approval_status:"pending",profile_visibility:"public"};
+  const {data:athlete,error:insertError}=await supabase.from("athletes").insert(payload).select("id,player_profile_id,approval_status").single();
+  if(insertError){setScanError("Could not register this player to the selected team: "+insertError.message);setScanBusy(false);return;}
+  const {error:membershipError}=await supabase.from("athlete_team_memberships").insert({athlete_id:athlete.id,team_id:team.id,sport_id:team.sport_id,created_by:user.id});
+  setScanBusy(false);setScannerOpen(false);setScannedPlayer(null);setScanTeamId("");
+  await load();
+  if(membershipError)setScanError("Athlete record created and linked to the existing player identity, but the team membership could not be saved: "+membershipError.message);
+  else setScanNotice((scannedPlayer.display_name||scannedPlayer.full_name)+" registered to "+team.name+". Athlete approval is pending; the player can be selected for a Team Hub squad after approval.");
+ }
  async function openMemberships(item){
   setMembershipAthlete(item);setMembershipError("");setMembershipTeam("");setMembershipPosition("");setMembershipNumber("");setMemberships([]);
   if(!supabase)return;
@@ -2948,6 +3033,16 @@ function AdminAthletes({roles,user}) {
  }
  if(!allowed)return <><Header title="Admin access required" back/><main className="page"><Empty title="Restricted area" body="An assigned sport administrator, coach or super administrator role is required."/></main></>;
  return <><Header title="Athlete management" back/><main className="page"><div className="page-intro"><span className="eyebrow">ASSIGNED SPORT ACCESS</span><h1>Athlete profiles</h1><p>Manage athlete records and their memberships across multiple CUT sport codes. Team-level permissions determine which squads you can manage.</p></div>
+ <div className="review-actions"><button type="button" className="btn primary" onClick={()=>{setScannerOpen(true);setScannedPlayer(null);setScanError("");setScanNotice("");}}><Users size={16}/> Scan player QR to register</button></div>
+ {scanNotice&&<p className="success-message">{scanNotice}</p>}
+ {scannerOpen&&<section className="form-card"><div className="performance-record-head"><div><b>Register a claimed player profile</b><small>Scan the player's CUT Sport QR, then confirm the team assignment.</small></div><button type="button" className="btn secondary" onClick={()=>{setScannerOpen(false);setScannedPlayer(null);setScanError("");}}>Close</button></div>
+  <label>Register to team<select required value={scanTeamId} onChange={e=>{setScanTeamId(e.target.value);setScannedPlayer(null);setScanError("");}}><option value="">Choose an active team you manage</option>{teams.map(t=><option key={t.id} value={t.id}>{t.sports?.name||"Sport"} · {t.name}</option>)}</select></label>
+  {scanTeamId&&!scannedPlayer&&<PlayerQrScanner onScan={handlePlayerQrScan}/>}
+  {scannedPlayer&&<div className="admin-notice"><ShieldCheck/><div><b>{scannedPlayer.display_name||scannedPlayer.full_name}</b><p>Verified claimed player identity · {teams.find(t=>t.id===scanTeamId)?.name}</p><p>The existing player profile will be linked to a new athlete record for this team. No profile ownership or claim status will be changed.</p><button type="button" className="btn primary" disabled={scanBusy} onClick={registerScannedPlayer}>{scanBusy?"Registering…":"Confirm team registration"}</button></div></div>}
+  {scanBusy&&!scannedPlayer&&<p className="muted">Verifying the scanned player profile…</p>}
+  {scanError&&<p className="form-error" role="alert">{scanError}</p>}
+  <small className="muted">Only publicly visible, owner-claimed player profiles can be registered by QR. New athlete records remain pending administrator approval.</small>
+ </section>}
  <form className="form-card" onSubmit={save}><h3>{editing?"Update athlete profile":"Register athlete profile"}</h3>
  <label>Sport code<select required value={form.sport_id} onChange={e=>setForm({...form,sport_id:e.target.value,team_id:""})}><option value="">Choose sport</option>{sports.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select></label>
  <label>Primary team<select value={form.team_id} onChange={e=>setForm({...form,team_id:e.target.value})}><option value="">No primary team selected</option>{availableTeams.map(t=><option key={t.id} value={t.id}>{t.name}</option>)}</select></label>{superAdmin&&<label>Link CUT Sport account<select value={form.profile_id||""} onChange={e=>setForm({...form,profile_id:e.target.value})}><option value="">No account linked</option>{profiles.map(p=><option key={p.id} value={p.id}>{p.full_name||p.email||p.id}{p.student_number?" · "+p.student_number:""}</option>)}</select><small>Only a super administrator can link an athlete record to a member account.</small></label>}
