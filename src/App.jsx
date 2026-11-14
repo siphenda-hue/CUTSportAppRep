@@ -2887,7 +2887,7 @@ function AdminTeams({roles,user}) {
 function AdminRosters({roles,user}) {
  const allowed=roles.some(r=>["sport_admin","super_admin","coach","team_manager"].includes(r));
  const [teams,setTeams]=useState([]),[selectedTeam,setSelectedTeam]=useState(""),[fixtures,setFixtures]=useState([]),[selectedFixture,setSelectedFixture]=useState("");
- const [members,setMembers]=useState([]),[athletes,setAthletes]=useState([]);
+ const [members,setMembers]=useState([]),[athletes,setAthletes]=useState([]),[selectedSquadIds,setSelectedSquadIds]=useState([]);
  const [athleteId,setAthleteId]=useState(""),[position,setPosition]=useState(""),[number,setNumber]=useState("");
  const [editing,setEditing]=useState({}),[busy,setBusy]=useState(false),[error,setError]=useState(""),[notice,setNotice]=useState("");
  async function loadTeams(){
@@ -2902,6 +2902,7 @@ function AdminRosters({roles,user}) {
   const {data,error}=await supabase.from("athlete_team_memberships").select("id,athlete_id,team_id,sport_id,position,squad_number,is_active,joined_at,left_at,athletes(id,full_name,preferred_name,approval_status,profile_visibility),sports(name),teams(name)").eq("team_id",teamId).order("is_active",{ascending:false}).order("joined_at",{ascending:false});
   if(error){setError(error.message);return}
   setMembers(data||[]);
+  setSelectedSquadIds((data||[]).filter(m=>m.is_active&&m.athletes?.approval_status==="approved").map(m=>m.id));
   setEditing(Object.fromEntries((data||[]).map(m=>[m.id,{position:m.position||"",squad_number:m.squad_number??""}])));
  }
  async function loadAthletes(){
@@ -2934,8 +2935,9 @@ function AdminRosters({roles,user}) {
  const rosterReadiness={active:members.filter(m=>m.is_active).length,approved:activeApprovedMembers.length,unapproved:members.filter(m=>m.is_active&&m.athletes?.approval_status!=="approved").length,missingPosition:missingPositionMembers.length,duplicateNumbers:duplicateNumbers.length};
  const escapeSheet=value=>String(value??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
  function generateFinalTeamSheet(){
-  if(!team||!activeApprovedMembers.length)return;
-  const ordered=[...activeApprovedMembers].sort((a,b)=>{
+  const selectedMembers=activeApprovedMembers.filter(m=>selectedSquadIds.includes(m.id));
+  if(!team||!selectedMembers.length)return;
+  const ordered=[...selectedMembers].sort((a,b)=>{
    const an=a.squad_number===null||a.squad_number===undefined?10000:Number(a.squad_number),bn=b.squad_number===null||b.squad_number===undefined?10000:Number(b.squad_number);
    return an-bn||String(a.athletes?.full_name||"").localeCompare(String(b.athletes?.full_name||""));
   });
@@ -2946,7 +2948,7 @@ function AdminRosters({roles,user}) {
   if(rosterReadiness.duplicateNumbers)warnings.push("Duplicate squad number(s): "+duplicateNumbers.join(", ")+".");
   const fixture=fixtures.find(x=>x.id===selectedFixture);
   const fixtureDetails=fixture?"<p><b>Match:</b> "+escapeSheet(team.name)+" vs "+escapeSheet(fixture.opponent||"Opponent TBC")+" · "+escapeSheet(dateTimeLabel(fixture.starts_at))+" · "+escapeSheet(fixture.venue||"Venue TBC")+(fixture.competitions?.name?" · "+escapeSheet(fixture.competitions.name):"")+"</p>":"<p><b>Match details:</b> To be confirmed</p>";
-  const content="<p><b>"+escapeSheet(team.sports?.name||"Sport")+" · "+escapeSheet(team.category||"Squad")+"</b> · "+escapeSheet(team.season||"Season not specified")+"</p>"+fixtureDetails+"<p>Coach: "+escapeSheet(team.coach_name||"Not recorded")+" · Confirmed active approved members: "+ordered.length+"</p>"+(warnings.length?"<div style='border:1px solid #d99b36;padding:10px;background:#fff8e8'><b>Readiness notes</b><ul>"+warnings.map(x=>"<li>"+escapeSheet(x)+"</li>").join("")+"</ul></div>":"<p><b>Readiness:</b> No missing positions or duplicate squad numbers detected in the included records.</p>")+"<h2>Confirmed team sheet</h2><table><thead><tr><th>Squad no.</th><th>#</th><th>Athlete</th><th>Position / event</th></tr></thead><tbody>"+rows+"</tbody></table><p style='margin-top:28px'>Team manager: __________________________ &nbsp;&nbsp; Coach: __________________________</p><p>Authorised sign-off: __________________________ &nbsp;&nbsp; Date: __________________</p>";
+  const content="<p><b>"+escapeSheet(team.sports?.name||"Sport")+" · "+escapeSheet(team.category||"Squad")+"</b> · "+escapeSheet(team.season||"Season not specified")+"</p>"+fixtureDetails+"<p>Coach: "+escapeSheet(team.coach_name||"Not recorded")+" · Coach-selected match-day squad: "+ordered.length+"</p>"+(warnings.length?"<div style='border:1px solid #d99b36;padding:10px;background:#fff8e8'><b>Readiness notes</b><ul>"+warnings.map(x=>"<li>"+escapeSheet(x)+"</li>").join("")+"</ul></div>":"<p><b>Readiness:</b> No missing positions or duplicate squad numbers detected in the included records.</p>")+"<h2>Confirmed team sheet</h2><table><thead><tr><th>Squad no.</th><th>#</th><th>Athlete</th><th>Position / event</th></tr></thead><tbody>"+rows+"</tbody></table><p style='margin-top:28px'>Team manager: __________________________ &nbsp;&nbsp; Coach: __________________________</p><p>Authorised sign-off: __________________________ &nbsp;&nbsp; Date: __________________</p>";
   openCutPrintableReport(team.name+" — Final Team Sheet","CONFIRMED SQUAD · "+(team.sports?.name||"CUT Sport"),content,false,{report_type:"team_sheet",scope_label:team.name});
  }
  async function addAthlete(e){
@@ -3006,7 +3008,7 @@ function AdminRosters({roles,user}) {
    {rosterReadiness.unapproved>0&&<p className="form-error">{rosterReadiness.unapproved} active membership(s) are excluded until the athlete profiles are approved.</p>}
    {rosterReadiness.duplicateNumbers.length>0&&<p className="form-error">Duplicate squad numbers detected: {duplicateNumbers.join(", ")}. Correct these before official distribution.</p>}
    {rosterReadiness.missingPosition>0&&<p className="muted">{rosterReadiness.missingPosition} included player(s) need a position/event recorded.</p>}
-   <button type="button" className="btn primary" disabled={!activeApprovedMembers.length||busy} onClick={generateFinalTeamSheet}>Generate final team sheet · Print / Save PDF</button>
+   <div className="form-card"><h3>Choose the match-day squad</h3><p className="muted">Select the approved, active players you intend to name for this fixture. All eligible players are preselected when the roster loads. Changes here do not alter permanent team memberships.</p><div className="review-actions"><button type="button" className="btn secondary" disabled={!activeApprovedMembers.length} onClick={()=>setSelectedSquadIds(activeApprovedMembers.map(m=>m.id))}>Select all eligible</button><button type="button" className="btn secondary" disabled={!selectedSquadIds.length} onClick={()=>setSelectedSquadIds([])}>Clear selection</button></div>{activeApprovedMembers.map(m=><label key={m.id} className="checkbox-row"><input type="checkbox" checked={selectedSquadIds.includes(m.id)} onChange={e=>setSelectedSquadIds(ids=>e.target.checked?[...ids,m.id]:ids.filter(id=>id!==m.id))}/><span>{m.athletes?.preferred_name||m.athletes?.full_name||"Athlete record"}{m.squad_number!==null&&m.squad_number!==undefined?" · #"+m.squad_number:""}{m.position?" · "+m.position:""}</span></label>)}<p className="muted">{selectedSquadIds.filter(id=>activeApprovedMembers.some(m=>m.id===id)).length} selected of {activeApprovedMembers.length} eligible roster members.</p></div><button type="button" className="btn primary" disabled={!activeApprovedMembers.some(m=>selectedSquadIds.includes(m.id))||busy} onClick={generateFinalTeamSheet}>Generate selected team sheet · Print / Save PDF</button>
   </Section>}
   <Section title={team?"Squad members · "+team.name:"Squad members"}>
    {members.length?members.map(m=><article className="performance-record" key={m.id}>
