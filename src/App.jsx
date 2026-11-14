@@ -2607,7 +2607,7 @@ function AdminRecruitment({roles,user}) {
   const completed=rows.filter(a=>cs.length>0&&cs.every(c=>scores.some(sc=>sc.application_id===a.id&&sc.criterion_id===c.id))).length;
   return {...o,applicantCount:rows.length,awaitingCount:rows.filter(a=>!a.reviewed_at).length,shortlistedCount:rows.filter(a=>a.status==="shortlisted").length,selectedCount:rows.filter(a=>a.status==="selected").length,notSelectedCount:rows.filter(a=>a.status==="not_selected").length,evaluationComplete:completed};
  });
- const availableTeams=teams.filter(t=>!form.sport_id||t.sport_id===form.sport_id);
+ const availableTeams=teams.filter(t=>(!form.sport_id||t.sport_id===form.sport_id)&&(superAdmin||manageableTeams.some(m=>m.id===t.id)));
  const completenessFor=a=>{
   const missing=[];
   if(!a.player_profile_id)missing.push("Canonical player profile link");
@@ -3109,6 +3109,10 @@ function AdminAthletes({roles,user}) {
  function reset(){setEditing(null);setForm(blank);setError("");}
  async function save(e){
   e.preventDefault();if(!allowed||!supabase)return;
+  const selectedTeam=form.team_id?teams.find(t=>t.id===form.team_id):null;
+  if(!superAdmin&&!form.team_id){setError("Choose one of the teams assigned to your account. Team staff must register an athlete against a team they manage.");return;}
+  if(form.team_id&&(!selectedTeam||selectedTeam.sport_id!==form.sport_id)){setError("The selected team does not belong to the chosen sport. Select a matching team.");return;}
+  if(form.team_id&&!superAdmin&&!manageableTeams.some(t=>t.id===form.team_id)){setError("Your account is not currently assigned to manage this team. Choose a team in your active assignment.");return;}
   setBusy(true);setError("");
   const payload={profile_id:superAdmin?(form.profile_id||null):undefined,sport_id:form.sport_id,team_id:form.team_id||null,full_name:form.full_name.trim(),preferred_name:form.preferred_name.trim()||null,position:form.position.trim()||null,gender:form.gender||null,nationality:form.nationality.trim()||null,hometown:form.hometown.trim()||null,province:form.province.trim()||null,faculty:form.faculty.trim()||null,qualification:form.qualification.trim()||null,year_of_study:form.year_of_study===""?null:Number(form.year_of_study),student_status:form.student_status,years_representing_cut:form.years_representing_cut===""?null:Number(form.years_representing_cut),previous_clubs:form.previous_clubs.split(",").map(x=>x.trim()).filter(Boolean),squad_number:form.squad_number===""?null:Number(form.squad_number),bio:form.bio.trim()||null,photo_url:form.photo_url.trim()||null,is_featured:Boolean(form.is_featured),profile_visibility:form.profile_visibility};
   const result=editing
@@ -3168,7 +3172,7 @@ function AdminAthletes({roles,user}) {
  }
  if(!allowed)return <><Header title="Admin access required" back/><main className="page"><Empty title="Restricted area" body="An assigned sport administrator, coach or super administrator role is required."/></main></>;
  return <><Header title="Athlete management" back/><main className="page"><div className="page-intro"><span className="eyebrow">ASSIGNED SPORT ACCESS</span><h1>Athlete profiles</h1><p>Manage athlete records and their memberships across multiple CUT sport codes. Team-level permissions determine which squads you can manage.</p></div>
- <div className="review-actions"><button type="button" className="btn primary" onClick={()=>{setScannerOpen(true);setScannedPlayer(null);setScanError("");setScanNotice("");}}><Users size={16}/> Scan player QR to register</button></div>
+ <div className="review-actions"><button type="button" className="btn primary" onClick={()=>{setScannerOpen(true);setScannedPlayer(null);setScanError("");setScanNotice("");}}><Users size={16}/> Scan player QR to register</button><Link className="btn secondary" to="/admin/approvals">Review pending athlete approvals</Link></div>
  {scanNotice&&<p className="success-message">{scanNotice}</p>}
  {scannerOpen&&<section className="form-card"><div className="performance-record-head"><div><b>Register a claimed player profile</b><small>Scan the player's CUT Sport QR, then confirm the team assignment.</small></div><button type="button" className="btn secondary" onClick={()=>{setScannerOpen(false);setScannedPlayer(null);setScanError("");}}>Close</button></div>
   <label>Register to team<select required value={scanTeamId} onChange={e=>{setScanTeamId(e.target.value);setScannedPlayer(null);setScanError("");}}><option value="">Choose an active team you manage</option>{manageableTeams.map(t=><option key={t.id} value={t.id}>{t.sports?.name||"Sport"} · {t.name}</option>)}</select></label>
@@ -3180,7 +3184,7 @@ function AdminAthletes({roles,user}) {
  </section>}
  <form className="form-card" onSubmit={save}><h3>{editing?"Update athlete profile":"Register athlete profile"}</h3>
  <label>Sport code<select required value={form.sport_id} onChange={e=>setForm({...form,sport_id:e.target.value,team_id:""})}><option value="">Choose sport</option>{sports.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select></label>
- <label>Primary team<select value={form.team_id} onChange={e=>setForm({...form,team_id:e.target.value})}><option value="">No primary team selected</option>{availableTeams.map(t=><option key={t.id} value={t.id}>{t.name}</option>)}</select></label>{superAdmin&&<label>Link CUT Sport account<select value={form.profile_id||""} onChange={e=>setForm({...form,profile_id:e.target.value})}><option value="">No account linked</option>{profiles.map(p=><option key={p.id} value={p.id}>{p.full_name||p.email||p.id}{p.student_number?" · "+p.student_number:""}</option>)}</select><small>Only a super administrator can link an athlete record to a member account.</small></label>}
+ <label>Primary team<select value={form.team_id} onChange={e=>setForm({...form,team_id:e.target.value})}><option value="">No primary team selected</option>{availableTeams.map(t=><option key={t.id} value={t.id}>{t.name}</option>)}</select>{!superAdmin&&<small>Only teams in your active staff assignments are available. A team assignment is required when registering an athlete.</small>}</label>{superAdmin&&<label>Link CUT Sport account<select value={form.profile_id||""} onChange={e=>setForm({...form,profile_id:e.target.value})}><option value="">No account linked</option>{profiles.map(p=><option key={p.id} value={p.id}>{p.full_name||p.email||p.id}{p.student_number?" · "+p.student_number:""}</option>)}</select><small>Only a super administrator can link an athlete record to a member account.</small></label>}
  <label>Full name<input required value={form.full_name} onChange={e=>setForm({...form,full_name:e.target.value})}/></label>
  <label>Preferred name<input value={form.preferred_name||""} onChange={e=>setForm({...form,preferred_name:e.target.value})}/></label>
  <label>Playing position / event<input value={form.position||""} onChange={e=>setForm({...form,position:e.target.value})}/></label>
@@ -3219,7 +3223,7 @@ function AdminAthletes({roles,user}) {
  {membershipAthlete&&<Section title={"Team memberships · "+(membershipAthlete.preferred_name||membershipAthlete.full_name)}>
   <div className="form-card"><p className="muted">Add this athlete to another active team without changing their primary sport or existing memberships. Your account must have management permission for the destination team.</p>
    <form onSubmit={saveMembership}>
-    <label>Sport team<select required value={membershipTeam} onChange={e=>{setMembershipTeam(e.target.value);const existing=memberships.find(m=>m.team_id===e.target.value);setMembershipPosition(existing?.position||"");setMembershipNumber(existing?.squad_number??"")}}><option value="">Choose a team across all sports</option>{teams.map(t=><option key={t.id} value={t.id}>{t.sports?.name||"Sport"} · {t.name}{memberships.some(m=>m.team_id===t.id&&m.is_active)?" · Active membership":memberships.some(m=>m.team_id===t.id)?" · Reactivate":""}</option>)}</select></label>
+    <label>Sport team<select required value={membershipTeam} onChange={e=>{setMembershipTeam(e.target.value);const existing=memberships.find(m=>m.team_id===e.target.value);setMembershipPosition(existing?.position||"");setMembershipNumber(existing?.squad_number??"")}}><option value="">Choose a team you manage</option>{teams.filter(t=>superAdmin||manageableTeams.some(m=>m.id===t.id)).map(t=><option key={t.id} value={t.id}>{t.sports?.name||"Sport"} · {t.name}{memberships.some(m=>m.team_id===t.id&&m.is_active)?" · Active membership":memberships.some(m=>m.team_id===t.id)?" · Reactivate":""}</option>)}</select></label>
     <label>Position / event<input maxLength="120" value={membershipPosition} onChange={e=>setMembershipPosition(e.target.value)}/></label>
     <label>Squad number<input type="number" min="0" max="999" step="1" value={membershipNumber} onChange={e=>setMembershipNumber(e.target.value)}/></label>
     <button className="btn primary" disabled={membershipBusy||!membershipTeam}>{membershipBusy?"Saving…":memberships.some(m=>m.team_id===membershipTeam)?"Save / reactivate membership":"Add team membership"}</button>
