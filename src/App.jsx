@@ -661,9 +661,28 @@ function AdminTeamSeasons({roles=[],user}) {
   if(e)setError(e.message);else setMembers(data||[]);
  }
  async function loadAthletes(){
-  const selected=teams.find(t=>t.id===teamId);if(!selected)return;
-  const {data,error:e}=await supabase.from("athletes").select("id,full_name,preferred_name,position,squad_number,player_profile_id,approval_status").eq("approval_status","approved").eq("sport_id",selected.sport_id).eq("team_id",selected.id).order("full_name").limit(1000);
-  if(e)setError(e.message);else setAthletes(data||[]);
+  const selected=teams.find(t=>t.id===teamId);if(!selected){setAthletes([]);return;}
+  setError("");
+  const [primary,membershipResult]=await Promise.all([
+   supabase.from("athletes").select("id,full_name,preferred_name,position,squad_number,player_profile_id,approval_status").eq("approval_status","approved").eq("sport_id",selected.sport_id).eq("team_id",selected.id).order("full_name").limit(1000),
+   supabase.from("athlete_team_memberships").select("athlete_id,position,squad_number,joined_at").eq("team_id",selected.id).eq("sport_id",selected.sport_id).eq("is_active",true).order("joined_at",{ascending:false}).limit(1000)
+  ]);
+  if(primary.error||membershipResult.error){setError(primary.error?.message||membershipResult.error?.message||"Could not load the approved team roster.");setAthletes([]);return;}
+  const membershipRows=membershipResult.data||[];
+  const membershipIds=[...new Set(membershipRows.map(x=>x.athlete_id))];
+  const extraIds=membershipIds.filter(id=>!(primary.data||[]).some(a=>a.id===id));
+  let extra=[];
+  if(extraIds.length){
+   const {data,error:e}=await supabase.from("athletes").select("id,full_name,preferred_name,position,squad_number,player_profile_id,approval_status").in("id",extraIds).eq("approval_status","approved").eq("sport_id",selected.sport_id);
+   if(e){setError(e.message);setAthletes([]);return;}extra=data||[];
+  }
+  const membershipByAthlete=new Map();
+  membershipRows.forEach(row=>{if(!membershipByAthlete.has(row.athlete_id))membershipByAthlete.set(row.athlete_id,row);});
+  const merged=[...(primary.data||[]),...extra].map(a=>{
+   const membership=membershipByAthlete.get(a.id);
+   return {...a,team_membership_position:membership?.position??null,team_membership_squad_number:membership?.squad_number??null,has_active_team_membership:Boolean(membership)};
+  }).sort((a,b)=>String(a.preferred_name||a.full_name).localeCompare(String(b.preferred_name||b.full_name)));
+  setAthletes(merged);
  }
  useEffect(()=>{loadTeams()},[allowed,user?.id,roles.join("|")]);
  useEffect(()=>{if(teamId){setSeasonId("");loadSeasons(teamId);loadAthletes()}else{setSeasons([]);setMembers([])}},[teamId]);
@@ -775,7 +794,7 @@ function AdminTeamSeasons({roles=[],user}) {
  async function addPlayer(e){
   e.preventDefault();const athlete=athletes.find(a=>a.id===athleteId);if(!season||!athlete||!draft||busy)return;
   setBusy(true);setError("");setNotice("");
-  const {error:e1}=await supabase.from("team_hub_season_members").insert({season_id:season.id,team_id:team.id,sport_id:team.sport_id,athlete_id:athlete.id,position:athlete.position||null,squad_number:athlete.squad_number??null,selected_by:user.id});
+  const {error:e1}=await supabase.from("team_hub_season_members").insert({season_id:season.id,team_id:team.id,sport_id:team.sport_id,athlete_id:athlete.id,position:athlete.team_membership_position??athlete.position??null,squad_number:athlete.team_membership_squad_number??athlete.squad_number??null,selected_by:user.id});
   if(e1)setError(e1.code==="23505"?"This player is already on this season's squad.":e1.message);
   else{setAthleteId("");setNotice("Player added to the season draft.");await loadMembers(season.id);}
   setBusy(false);
@@ -818,7 +837,7 @@ function AdminTeamSeasons({roles=[],user}) {
   {error&&<p className="form-error" role="alert">{error}</p>}{notice&&<p className="admin-notice">{notice}</p>}
   <div className="form-card"><label>Team<select value={teamId} onChange={e=>setTeamId(e.target.value)}><option value="">Choose a team you manage</option>{teams.map(t=><option key={t.id} value={t.id}>{t.sports?.name||"Sport"} · {t.name} · {t.season||"Season not labelled"}</option>)}</select></label></div>
   {!teams.length&&<Empty title="No active team assignment" body="This account has no active coach or team-manager assignment to an active CUT team. Ask the sport administrator to review the team assignment."/>}
-  {team&&<Section title={"Create a season · "+team.name}><form className="form-card" onSubmit={createSeason}><label>Season label<input required maxLength="80" value={seasonLabel} onChange={e=>setSeasonLabel(e.target.value)} placeholder="e.g. 2027"/></label><div className="form-grid"><label>Start date<input type="date" value={startsOn} onChange={e=>setStartsOn(e.target.value)}/></label><label>End date<input type="date" value={endsOn} onChange={e=>setEndsOn(e.target.value)}/></label></div><button className="btn primary" disabled={busy||!seasonLabel.trim()}>Create season draft</button></form></Section>}
+  {team&&<Section title={"Create a season · "+team.name}><form className="form-card" onSubmit={createSeason}><label>Season label<input required maxLength="80" value={seasonLabel} onChange={e=>setSeasonLabel(e.target.value)} placeholder="e.g. 2027"/></label><div className="form-grid"><label>Start date<input type="date" value={startsOn} onChange={e=>setStartsOn(e.target.value)}/></label><label>End date<input type="date" value={endsOn} onChange={e=>setEndsOn(e.target.value)}/></label></div><button className="btn primary" disabled={busy||!seasonLabel.trim()}>Create season draft</button></form><p className="muted">Squad candidates are drawn from approved athlete profiles assigned to this team, including active team memberships. Adding a candidate below is an explicit season selection; it does not change their permanent team membership.</p></Section>}
   {team&&<Section title="Season history">{seasons.length?seasons.map(x=><article className="performance-record" key={x.id}><div className="performance-record-head"><div><b>{x.season_label}</b><small>{x.starts_on||"Start date not set"} · {x.ends_on||"End date not set"}</small></div><span className="status-pill">{x.status.replace("_"," ")}</span></div><button className="btn secondary" type="button" onClick={()=>setSeasonId(x.id)}>Manage squad</button><Link className="btn secondary" to={"/team-hub/"+x.id}>Open hub</Link></article>):<Empty title="No managed seasons yet" body="Create a season draft above. Existing historical competition seasons have not been automatically converted into team hubs."/ >}</Section>}
   {season&&<Section title={"Squad · "+season.season_label}><div className="form-card"><p className="muted">{season.status==="draft"?"This is a draft. Only selected players will receive access after squad submission.":season.status==="in_progress"?"This season is active. Its approved squad can interact in the team hub.":"This season is completed. Its roster and team hub history are retained."}</p>
    {draft&&<><button className="btn secondary" type="button" disabled={busy} onClick={retainPrevious}>Retain players from previous season</button>{eligibleAthletes.length>0?<form onSubmit={addPlayer}><label>Add approved athlete<select required value={athleteId} onChange={e=>setAthleteId(e.target.value)}><option value="">Choose athlete</option>{eligibleAthletes.map(a=><option key={a.id} value={a.id}>{a.preferred_name||a.full_name}{a.squad_number!==null&&a.squad_number!==undefined?" · #"+a.squad_number:""}</option>)}</select></label><button className="btn primary" disabled={busy||!athleteId}>Add to draft squad</button></form>:athletes.length>0?<p className="muted">All approved athletes for this team are already on this draft. You can retain previous players or review the athlete list.</p>:<div className="admin-notice"><ShieldCheck/><div><b>No approved athletes available for this team yet</b><p>Register each athlete in Athlete Management, assign this exact team as their primary team, and have the profile approved. Pending profiles cannot be selected into a squad.</p><Link to="/admin/athletes">Open Athlete Management</Link></div></div>}</>}
