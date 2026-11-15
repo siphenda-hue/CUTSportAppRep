@@ -533,8 +533,14 @@ function PublicTeamProfile() {
    </div>):<p className="muted">No official standings have been published for this competition yet.</p>}
    {ownStanding?.source_checked_at&&<small className="muted">Standings last checked {date(ownStanding.source_checked_at)}.</small>}
   </Section>}
+  {fixtures.length>0&&<Section title="Season snapshot">
+   <div className="team-grid" style={{marginBottom:10}}>
+    {[["Completed fixtures",results.length],["Upcoming / live",upcoming.length],["Scorecards recorded",results.filter(f=>f.home_score!=null&&f.away_score!=null).length]].map(([label,value])=><div className="team-card" key={label}><small>{label}</small><strong style={{display:"block",fontSize:24,marginTop:5}}>{value}</strong></div>)}
+   </div>
+   <p className="muted">Counts reflect the fixture records currently published for this team. Results are shown as recorded home–away scores; win/loss outcomes are not inferred.</p>
+  </Section>}
   <Section title={"Upcoming fixtures · "+upcoming.length}>{upcoming.length?<div className="team-grid">{upcoming.map(f=><article className="team-card" key={f.id}><div><small>{date(f.starts_at)} · {statusLabel(f.status)}</small><b style={{display:"block",margin:"8px 0"}}>CUT {team.name} vs {f.opponent||"Opponent to be confirmed"}</b>{f.venue&&<small>{f.venue}</small>}</div></article>)}</div>:<p className="muted">No upcoming fixtures have been published for this team.</p>}</Section>
-  <Section title={"Recent results · "+results.length}>{results.length?<div className="team-grid">{results.slice(0,8).map(f=><article className="team-card" key={f.id}><div><small>{date(f.starts_at)} · Completed</small><b style={{display:"block",margin:"8px 0"}}>CUT {team.name} vs {f.opponent||"Opponent"}</b><strong>{f.home_score??"–"} : {f.away_score??"–"}</strong>{f.result_summary&&<p className="muted">{f.result_summary}</p>}</div></article>)}</div>:<p className="muted">Completed results will appear here when available.</p>}</Section>
+  <Section title={"Recent results · "+results.length}>{results.length?<div className="team-grid">{results.slice(0,8).map(f=><article className="team-card" key={f.id}><div><small>{date(f.starts_at)} · Completed</small><b style={{display:"block",margin:"8px 0"}}>CUT {team.name} vs {f.opponent||"Opponent"}</b><small className="muted">Recorded home–away score</small><strong style={{display:"block",fontSize:22}}>{f.home_score??"–"} : {f.away_score??"–"}</strong>{f.result_summary&&<p className="muted">{f.result_summary}</p>}</div></article>)}</div>:<p className="muted">Completed results will appear here when available.</p>}</Section>
   <div style={{display:"flex",gap:10,flexWrap:"wrap"}}><Link className="btn secondary" to="/teams">All teams</Link><Link className="btn secondary" to="/players">Player directory</Link></div>
   <p className="muted">Team information is public. Player cards include only approved profiles with public visibility; staff cards include only published profiles.</p>
  </main></>;
