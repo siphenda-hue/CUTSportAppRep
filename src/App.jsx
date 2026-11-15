@@ -2881,7 +2881,7 @@ function AdminTeams({roles,user}) {
  async function load(){
   if(!supabase||!sportAdmin)return;
   setBusy(true);setError("");
-  const [s,t,ft]=await Promise.all([
+  const [s,t,ft,st]=await Promise.all([
    supabase.from("sports").select("id,name,is_active").order("name"),
    supabase.from("teams").select("id,name,sport_id,category,season,competition_id,coach_name,is_active,created_at,sports(name)").order("name"),
    supabase.from("team_fixture_tallies").select("team_id,competition_name,matches_listed,completed_matches,results_recorded,dated_calendar_fixtures,undated_match_records,wins,draws,losses"),
@@ -2929,7 +2929,7 @@ function AdminTeams({roles,user}) {
  async function saveStaffProfile(e){
   e.preventDefault();if(!sportAdmin||!supabase)return;
   if(!staffForm.sport_id||staffForm.display_name.trim().length<2||staffForm.role_title.trim().length<2){setError("Choose a sport and enter the staff member's name and role.");return;}
-  if(staffForm.photo_url&&!/^https?:\\/\\//i.test(staffForm.photo_url.trim())){setError("Photo URL must begin with https:// or http://.");return;}
+  if(staffForm.photo_url&&!(staffForm.photo_url.trim().startsWith("https://")||staffForm.photo_url.trim().startsWith("http://"))){setError("Photo URL must begin with https:// or http://.");return;}
   setBusy(true);setError("");setNotice("");
   const payload={sport_id:staffForm.sport_id,team_id:staffForm.team_id||null,display_name:staffForm.display_name.trim(),role_title:staffForm.role_title.trim(),bio:staffForm.bio.trim()||null,photo_url:staffForm.photo_url.trim()||null,display_order:Math.max(0,Math.min(9999,Number.parseInt(staffForm.display_order,10)||0)),is_published:Boolean(staffForm.is_published),updated_at:new Date().toISOString()};
   const result=staffEditing
