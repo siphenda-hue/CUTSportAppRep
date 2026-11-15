@@ -412,28 +412,28 @@ function CompetitionData({competition,sport}) {
 }
 function PublicCompetitionProfile() {
  const {id}=useParams();
- const [competition,setCompetition]=useState(null),[standings,setStandings]=useState([]),[matches,setMatches]=useState([]),[fixtures,setFixtures]=useState([]),[squads,setSquads]=useState([]),[teamStats,setTeamStats]=useState([]),[playerStats,setPlayerStats]=useState([]);
+ const [competition,setCompetition]=useState(null),[standings,setStandings]=useState([]),[matches,setMatches]=useState([]),[fixtures,setFixtures]=useState([]),[teams,setTeams]=useState([]),[squads,setSquads]=useState([]),[teamStats,setTeamStats]=useState([]),[playerStats,setPlayerStats]=useState([]);
  const [busy,setBusy]=useState(true),[error,setError]=useState("");
  useEffect(()=>{
   let active=true;
   async function load(){
-   setBusy(true);setError("");setCompetition(null);setStandings([]);setMatches([]);setFixtures([]);setSquads([]);setTeamStats([]);setPlayerStats([]);
+   setBusy(true);setError("");setCompetition(null);setStandings([]);setMatches([]);setFixtures([]);setTeams([]);setSquads([]);setTeamStats([]);setPlayerStats([]);
    if(!supabase){setError("Competition information is temporarily unavailable.");setBusy(false);return;}
    const {data:c,error:ce}=await supabase.from("competitions").select("id,sport_id,name,season,status,start_date,end_date,venue,description,sports(name,slug)").eq("id",id).maybeSingle();
    if(!active)return;
    if(ce||!c){setError(ce?"This competition could not be loaded.":"This competition was not found.");setBusy(false);return;}
-   const [st,mt,fx,sq,ts,ps]=await Promise.all([
+   const [st,mt,fx,tm,sq,ts,ps]=await Promise.all([
     supabase.from("competition_standings").select("id,team_name,team_logo_url,group_name,position,played,won,drawn,lost,scored,conceded,points_difference,bonus_points,points,source_url,source_checked_at").eq("competition_id",id).order("group_name").order("position"),
     supabase.from("competition_matches").select("id,starts_at,home_team,away_team,home_score,away_score,match_status,match_round,group_name,venue,source_url,source_checked_at,statistics").eq("competition_id",id).order("starts_at"),
-    supabase.from("fixtures").select("id,team_id,opponent,venue,starts_at,status,home_score,away_score,result_summary,source_url,teams(name)").eq("competition_id",id).order("starts_at"),
+    supabase.from("fixtures").select("id,team_id,opponent,venue,starts_at,status,home_score,away_score,result_summary,source_url,teams(name)").eq("competition_id",id).order("starts_at"),\n    supabase.from("teams").select("id,name,category,season,image_url").eq("competition_id",id).eq("is_active",true).order("name"),
     supabase.from("competition_squads").select("id,team_name,squad_label,is_complete,source_url,source_checked_at,notes,competition_squad_members(id,player_name,squad_number,position,role,is_captain,is_vice_captain,display_order)").eq("competition_id",id).order("team_name"),
     supabase.from("competition_team_statistics").select("id,team_name,field_goals,penalty_corner_goals,penalty_stroke_goals,total_goals,source_url,source_checked_at,statistics").eq("competition_id",id).order("team_name"),
     supabase.from("competition_player_statistics").select("id,player_name,team_name,squad_number,field_goals,penalty_corner_goals,penalty_stroke_goals,total_goals,player_profile_id,source_url,source_checked_at,statistics").eq("competition_id",id).order("total_goals",{ascending:false}).order("player_name")
    ]);
    if(!active)return;
-   const failed=[st,mt,fx,sq,ts,ps].some(x=>x.error);
+   const failed=[st,mt,fx,tm,sq,ts,ps].some(x=>x.error);
    if(failed)setError("Some competition sections could not be loaded. Available published information is shown below.");
-   setCompetition(c);setStandings(st.data||[]);setMatches(mt.data||[]);setFixtures(fx.data||[]);setSquads(sq.data||[]);setTeamStats(ts.data||[]);setPlayerStats(ps.data||[]);setBusy(false);
+   setCompetition(c);setStandings(st.data||[]);setMatches(mt.data||[]);setFixtures(fx.data||[]);setTeams(tm.data||[]);setSquads(sq.data||[]);setTeamStats(ts.data||[]);setPlayerStats(ps.data||[]);setBusy(false);
   }
   load();return()=>{active=false;};
  },[id]);
@@ -447,11 +447,11 @@ function PublicCompetitionProfile() {
   <div className="page-intro"><span className="eyebrow">{competition.sports?.name||"CUT SPORT"} · {competition.season||"Competition"}</span><h1>{competition.name}</h1><p>{competition.description||"Follow published competition information, participating CUT teams, fixtures and results."}</p><p className="muted">{[competition.status,competition.start_date&&date(competition.start_date),competition.end_date&&date(competition.end_date),competition.venue].filter(Boolean).join(" · ")}</p></div>
   <div className="quick-links calendar-counts"><div><b>{standings.length}</b><small>Standing entries</small></div><div><b>{officialMatches.length+fixtures.length}</b><small>Match records</small></div><div><b>{squads.length}</b><small>Published squads</small></div></div>
   {error&&<p className="muted">{error}</p>}
-  <Section title="Participating CUT teams">{fixtures.length?<div className="team-grid">{[...new Map(fixtures.filter(f=>f.teams?.name).map(f=>[f.team_id,f])).values()].map(f=><Link className="team-card" to={"/teams/"+f.team_id} key={f.team_id}><div><b>{f.teams.name}</b><small>View CUT team profile <ChevronRight size={13}/></small></div></Link>)}</div>:<p className="muted">Team links will appear when CUT teams are linked to this competition.</p>}</Section>
+  <Section title={"Participating CUT teams · "+teams.length}>{teams.length?<div className="team-grid">{teams.map(t=><Link className="team-card" to={"/teams/"+t.id} key={t.id}>{t.image_url&&<img src={t.image_url} alt={t.name}/>}<div><b>{t.name}</b><small>{[t.category,t.season].filter(Boolean).join(" · ")||"CUT team"}</small><small>View team profile <ChevronRight size={13}/></small></div></Link>)}</div>:<p className="muted">Team links will appear when active CUT teams are assigned to this competition.</p>}</Section>
   <Section title="Standings">{standings.length?groups.map(group=><div className="competition-log" key={group}><h3>{group}</h3><div className="competition-log-head"><span>Team</span><span>P</span><span>W</span><span>D</span><span>L</span><span>For</span><span>Against</span><span>Pts</span></div>{standings.filter(x=>(x.group_name||"Overall")===group).map(row=><div className="competition-log-row competition-log-row-wide" key={row.id}><span className="competition-log-team"><b>{row.position!=null?row.position+". ":""}{row.team_name}</b></span><span>{row.played??"—"}</span><span>{row.won??"—"}</span><span>{row.drawn??"—"}</span><span>{row.lost??"—"}</span><span>{row.scored??"—"}</span><span>{row.conceded??"—"}</span><b>{row.points??"—"}</b></div>)}</div>):<Empty title="No standings published" body="Official standings will appear here when competition administrators publish them."/>}</Section>
   <Section title="Fixtures & results">{officialMatches.length?<CompetitionData competition={compData} sport={competition.sports?.slug||"sport"}/>:fixtures.length?<div className="team-grid">{fixtures.map(f=><article className="team-card" key={f.id}><small>{date(f.starts_at)} · {f.status}</small><b>{f.teams?.name||"CUT"} vs {f.opponent||"Opponent"}</b><strong>{f.status==="completed"?(f.home_score??"—")+" – "+(f.away_score??"—"):"VS"}</strong>{f.venue&&<small>{f.venue}</small>}{f.result_summary&&<small>{f.result_summary}</small>}</article>)}</div>:<Empty title="No fixtures published" body="Competition fixtures will appear here when entered by CUT Sport staff or imported from an official source."/>}</Section>
   {squads.length>0&&<Section title="Published team sheets"><CompetitionSquads squads={squads}/></Section>}
-  {officialMatches.length>0&&(teamStats.length>0||playerStats.length>0)&&<Section title="Competition statistics"><CompetitionData competition={compData} sport={competition.sports?.slug||"sport"}/></Section>}
+  {officialMatches.length===0&&(teamStats.length>0||playerStats.length>0)&&<Section title="Competition statistics"><CompetitionData competition={compData} sport={competition.sports?.slug||"sport"}/></Section>}
   <div className="review-actions"><Link className="btn secondary" to={competition.sports?.slug?"/sport/"+competition.sports.slug:"/sport"}>Back to {competition.sports?.name||"sport hub"}</Link><Link className="btn secondary" to="/teams">All CUT teams</Link></div>
   <small className="muted">Only information published in the CUT Sport competition records is displayed here.</small>
  </main></>;
