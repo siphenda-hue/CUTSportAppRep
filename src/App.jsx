@@ -3471,11 +3471,8 @@ function AdminApprovals({roles,user}) {
     :{data:[],error:null};
    if(membershipResult.error)setError("Could not verify primary-team memberships: "+membershipResult.error.message);
    setItems(a.data||[]);setStats(s.data||[]);setAchievements(g.data||[]);setMedia(m.data||[]);setMemberships(membershipResult.data||[]);
-   const pendingIds=[...(a.data||[]),...(s.data||[]),...(g.data||[]),...(m.data||[])].map(x=>x.id);
-   if(pendingIds.length){
-    const h=await supabase.from("athlete_review_history").select("id,record_type,record_id,from_status,to_status,previous_note,review_note,changed_at").in("record_id",pendingIds).order("changed_at",{ascending:false}).limit(100);
-    if(h.error)setError(h.error.message);else setHistory(h.data||[]);
-   }else setHistory([]);
+   const h=await supabase.from("athlete_review_history").select("id,athlete_id,record_type,record_id,from_status,to_status,previous_note,review_note,reviewed_by,reviewed_at,changed_by,changed_at,athletes(full_name,preferred_name,sports(name),teams(name))").order("changed_at",{ascending:false}).limit(100);
+   if(h.error)setError("Could not load recent review history: "+h.error.message);else setHistory(h.data||[]);
   }
   setLoading(false);
  }
@@ -3538,6 +3535,7 @@ function AdminApprovals({roles,user}) {
    <Section title={"Performance statistics · "+stats.length}>{stats.length?stats.map(x=><div className="sponsor-card admin-sponsor" key={x.id}><div><b>{(x.athletes?.full_name||"Athlete")+" · "+(x.season||x.period_label||"Statistics")}</b><small>{JSON.stringify(x.metrics)}</small>{reviewNote("statistics",x)}{actions("statistics",x)}</div></div>):<Empty title="No statistics awaiting approval" body="Pending statistics will appear here."/>}</Section>
    <Section title={"Achievements · "+achievements.length}>{achievements.length?achievements.map(x=><div className="sponsor-card admin-sponsor" key={x.id}><div><b>{(x.athletes?.full_name||"Athlete")+" · "+x.title}</b><small>{x.description||"Achievement submitted for verification"}</small>{reviewNote("achievement",x)}{actions("achievement",x)}</div></div>):<Empty title="No achievements awaiting approval" body="Pending achievements will appear here."/>}</Section>
    <Section title={"Athlete media · "+media.length}>{media.length?media.map(x=><div className="sponsor-card admin-sponsor" key={x.id}><div><b>{(x.athletes?.full_name||"Athlete")+" · "+(x.title||x.media_type)}</b><small>{x.media_type} · Submitted visibility: {x.visibility}</small>{x.external_url&&<a href={x.external_url} target="_blank" rel="noreferrer">Open submitted media</a>}{reviewNote("media",x)}{actions("media",x)}</div></div>):<Empty title="No media awaiting approval" body="Pending media will appear here."/>}</Section>
+   <Section title={"Recent review history · "+history.length}>{history.length?history.map(h=><div className="sponsor-card admin-sponsor" key={h.id}><div><b>{h.athletes?.preferred_name||h.athletes?.full_name||"Athlete"} · {({athlete:"Profile",statistics:"Statistics",achievement:"Achievement",media:"Media"})[h.record_type]||h.record_type}</b><small>{h.from_status||"New"} → {h.to_status} · {dateLabel(h.changed_at)}</small>{h.previous_note&&<p>Previous feedback: {h.previous_note}</p>}{h.review_note&&<p>Decision note: {h.review_note}</p>}</div></div>):<Empty title="No review history available" body="Review decisions and resubmissions will appear here when recorded for your assigned sports."/>}</Section>
   </>}
  </main></>;
 }
