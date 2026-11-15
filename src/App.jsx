@@ -799,7 +799,9 @@ function PlayerProfilePage({user,roles=[]}) {
   const d=row.details||{};
   if(row.record_type==="competition_statistics"){
    const stats=d.statistics&&typeof d.statistics==="object"?d.statistics:{};
-   const values=Object.entries({...stats,field_goals:d.field_goals,penalty_corner_goals:d.penalty_corner_goals,penalty_stroke_goals:d.penalty_stroke_goals,total_goals:d.total_goals}).filter(([k,v])=>v!==null&&v!==undefined&&k!=="stat_category");
+   const placeholderGoals=stats.goal_total_zero_is_placeholder===true||stats.goal_scoring_data_status==="not_published_in_available_sources";
+   const goalFields=new Set(["total_goals","field_goals","penalty_corner_goals","penalty_stroke_goals"]);
+   const values=Object.entries({...stats,field_goals:d.field_goals,penalty_corner_goals:d.penalty_corner_goals,penalty_stroke_goals:d.penalty_stroke_goals,total_goals:d.total_goals}).filter(([k,v])=>v!==null&&v!==undefined&&k!=="stat_category"&&!(placeholderGoals&&goalFields.has(k)));
    return values.map(([k,v])=>k.replaceAll("_"," ")+": "+(typeof v==="object"?JSON.stringify(v):v)).join(" · ");
   }
   if(row.record_type==="athlete_statistics")return Object.entries(d.metrics||{}).map(([k,v])=>k.replaceAll("_"," ")+": "+v).join(" · ");
@@ -862,6 +864,26 @@ function PlayerProfilePage({user,roles=[]}) {
   }
  });
  const competitions=new Set(records.map(x=>x.competition_id).filter(Boolean)).size;
+ const performanceGroups={};
+ const placeholderGoalMetrics=new Set(["total_goals","field_goals","penalty_corner_goals","penalty_stroke_goals"]);
+ records.filter(row=>row.record_type==="competition_statistics").forEach(row=>{
+  const d=row.details||{},stats=d.statistics&&typeof d.statistics==="object"?d.statistics:{};
+  const key=[row.season||"Season not recorded",row.competition_name||"Competition",row.sport_name||"Sport"].join("|");
+  const group=performanceGroups[key]||(performanceGroups[key]={season:row.season||"Season not recorded",competition:row.competition_name||"Competition",sport:row.sport_name||"Sport",team:row.team_name||"CUT",entries:0,metrics:{},rounds:[],partial:false});
+  group.entries++;
+  const placeholderGoals=stats.goal_total_zero_is_placeholder===true||stats.goal_scoring_data_status==="not_published_in_available_sources";
+  if(stats.season_total_complete===false||placeholderGoals)group.partial=true;
+  if(stats.award_round&&!group.rounds.includes(stats.award_round))group.rounds.push(stats.award_round);
+  Object.entries({...stats,total_goals:d.total_goals,field_goals:d.field_goals,penalty_corner_goals:d.penalty_corner_goals,penalty_stroke_goals:d.penalty_stroke_goals}).forEach(([metric,value])=>{
+   if(metric==="player_of_match_awards"&&typeof value==="number"&&Number.isFinite(value)){
+    group.metrics.player_of_match_awards=(group.metrics.player_of_match_awards||0)+value;
+   }else if(additive.has(metric)&&typeof value==="number"&&Number.isFinite(value)&&!(placeholderGoals&&placeholderGoalMetrics.has(metric))){
+    group.metrics[metric]=(group.metrics[metric]||0)+value;
+   }
+  });
+ });
+ const competitionPerformance=Object.values(performanceGroups).sort((a,b)=>String(b.season).localeCompare(String(a.season))||a.competition.localeCompare(b.competition));
+ const verifiedHonours=records.filter(row=>row.record_type==="player_award"||(row.record_type==="athlete_achievement"&&row.details?.is_verified===true));
  const statLabels={total_goals:"Goals",goals:"Goals",field_goals:"Field goals",penalty_corner_goals:"Penalty-corner goals",penalty_stroke_goals:"Penalty-stroke goals",tries:"Tries",wickets:"Wickets",runs:"Runs",assists:"Assists",tackles:"Tackles",saves:"Saves",points:"Points",yellow_cards:"Yellow cards",red_cards:"Red cards",clean_sheets:"Clean sheets"};
  const photoUrl=player?.photo_path&&player?.photo_approved_at&&supabase?supabase.storage.from("player-profile-photos").getPublicUrl(player.photo_path).data.publicUrl:null;
  const canManageVisibility=isSuper||claim?.status==="approved";
@@ -873,6 +895,16 @@ function PlayerProfilePage({user,roles=[]}) {
     <article><b>{appearances.size}</b><small>Match appearances</small></article><article><b>{statisticRecords}</b><small>Statistics records</small></article><article><b>{competitions}</b><small>Competitions</small></article><article><b>{internationalAppearances}</b><small>International appearances</small></article><article><b>{squadSelections}</b><small>Squad selections</small></article><article><b>{awardRecords}</b><small>Awards & honours</small></article>
    </div>
    {hubSeasons.length>0&&<Section title="Team hubs"><div className="metric-trend">{hubSeasons.map(row=><article className="performance-record" key={row.season_id}><div className="performance-record-head"><div><b>{row.team_hub_seasons?.sports?.name||"CUT Sport"} · {row.team_hub_seasons?.team_name_snapshot||"Team"}</b><small>Season {row.team_hub_seasons?.season_label||"—"}</small></div><span className="status-pill">{row.team_hub_seasons?.status==="in_progress"?"In progress":"Completed"}</span></div><Link className="btn secondary" to={"/team-hub/"+row.season_id}>Open team hub</Link></article>)}</div></Section>}
+   {competitionPerformance.length>0&&<Section title="Competition performance"><div className="player-performance-grid">{competitionPerformance.map((group,index)=>{
+    const metricRows=Object.entries(group.metrics).filter(([,value])=>value!==0);
+    return <article className="player-performance-card" key={group.season+"-"+group.competition+"-"+group.sport+"-"+index}>
+     <div className="player-performance-head"><div><span className="eyebrow">{group.sport} · {group.season}</span><b>{group.competition}</b><small>{group.team}</small></div>{group.partial&&<span className="status-pill warning">Partial data</span>}</div>
+     {metricRows.length>0?<div className="player-performance-metrics">{metricRows.map(([metric,value])=><div key={metric}><b>{value}</b><small>{metric==="player_of_match_awards"?"Player of the Match awards":statLabels[metric]||metric.replaceAll("_"," ")}</small></div>)}</div>:<p className="muted">No published numeric performance totals for this competition.</p>}
+     {group.rounds.length>0&&<small className="player-performance-rounds">Awards recorded: {group.rounds.join(", ")}</small>}
+     <small className="player-performance-source">{group.entries} source record(s) · {group.partial?"Some statistics are not yet published or complete":"Published competition records"}</small>
+    </article>;
+   })}</div><p className="muted">Figures are grouped from the player's linked competition records. Partial records are labelled; unpublished or placeholder goal values are not counted as zero-goal performances.</p></Section>}
+   {verifiedHonours.length>0&&<Section title="Awards & verified achievements"><div className="player-performance-grid">{verifiedHonours.map(row=><article className="player-honour-card" key={row.record_type+row.record_id}><span className="eyebrow">{row.season||"CUT Sport"} · {row.sport_name||"Sport"}</span><b>{row.record_label||row.details?.title||"Verified recognition"}</b><small>{row.competition_name||row.team_name||"CUT Sport"}{row.record_date?" · "+row.record_date:""}</small>{row.role&&<small>{row.role}</small>}{row.source_url&&<a href={row.source_url} target="_blank" rel="noreferrer">View source ↗</a>}</article>)}</div></Section>}
    {Object.keys(totals).some(k=>totals[k]!==0)&&<Section title="Recorded career totals"><div className="player-total-grid">{Object.entries(totals).filter(([,v])=>v!==0).map(([k,v])=><article key={k}><b>{v}</b><small>{statLabels[k]||k.replaceAll("_"," ")}</small></article>)}</div><p className="muted">Totals combine available source-backed records only. They are not represented as complete career totals unless the underlying competition records are complete.</p></Section>}
    {canManageVisibility&&<section className="player-privacy-panel"><div><b>Public profile visibility</b><p>{player.profile_visibility==="public"?"Anyone can view this player dashboard.":"This player dashboard is hidden from public visitors."}</p></div><button className="btn secondary" disabled={saving} onClick={()=>changeVisibility(player.profile_visibility==="public"?"private":"public")}>{player.profile_visibility==="public"?"Hide profile":"Make profile public"}</button></section>}
    {isSuper&&<section className="player-photo-admin"><div><b>Official CUT profile photo</b><p>Upload a professional CUT photo and assign it to this player. Assigning the image approves it for public display.</p></div><label className="btn secondary">{photoBusy?"Uploading…":player.photo_path?"Replace approved photo":"Upload and approve photo"}<input type="file" accept="image/jpeg,image/png,image/webp" onChange={uploadApprovedPhoto} disabled={photoBusy} hidden/></label>{player.photo_path&&<button className="btn secondary" type="button" onClick={removeApprovedPhoto} disabled={photoBusy}>Remove photo</button>}{player.photo_approved_at&&<small>Approved {dateLabel(player.photo_approved_at)}</small>}</section>}
