@@ -3430,14 +3430,14 @@ function AdminOperations({roles,user}) {
 
 function AdminApprovals({roles,user}) {
  const allowed=roles.some(r=>["sport_admin","super_admin"].includes(r));
- const [items,setItems]=useState([]),[stats,setStats]=useState([]),[achievements,setAchievements]=useState([]),[media,setMedia]=useState([]),[history,setHistory]=useState([]);
+ const [items,setItems]=useState([]),[stats,setStats]=useState([]),[achievements,setAchievements]=useState([]),[media,setMedia]=useState([]),[history,setHistory]=useState([]),[memberships,setMemberships]=useState([]);
  const [error,setError]=useState(""),[loading,setLoading]=useState(false),[busyKey,setBusyKey]=useState("");
  const [notes,setNotes]=useState({});
  async function load(){
   if(!supabase||!allowed)return;
   setLoading(true);setError("");
   const [a,s,g,m]=await Promise.all([
-   supabase.from("athletes").select("id,full_name,preferred_name,approval_status,review_note,sports(name),teams(name)").eq("approval_status","pending").order("created_at",{ascending:false}),
+   supabase.from("athletes").select("id,full_name,preferred_name,approval_status,review_note,sport_id,team_id,position,player_profile_id,sports(name),teams(name,is_active)").eq("approval_status","pending").order("created_at",{ascending:false}),
    supabase.from("athlete_statistics").select("id,athlete_id,season,period_label,metrics,approval_status,review_note,athletes(full_name)").eq("approval_status","pending").order("created_at",{ascending:false}),
    supabase.from("athlete_achievements").select("id,athlete_id,title,description,is_verified,review_status,review_note,athletes(full_name)").eq("review_status","pending").order("created_at",{ascending:false}),
    supabase.from("athlete_media").select("id,athlete_id,title,media_type,visibility,approved_at,external_url,storage_path,review_status,review_note,athletes(full_name)").eq("review_status","pending").order("created_at",{ascending:false})
@@ -3445,7 +3445,12 @@ function AdminApprovals({roles,user}) {
   const fail=[a,s,g,m].find(x=>x.error);
   if(fail)setError(fail.error.message);
   else{
-   setItems(a.data||[]);setStats(s.data||[]);setAchievements(g.data||[]);setMedia(m.data||[]);
+   const pendingAthleteIds=(a.data||[]).map(x=>x.id);
+   const membershipResult=pendingAthleteIds.length
+    ?await supabase.from("athlete_team_memberships").select("id,athlete_id,team_id,sport_id,is_active").in("athlete_id",pendingAthleteIds)
+    :{data:[],error:null};
+   if(membershipResult.error)setError("Could not verify primary-team memberships: "+membershipResult.error.message);
+   setItems(a.data||[]);setStats(s.data||[]);setAchievements(g.data||[]);setMedia(m.data||[]);setMemberships(membershipResult.data||[]);
    const pendingIds=[...(a.data||[]),...(s.data||[]),...(g.data||[]),...(m.data||[])].map(x=>x.id);
    if(pendingIds.length){
     const h=await supabase.from("athlete_review_history").select("id,record_type,record_id,from_status,to_status,previous_note,review_note,changed_at").in("record_id",pendingIds).order("changed_at",{ascending:false}).limit(100);
@@ -3460,6 +3465,12 @@ function AdminApprovals({roles,user}) {
   const key=kind+":"+item.id;
   const note=(notes[key]||"").trim();
   if(decision==="rejected"&&!note){setError("Add a short reason before rejecting this submission.");return;}
+  if(kind==="athlete"&&decision==="approved"){
+   if(!item.sport_id||!item.team_id){setError("This athlete cannot be approved yet: assign the athlete to a primary sport and team in Athlete Management first.");return;}
+   if(item.teams?.is_active===false){setError("This athlete cannot be approved yet: the selected team is inactive. Move the athlete to an active team first.");return;}
+   const activeMembership=memberships.some(x=>x.athlete_id===item.id&&x.team_id===item.team_id&&x.sport_id===item.sport_id&&x.is_active);
+   if(!activeMembership){setError("This athlete cannot be approved yet: an active membership for the selected primary team is missing. Open Athlete Management, save or reactivate the team membership, then refresh this queue.");return;}
+  }
   setBusyKey(key);setError("");
   const now=new Date().toISOString();
   const audit={review_note:note||null,reviewed_by:user.id,reviewed_at:now};
@@ -3503,7 +3514,7 @@ function AdminApprovals({roles,user}) {
   <div className="admin-notice"><ShieldCheck size={18}/><div><b>{loading?"Refreshing review queue…":total+" submissions awaiting review"}</b><p>Only pending submissions are shown. Rejected media is kept private until it is reviewed and approved again.</p></div><button className="btn secondary" disabled={loading||Boolean(busyKey)} onClick={load}>Refresh</button></div>
   {error&&<p className="form-error" role="alert">{error}</p>}
   {loading?<div className="loading-state">Loading review queue…</div>:<>
-   <Section title={"Athlete profiles · "+items.length}>{items.length?items.map(a=><div className="sponsor-card admin-sponsor" key={a.id}><div><b>{a.preferred_name||a.full_name}</b><small>{a.sports?.name||"Sport"} · {a.teams?.name||"No team"} · Pending profile verification</small>{reviewNote("athlete",a)}{actions("athlete",a)}</div></div>):<Empty title="No athlete profiles awaiting approval" body="New registrations will appear here."/>}</Section>
+   <Section title={"Athlete profiles · "+items.length}>{items.length?items.map(a=>{const activeMembership=memberships.some(x=>x.athlete_id===a.id&&x.team_id===a.team_id&&x.sport_id===a.sport_id&&x.is_active);const ready=Boolean(a.sport_id&&a.team_id&&a.teams?.is_active!==false&&activeMembership);return <div className="sponsor-card admin-sponsor" key={a.id}><div><b>{a.preferred_name||a.full_name}</b><small>{a.sports?.name||"Sport"} · {a.teams?.name||"No team"} · Pending profile verification</small><p className={ready?"success-message":"form-error"}>{ready?"Ready for approval · active primary-team membership verified":!a.team_id?"Action required · assign a primary team":a.teams?.is_active===false?"Action required · selected team is inactive":!activeMembership?"Action required · active primary-team membership missing":"Action required · confirm sport and team assignment"}</p>{reviewNote("athlete",a)}{actions("athlete",a)}</div></div>}):<Empty title="No athlete profiles awaiting approval" body="New registrations will appear here."/>}</Section>
    <Section title={"Performance statistics · "+stats.length}>{stats.length?stats.map(x=><div className="sponsor-card admin-sponsor" key={x.id}><div><b>{(x.athletes?.full_name||"Athlete")+" · "+(x.season||x.period_label||"Statistics")}</b><small>{JSON.stringify(x.metrics)}</small>{reviewNote("statistics",x)}{actions("statistics",x)}</div></div>):<Empty title="No statistics awaiting approval" body="Pending statistics will appear here."/>}</Section>
    <Section title={"Achievements · "+achievements.length}>{achievements.length?achievements.map(x=><div className="sponsor-card admin-sponsor" key={x.id}><div><b>{(x.athletes?.full_name||"Athlete")+" · "+x.title}</b><small>{x.description||"Achievement submitted for verification"}</small>{reviewNote("achievement",x)}{actions("achievement",x)}</div></div>):<Empty title="No achievements awaiting approval" body="Pending achievements will appear here."/>}</Section>
    <Section title={"Athlete media · "+media.length}>{media.length?media.map(x=><div className="sponsor-card admin-sponsor" key={x.id}><div><b>{(x.athletes?.full_name||"Athlete")+" · "+(x.title||x.media_type)}</b><small>{x.media_type} · Submitted visibility: {x.visibility}</small>{x.external_url&&<a href={x.external_url} target="_blank" rel="noreferrer">Open submitted media</a>}{reviewNote("media",x)}{actions("media",x)}</div></div>):<Empty title="No media awaiting approval" body="Pending media will appear here."/>}</Section>
