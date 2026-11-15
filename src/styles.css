@@ -340,3 +340,21 @@ body{background:var(--cut-cream);color:var(--ink)}
 .competition-directory-card>small{font-size:11px;color:var(--muted);line-height:1.4}
 .competition-directory-open{display:inline-flex;align-items:center;gap:5px;width:max-content;color:var(--cut-blue);font-size:12px;font-weight:800}
 @media(max-width:420px){.competition-filter-grid{grid-template-columns:1fr}}
+
+
+/* Public player profile — competition performance and verified honours */
+.player-performance-grid{display:grid;gap:12px}
+.player-performance-card,.player-honour-card{display:grid;gap:10px;padding:14px;border:1px solid #e1e8f2;border-radius:14px;background:#fff;min-width:0}
+.player-performance-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.player-performance-head>div{display:grid;gap:4px;min-width:0}
+.player-performance-head .eyebrow,.player-honour-card .eyebrow{font-size:9px}
+.player-performance-head b,.player-honour-card>b{font-size:14px;line-height:1.35;color:var(--cut-deep-navy)}
+.player-performance-head small,.player-honour-card>small{font-size:11px;color:var(--muted);line-height:1.4}
+.player-performance-head .status-pill{flex:none;font-size:9px}
+.player-performance-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.player-performance-metrics>div{display:grid;gap:3px;padding:10px;border-radius:10px;background:#f3f6fb;min-width:0}
+.player-performance-metrics b{font-size:19px;color:var(--cut-blue);font-variant-numeric:tabular-nums}
+.player-performance-metrics small{font-size:10px;color:var(--muted);text-transform:capitalize;line-height:1.35}
+.player-performance-rounds,.player-performance-source{font-size:10px;color:var(--muted);line-height:1.45}
+.player-honour-card>a{font-size:11px;font-weight:800;color:var(--cut-blue)}
+@media(min-width:560px){.player-performance-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
