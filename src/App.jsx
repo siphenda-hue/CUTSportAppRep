@@ -350,7 +350,7 @@ function PublicCompetitionsDirectory() {
   async function load(){
    setBusy(true);setError("");
    if(!supabase){setError("Competition information is temporarily unavailable.");setBusy(false);return;}
-   const {data,error:queryError}=await supabase.from("competitions").select("id,name,season,status,start_date,end_date,venue,sport_id,sports(name,slug)").order("start_date",{ascending:false,nullsFirst:false}).order("name");
+   const {data,error:queryError}=await supabase.from("competitions").select("id,name,season,status,start_date,end_date,venue,description,sport_id,sports(name,slug)").order("start_date",{ascending:false,nullsFirst:false}).order("name");
    if(!active)return;
    if(queryError)setError("The competition directory could not be loaded. Please try again later.");
    setCompetitions(data||[]);setBusy(false);
