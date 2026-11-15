@@ -1286,7 +1286,7 @@ function AthletePerformance({user}) {
 function Profile({user,profile,roles}) {
  const [mode,setMode]=useState("login"),[email,setEmail]=useState(""),[password,setPassword]=useState(""),[newPassword,setNewPassword]=useState(""),[name,setName]=useState(profile?.full_name||""),[message,setMessage]=useState(""),[busy,setBusy]=useState(false);
  const [athleteReview,setAthleteReview]=useState({athlete:null,statistics:[],achievements:[],media:[],history:[],memberships:[]});
- const [reviewLoading,setReviewLoading]=useState(false),[reviewError,setReviewError]=useState("");
+ const [reviewLoading,setReviewLoading]=useState(false),[reviewError,setReviewError]=useState(""),[reviewNotice,setReviewNotice]=useState("");
  const [teamHubAssignment,setTeamHubAssignment]=useState(false);
  const [reviewDrafts,setReviewDrafts]=useState({}),[reviewSaving,setReviewSaving]=useState("");
  useEffect(()=>setName(profile?.full_name||""),[profile]);
@@ -1349,8 +1349,10 @@ function Profile({user,profile,roles}) {
  }
  async function resubmitRecord(type,row,e){
   e.preventDefault();
+  if(!supabase||reviewSaving)return;
   const key=type+":"+row.id,d=draftFor(type,row);
   let changes={};
+  setReviewError("");setReviewNotice("");
   if(type==="athlete"){
    changes={full_name:d.full_name,preferred_name:d.preferred_name||null,position:d.position||null,gender:d.gender||null,nationality:d.nationality||null,hometown:d.hometown||null,province:d.province||null,faculty:d.faculty||null,qualification:d.qualification||null,year_of_study:d.year_of_study===""?null:Number(d.year_of_study),student_status:d.student_status,years_representing_cut:d.years_representing_cut===""?null:Number(d.years_representing_cut),previous_clubs:(d.previous_clubs||"").split(",").map(x=>x.trim()).filter(Boolean),squad_number:d.squad_number===""?null:Number(d.squad_number),bio:d.bio||null,photo_url:d.photo_url||null};
   }else if(type==="statistics"){
@@ -1361,9 +1363,25 @@ function Profile({user,profile,roles}) {
   }else if(type==="media"){
    changes={media_type:d.media_type,title:d.title||null,description:d.description||null,external_url:d.external_url||null};
   }
-  setReviewSaving(key);setReviewError("");
-  const {error}=await supabase.rpc("resubmit_athlete_record",{p_record_type:type,p_record_id:row.id,p_changes:changes});
+  if(type==="athlete"){
+   if(!String(changes.full_name||"").trim()){setReviewError("Full name is required before resubmitting your athlete profile.");return;}
+   const year=changes.year_of_study,years=changes.years_representing_cut,number=changes.squad_number;
+   if(year!==null&&(!Number.isInteger(year)||year<1||year>12)){setReviewError("Year of study must be a whole number between 1 and 12.");return;}
+   if(years!==null&&(!Number.isInteger(years)||years<0||years>100)){setReviewError("Years representing CUT must be a whole number from 0 to 100.");return;}
+   if(number!==null&&(!Number.isInteger(number)||number<0||number>999)){setReviewError("Squad number must be a whole number from 0 to 999.");return;}
+   if(changes.photo_url&&!/^https?:\\/\\//i.test(changes.photo_url)){setReviewError("Photo URL must begin with http:// or https://.");return;}
+  }else if(type==="statistics"){
+   if(!changes.metrics||typeof changes.metrics!=="object"||Array.isArray(changes.metrics)){setReviewError("Statistics metrics must be a JSON object.");return;}
+  }else if(type==="achievement"){
+   if(!String(changes.title||"").trim()){setReviewError("Achievement title is required before resubmitting.");return;}
+  }else if(type==="media"){
+   if(!["photo","video","certificate","document"].includes(changes.media_type)){setReviewError("Choose a valid media type.");return;}
+   if(changes.external_url&&!/^https?:\\/\\//i.test(changes.external_url)){setReviewError("Media URL must begin with http:// or https://.");return;}
+  }
+  setReviewSaving(key);
+  const {data,error}=await supabase.rpc("resubmit_athlete_record",{p_record_type:type,p_record_id:row.id,p_changes:changes});
   if(error){setReviewError(error.message);setReviewSaving("");return;}
+  if(!data?.success||data?.review_status!=="pending"){setReviewError("The server did not confirm that your correction was returned to the review queue.");setReviewSaving("");return;}
   const {data:historyRows}=await supabase.from("athlete_review_history").select("id,record_type,record_id,from_status,to_status,previous_note,review_note,reviewed_at,changed_at").eq("athlete_id",athleteReview.athlete.id).order("changed_at",{ascending:false}).limit(30);
   setReviewDrafts(current=>{const next={...current};delete next[key];return next;});
   setAthleteReview(current=>{
@@ -1373,6 +1391,7 @@ function Profile({user,profile,roles}) {
    return {...current,history:historyRows||current.history,[field]:current[field].map(item=>item.id===row.id?{...item,...changes,[statusField]:"pending",review_note:null}:item)};
   });
   setReviewSaving("");
+  setReviewNotice("Your corrected "+(type==="athlete"?"athlete profile":type==="statistics"?"statistics record":type==="achievement"?"achievement":"media submission")+" has been resubmitted. It is pending review; previous reviewer feedback remains in your history.");
  }
  function correctionField(type,row,key,label,inputType="text"){
   const d=draftFor(type,row);
@@ -1446,6 +1465,7 @@ function Profile({user,profile,roles}) {
   return <div className="sponsor-card" key={id}><div><b>{label}</b><small>Status: {status||"pending"}</small>{note&&<p className="form-error">Review note: {note}</p>}</div></div>;
  }
  return <><Header title="Profile"/><main className="page">{user?<><h1>{profile?.full_name||user.email}</h1><form className="form-card" onSubmit={save}><label>Full name<input value={name} onChange={e=>setName(e.target.value)}/></label><label>Email<input value={user.email||""} disabled/></label><button className="btn primary" disabled={busy}>{busy?"Saving…":"Save profile"}</button></form><form className="form-card" onSubmit={updatePassword}><h3>Change password</h3><label>New password<input type="password" minLength="8" required value={newPassword} onChange={e=>setNewPassword(e.target.value)} autoComplete="new-password"/></label><button className="btn secondary" disabled={busy||newPassword.length<8}>{busy?"Updating…":"Update password"}</button></form>{message&&<p>{message}</p>}
+ {reviewNotice&&<p className="success-message" role="status">{reviewNotice}</p>}
  <Section title="Athlete submissions & review status">{reviewLoading?<p className="muted">Loading your athlete review information…</p>:reviewError?<p className="form-error">{reviewError}</p>:!athleteReview.athlete?<Empty title="No athlete profile linked yet" body="Your CUT Sport account is not linked to an athlete profile. Ask your coach or sport administrator to link your account before submitting or viewing athlete records."/>:<><div className="admin-notice"><ShieldCheck size={18}/><div><b>{athleteReview.athlete.preferred_name||athleteReview.athlete.full_name}</b><p>{athleteReview.athlete.sports?.name||"CUT Sport"}{athleteReview.athlete.teams?.name?" · "+athleteReview.athlete.teams.name:""} · Profile status: {athleteReview.athlete.approval_status}</p>{athleteReview.athlete.review_note&&<p className="form-error">Review note: {athleteReview.athlete.review_note}</p>}{correctionForm("athlete",athleteReview.athlete)}</div></div>
  {athleteReview.memberships.length>0&&<><h3>Sport & team memberships</h3><div className="performance-grid">{athleteReview.memberships.map(m=><div className="sponsor-card" key={m.id}><b>{m.sports?.name||"Sport"}</b><small>{m.teams?.name||"Team"}{m.position?" · "+m.position:""}{m.squad_number!==null&&m.squad_number!==undefined?" · #"+m.squad_number:""}</small></div>)}</div></>}
  {athleteReview.statistics.length>0&&<><h3>Performance statistics</h3>{athleteReview.statistics.map(x=><React.Fragment key={x.id}>{reviewStatus([x.season,x.period_label].filter(Boolean).join(" · ")||"Statistics submission",x.approval_status,x.review_note,x.id)}{correctionForm("statistics",x)}</React.Fragment>)}</>}
