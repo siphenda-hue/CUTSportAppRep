@@ -434,7 +434,7 @@ function PublicTeamDirectory({teams=[]}) {
   async function loadStaff(){
    if(!supabase){setStaffBusy(false);return;}
    const {data,error}=await supabase.from("team_staff_profiles")
-    .select("id,display_name,role_title,bio,photo_url,sport_id,team_id,display_order,sports(name),teams(name)")
+    .select("id,display_name,role_title,bio,photo_url,photo_path,sport_id,team_id,display_order,sports(name),teams(name)")
     .eq("is_published",true).order("display_order").order("display_name").limit(300);
    if(!active)return;
    if(error)setStaffError(error.message);
@@ -442,6 +442,7 @@ function PublicTeamDirectory({teams=[]}) {
   }
   loadStaff();return()=>{active=false;};
  },[]);
+ const staffPhotoUrl=path=>path&&supabase?.storage.from("player-profile-photos").getPublicUrl(path).data.publicUrl;
  const term=search.trim().toLocaleLowerCase();
  const active=teams.filter(t=>t.is_active!==false);
  const filtered=active.filter(t=>[t.name,t.category,t.season,t.sports?.name,t.coach_name].filter(Boolean).join(" ").toLocaleLowerCase().includes(term));
@@ -450,7 +451,7 @@ function PublicTeamDirectory({teams=[]}) {
   <div className="page-intro"><span className="eyebrow">THE BLUES · PUBLIC DIRECTORY</span><h1>Meet the teams<br/><em>behind the Blues.</em></h1><p>Explore CUT Sport teams and the people who lead them. Public information is available to supporters, families, alumni and the wider community.</p></div>
   <label className="player-search">Find a team or staff member<input type="search" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search sport, team, coach or staff…"/></label>
   <Section title={"CUT Sport teams · "+filtered.length}>{filtered.length?<div className="team-grid">{filtered.map(t=><article className="team-card" key={t.id}>{t.image_url&&<img src={t.image_url} alt=""/>}<div><b>{t.name}</b><small>{t.sports?.name||"CUT Sport"}{t.category?" · "+t.category:""}</small>{t.season&&<small>{t.season}</small>}{t.coach_name&&<small>Head coach: {t.coach_name}</small>}<Link to={t.sports?.slug?"/sport/"+t.sports.slug:"/sport"}>Explore sport <ChevronRight size={14}/></Link></div></article>)}</div>:<Empty title="No matching teams" body="Try another sport or team name."/>}</Section>
-  <Section title={"Coaching & technical staff · "+visibleStaff.length}>{staffError&&<p className="form-error">{staffError}</p>}{staffBusy?<p className="muted">Loading verified staff profiles…</p>:visibleStaff.length?<div className="team-grid">{visibleStaff.map(p=><article className="team-card" key={p.id}>{p.photo_url&&<img src={p.photo_url} alt={p.display_name}/>}<div><b>{p.display_name}</b><small>{p.role_title}</small><small>{p.sports?.name||"CUT Sport"}{p.teams?.name?" · "+p.teams.name:" · Sport-wide"}</small>{p.bio&&<p className="muted">{p.bio}</p>}</div></article>)}</div>:<Empty title="Staff profiles are being prepared" body="Official coaching and technical staff details will appear here once CUT Sport has verified and published the information. No private staff contact details are displayed."/>}</Section>
+  <Section title={"Coaching & technical staff · "+visibleStaff.length}>{staffError&&<p className="form-error">{staffError}</p>}{staffBusy?<p className="muted">Loading verified staff profiles…</p>:visibleStaff.length?<div className="team-grid">{visibleStaff.map(p=><article className="team-card" key={p.id}>{(p.photo_path||p.photo_url)&&<img src={p.photo_path?staffPhotoUrl(p.photo_path):p.photo_url} alt={p.display_name}/>}<div><b>{p.display_name}</b><small>{p.role_title}</small><small>{p.sports?.name||"CUT Sport"}{p.teams?.name?" · "+p.teams.name:" · Sport-wide"}</small>{p.bio&&<p className="muted">{p.bio}</p>}</div></article>)}</div>:<Empty title="Staff profiles are being prepared" body="Official coaching and technical staff details will appear here once CUT Sport has verified and published the information. No private staff contact details are displayed."/>}</Section>
   <p className="muted">Only active teams and published staff information are shown. Player profiles are available in the <Link to="/players">player directory</Link>.</p>
  </main></>;
 }
@@ -2876,7 +2877,7 @@ function AdminTeams({roles,user}) {
  const blank={sport_id:"",name:"",category:"",season:"",coach_name:""};
  const [sports,setSports]=useState([]),[teams,setTeams]=useState([]),[teamTallies,setTeamTallies]=useState([]),[form,setForm]=useState(blank),[editing,setEditing]=useState(null);
  const [assignments,setAssignments]=useState([]),[staff,setStaff]=useState([]),[selectedStaff,setSelectedStaff]=useState(""),[assignmentSport,setAssignmentSport]=useState(""),[assignmentTeam,setAssignmentTeam]=useState(""),[assignmentRole,setAssignmentRole]=useState("coach"),[startsOn,setStartsOn]=useState(""),[endsOn,setEndsOn]=useState("");
- const [staffProfiles,setStaffProfiles]=useState([]),[staffEditing,setStaffEditing]=useState(null),[staffForm,setStaffForm]=useState({sport_id:"",team_id:"",display_name:"",role_title:"",bio:"",photo_url:"",display_order:"0",is_published:false});
+ const [staffProfiles,setStaffProfiles]=useState([]),[staffEditing,setStaffEditing]=useState(null),[staffPhotoFile,setStaffPhotoFile]=useState(null),[staffForm,setStaffForm]=useState({sport_id:"",team_id:"",display_name:"",role_title:"",bio:"",display_order:"0",is_published:false});
  const [busy,setBusy]=useState(false),[error,setError]=useState(""),[notice,setNotice]=useState("");
  async function load(){
   if(!supabase||!sportAdmin)return;
@@ -2885,7 +2886,7 @@ function AdminTeams({roles,user}) {
    supabase.from("sports").select("id,name,is_active").order("name"),
    supabase.from("teams").select("id,name,sport_id,category,season,competition_id,coach_name,is_active,created_at,sports(name)").order("name"),
    supabase.from("team_fixture_tallies").select("team_id,competition_name,matches_listed,completed_matches,results_recorded,dated_calendar_fixtures,undated_match_records,wins,draws,losses"),
-   supabase.from("team_staff_profiles").select("id,sport_id,team_id,display_name,role_title,bio,photo_url,display_order,is_published,created_at,sports(name),teams(name)").order("display_order").order("display_name")
+   supabase.from("team_staff_profiles").select("id,sport_id,team_id,display_name,role_title,bio,photo_url,photo_path,display_order,is_published,created_at,sports(name),teams(name)").order("display_order").order("display_name")
   ]);
   if(s.error||t.error||ft.error||st.error){setError(s.error?.message||t.error?.message||ft.error?.message||st.error?.message);setBusy(false);return}
   setSports(s.data||[]);setTeams(t.data||[]);setTeamTallies(ft.data||[]);setStaffProfiles(st.data||[]);
@@ -2924,20 +2925,40 @@ function AdminTeams({roles,user}) {
   if(error)setError(error.message);else if(!data)setError("No team status changed. Check your sport-admin assignment.");else{setNotice(t.is_active?"Team archived; its roster and history remain intact.":"Team restored.");await load()}
   setBusy(false);
  }
- function resetStaff(){setStaffEditing(null);setStaffForm({sport_id:"",team_id:"",display_name:"",role_title:"",bio:"",photo_url:"",display_order:"0",is_published:false});}
- function editStaffProfile(p){setStaffEditing(p.id);setStaffForm({sport_id:p.sport_id,team_id:p.team_id||"",display_name:p.display_name,role_title:p.role_title,bio:p.bio||"",photo_url:p.photo_url||"",display_order:String(p.display_order??0),is_published:Boolean(p.is_published)});}
+ function resetStaff(){setStaffEditing(null);setStaffPhotoFile(null);setStaffForm({sport_id:"",team_id:"",display_name:"",role_title:"",bio:"",display_order:"0",is_published:false});}
+ function editStaffProfile(p){setStaffEditing(p.id);setStaffPhotoFile(null);setStaffForm({sport_id:p.sport_id,team_id:p.team_id||"",display_name:p.display_name,role_title:p.role_title,bio:p.bio||"",display_order:String(p.display_order??0),is_published:Boolean(p.is_published)});}
  async function saveStaffProfile(e){
   e.preventDefault();if(!sportAdmin||!supabase)return;
   if(!staffForm.sport_id||staffForm.display_name.trim().length<2||staffForm.role_title.trim().length<2){setError("Choose a sport and enter the staff member's name and role.");return;}
-  if(staffForm.photo_url&&!(staffForm.photo_url.trim().startsWith("https://")||staffForm.photo_url.trim().startsWith("http://"))){setError("Photo URL must begin with https:// or http://.");return;}
+  if(staffPhotoFile){
+   if(!["image/jpeg","image/png","image/webp"].includes(staffPhotoFile.type)){setError("Portraits must be JPG, PNG or WebP images.");return;}
+   if(staffPhotoFile.size>5*1024*1024){setError("Portrait image must be 5 MB or smaller.");return;}
+  }
   setBusy(true);setError("");setNotice("");
-  const payload={sport_id:staffForm.sport_id,team_id:staffForm.team_id||null,display_name:staffForm.display_name.trim(),role_title:staffForm.role_title.trim(),bio:staffForm.bio.trim()||null,photo_url:staffForm.photo_url.trim()||null,display_order:Math.max(0,Math.min(9999,Number.parseInt(staffForm.display_order,10)||0)),is_published:Boolean(staffForm.is_published),updated_at:new Date().toISOString()};
+  const payload={sport_id:staffForm.sport_id,team_id:staffForm.team_id||null,display_name:staffForm.display_name.trim(),role_title:staffForm.role_title.trim(),bio:staffForm.bio.trim()||null,photo_url:null,display_order:Math.max(0,Math.min(9999,Number.parseInt(staffForm.display_order,10)||0)),is_published:Boolean(staffForm.is_published),updated_at:new Date().toISOString()};
   const result=staffEditing
-   ?await supabase.from("team_staff_profiles").update(payload).eq("id",staffEditing).select("id").maybeSingle()
-   :await supabase.from("team_staff_profiles").insert({...payload,created_by:user?.id||null}).select("id").maybeSingle();
-  if(result.error)setError(result.error.message);
-  else if(!result.data)setError("No staff profile was saved. Confirm your active sport-admin assignment.");
-  else{resetStaff();setNotice(staffEditing?"Staff profile updated.":"Staff profile created.");await load();}
+   ?await supabase.from("team_staff_profiles").update(payload).eq("id",staffEditing).select("id,photo_path").maybeSingle()
+   :await supabase.from("team_staff_profiles").insert({...payload,created_by:user?.id||null}).select("id,photo_path").maybeSingle();
+  if(result.error){setError(result.error.message);setBusy(false);return;}
+  if(!result.data){setError("No staff profile was saved. Confirm your active sport-admin assignment.");setBusy(false);return;}
+  const savedId=result.data.id;
+  if(staffPhotoFile){
+   const ext=staffPhotoFile.type==="image/png"?"png":staffPhotoFile.type==="image/webp"?"webp":"jpg";
+   const path=payload.sport_id+"/"+savedId+"/"+Date.now()+"-"+Math.random().toString(36).slice(2,8)+"."+ext;
+   const {error:uploadError}=await supabase.storage.from("player-profile-photos").upload(path,staffPhotoFile,{cacheControl:"3600",contentType:staffPhotoFile.type,upsert:false});
+   if(uploadError){
+    setError("Staff profile saved, but the portrait upload failed: "+uploadError.message);
+    await load();setStaffEditing(savedId);setBusy(false);return;
+   }
+   const {error:photoUpdateError}=await supabase.from("team_staff_profiles").update({photo_path:path,photo_url:null,updated_at:new Date().toISOString()}).eq("id",savedId);
+   if(photoUpdateError){
+    await supabase.storage.from("player-profile-photos").remove([path]);
+    setError("Portrait uploaded but could not be linked to the profile: "+photoUpdateError.message);
+    await load();setStaffEditing(savedId);setBusy(false);return;
+   }
+   if(result.data.photo_path&&result.data.photo_path!==path)await supabase.storage.from("player-profile-photos").remove([result.data.photo_path]);
+  }
+  resetStaff();setNotice(staffEditing?"Staff profile updated.":"Staff profile created.");await load();
   setBusy(false);
  }
  async function deleteStaffProfile(p){
@@ -2945,7 +2966,11 @@ function AdminTeams({roles,user}) {
   if(!window.confirm("Delete this staff profile? This does not affect the staff member's private account or access."))return;
   setBusy(true);setError("");setNotice("");
   const {data,error}=await supabase.from("team_staff_profiles").delete().eq("id",p.id).select("id").maybeSingle();
-  if(error)setError(error.message);else if(!data)setError("The profile was not deleted. Check your sport-admin assignment.");else{setNotice("Public staff profile deleted.");await load();}
+  if(error)setError(error.message);else if(!data)setError("The profile was not deleted. Check your sport-admin assignment.");else{
+   if(p.photo_path){const {error:photoError}=await supabase.storage.from("player-profile-photos").remove([p.photo_path]);if(photoError)setError("Profile deleted, but its portrait could not be removed: "+photoError.message);}
+   if(!error)setNotice("Public staff profile deleted.");
+   await load();
+  }
   setBusy(false);
  }
  async function saveAssignment(e){
@@ -2982,19 +3007,20 @@ function AdminTeams({roles,user}) {
   </Section>
   <Section title="Team directory">{teams.length?teams.map(t=><article className="performance-record" key={t.id}><div className="performance-record-head"><div><b>{t.name}</b><small>{t.sports?.name||"Sport"} · {t.category||"Category not set"} · {t.season||"Season not set"}</small></div><span className={"order-status "+(t.is_active?"is-paid":"")}>{t.is_active?"Active":"Archived"}</span></div>{t.coach_name&&<p className="muted">Coach: {t.coach_name}</p>}{teamTallies.filter(x=>x.team_id===t.id).map(x=><p className="muted" key={x.team_id}>{x.competition_name||"Competition"} · {x.matches_listed} matches listed · {x.completed_matches} completed · {x.wins} W / {x.draws} D / {x.losses} L{x.undated_match_records? " · "+x.undated_match_records+" undated archive record(s)":""}</p>)}<div className="review-actions"><button type="button" disabled={busy} onClick={()=>edit(t)}>Edit</button><button type="button" disabled={busy} onClick={()=>archiveTeam(t)}>{t.is_active?"Archive team":"Restore team"}</button></div></article>):<Empty title={busy?"Loading teams":"No teams created"} body="Create the first squad above. Existing athlete and fixture records are preserved when a team is archived."/>}</Section>
   <Section title={staffEditing?"Edit public staff profile":"Public staff profiles"}>
-   <p className="muted">Publish approved names, roles, biographies and optional portrait URLs. Private email addresses, phone numbers and student details are never included in this public directory.</p>
+   <p className="muted">Publish approved names, roles, biographies and portraits. Images are stored in CUT Sport media storage; private email addresses, phone numbers and student details are never included in this public directory.</p>
    <form className="form-card" onSubmit={saveStaffProfile}>
     <label>Sport<select required value={staffForm.sport_id} onChange={e=>setStaffForm({...staffForm,sport_id:e.target.value,team_id:""})}><option value="">Choose sport</option>{sports.filter(x=>x.is_active).map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</select></label>
     <label>Team (optional)<select value={staffForm.team_id} onChange={e=>setStaffForm({...staffForm,team_id:e.target.value})}><option value="">Sport-wide / all teams</option>{teams.filter(x=>x.sport_id===staffForm.sport_id).map(x=><option key={x.id} value={x.id}>{x.name}{x.category?" · "+x.category:""}</option>)}</select></label>
     <label>Display name<input required minLength={2} maxLength={120} value={staffForm.display_name} onChange={e=>setStaffForm({...staffForm,display_name:e.target.value})} placeholder="Full name"/></label>
     <label>Role / position<input required minLength={2} maxLength={100} value={staffForm.role_title} onChange={e=>setStaffForm({...staffForm,role_title:e.target.value})} placeholder="Head Coach, Team Manager, Analyst…"/></label>
     <label>Biography<textarea maxLength={1200} rows={3} value={staffForm.bio} onChange={e=>setStaffForm({...staffForm,bio:e.target.value})} placeholder="Short public biography (optional)"/></label>
-    <label>Portrait image URL<input type="url" maxLength={1000} value={staffForm.photo_url} onChange={e=>setStaffForm({...staffForm,photo_url:e.target.value})} placeholder="https://… (optional)"/></label>
+    <label>Portrait image (JPG, PNG or WebP · max 5 MB)<input type="file" accept="image/jpeg,image/png,image/webp" onChange={e=>setStaffPhotoFile(e.target.files?.[0]||null)}/></label>
+    {staffPhotoFile&&<small className="muted">Selected: {staffPhotoFile.name}</small>}
     <label>Display order<input type="number" min="0" max="9999" value={staffForm.display_order} onChange={e=>setStaffForm({...staffForm,display_order:e.target.value})}/></label>
     <label className="check-row"><input type="checkbox" checked={staffForm.is_published} onChange={e=>setStaffForm({...staffForm,is_published:e.target.checked})}/> Publish this profile in the public directory</label>
     <div className="review-actions"><button className="btn primary" disabled={busy}>{busy?"Saving…":staffEditing?"Save staff profile":"Create staff profile"}</button>{staffEditing&&<button type="button" disabled={busy} onClick={resetStaff}>Cancel</button>}</div>
    </form>
-   <Section title={"Published and draft profiles · "+staffProfiles.length}>{staffProfiles.length?staffProfiles.map(p=><article className="performance-record" key={p.id}><div className="performance-record-head"><div><b>{p.display_name}</b><small>{p.role_title} · {p.sports?.name||"Sport"}{p.teams?.name?" · "+p.teams.name:" · Sport-wide"}</small></div><span className={"order-status "+(p.is_published?"is-paid":"")}>{p.is_published?"Published":"Draft"}</span></div>{p.bio&&<p className="muted">{p.bio}</p>}<div className="review-actions"><button type="button" disabled={busy} onClick={()=>editStaffProfile(p)}>Edit</button><button type="button" disabled={busy} onClick={()=>deleteStaffProfile(p)}>Delete</button></div></article>):<Empty title="No public staff profiles yet" body="Create the first verified coaching or technical staff profile above."/>}</Section>
+   <Section title={"Published and draft profiles · "+staffProfiles.length}>{staffProfiles.length?staffProfiles.map(p=><article className="performance-record" key={p.id}><div className="performance-record-head"><div>{p.photo_path&&<img src={supabase.storage.from("player-profile-photos").getPublicUrl(p.photo_path).data.publicUrl} alt="" style={{width:56,height:56,objectFit:"cover",borderRadius:10,marginBottom:8}}/>}<b>{p.display_name}</b><small>{p.role_title} · {p.sports?.name||"Sport"}{p.teams?.name?" · "+p.teams.name:" · Sport-wide"}</small></div><span className={"order-status "+(p.is_published?"is-paid":"")}>{p.is_published?"Published":"Draft"}</span></div>{p.bio&&<p className="muted">{p.bio}</p>}<div className="review-actions"><button type="button" disabled={busy} onClick={()=>editStaffProfile(p)}>Edit</button><button type="button" disabled={busy} onClick={()=>deleteStaffProfile(p)}>Delete</button></div></article>):<Empty title="No public staff profiles yet" body="Create the first verified coaching or technical staff profile above."/>}</Section>
   </Section>
   {superAdmin&&<Section title="Staff assignments">
    <p className="muted">Only existing CUT Sport staff profiles are eligible. Sport administrators receive full-sport management; coaches and team managers receive team-level access.</p>
