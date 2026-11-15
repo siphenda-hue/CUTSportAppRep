@@ -460,32 +460,39 @@ function PublicTeamDirectory({teams=[]}) {
 
 function PublicTeamProfile() {
  const {id}=useParams();
- const [team,setTeam]=useState(null),[staff,setStaff]=useState([]),[players,setPlayers]=useState([]),[fixtures,setFixtures]=useState([]);
+ const [team,setTeam]=useState(null),[staff,setStaff]=useState([]),[players,setPlayers]=useState([]),[fixtures,setFixtures]=useState([]),[competition,setCompetition]=useState(null),[standings,setStandings]=useState([]);
  const [busy,setBusy]=useState(true),[error,setError]=useState("");
  useEffect(()=>{
   let active=true;
   async function load(){
-   setBusy(true);setError("");setTeam(null);setStaff([]);setPlayers([]);setFixtures([]);
+   setBusy(true);setError("");setTeam(null);setStaff([]);setPlayers([]);setFixtures([]);setCompetition(null);setStandings([]);
    if(!supabase){setError("Team information is temporarily unavailable.");setBusy(false);return;}
    const {data:teamData,error:teamError}=await supabase.from("teams")
-    .select("id,sport_id,name,category,season,coach_name,image_url,is_active,sports(name,slug)")
+    .select("id,sport_id,name,category,season,coach_name,image_url,is_active,competition_id,sports(name,slug)")
     .eq("id",id).eq("is_active",true).maybeSingle();
    if(!active)return;
    if(teamError){setError("This team could not be loaded.");setBusy(false);return;}
    if(!teamData){setBusy(false);return;}
    setTeam(teamData);
-   const [staffResult,playerResult,fixtureResult]=await Promise.all([
+   const [staffResult,playerResult,fixtureResult,competitionResult,standingResult]=await Promise.all([
     supabase.from("team_staff_profiles").select("id,display_name,role_title,photo_url,photo_path,bio,display_order")
      .eq("team_id",id).eq("is_published",true).order("display_order").order("display_name").limit(50),
     supabase.from("athletes").select("id,full_name,preferred_name,position,squad_number,photo_url,bio,is_featured")
      .eq("team_id",id).eq("approval_status","approved").eq("profile_visibility","public")
      .order("is_featured",{ascending:false}).order("squad_number").order("full_name").limit(100),
     supabase.from("fixtures").select("id,opponent,venue,starts_at,status,home_score,away_score,result_summary,competition_id")
-     .eq("team_id",id).order("starts_at",{ascending:false}).limit(30)
+     .eq("team_id",id).order("starts_at",{ascending:false}).limit(30),
+    teamData.competition_id
+     ? supabase.from("competitions").select("id,name,season,status,start_date,end_date").eq("id",teamData.competition_id).maybeSingle()
+     : Promise.resolve({data:null,error:null}),
+    teamData.competition_id
+     ? supabase.from("competition_standings").select("id,team_name,group_name,position,played,won,drawn,lost,scored,conceded,points_difference,bonus_points,points,source_url,source_checked_at").eq("competition_id",teamData.competition_id).order("group_name").order("position")
+     : Promise.resolve({data:[],error:null})
    ]);
    if(!active)return;
-   if(staffResult.error||playerResult.error||fixtureResult.error)setError("Some team information could not be loaded. The sections that are available are shown below.");
+   if(staffResult.error||playerResult.error||fixtureResult.error||competitionResult.error||standingResult.error)setError("Some team information could not be loaded. The sections that are available are shown below.");
    setStaff(staffResult.data||[]);setPlayers(playerResult.data||[]);setFixtures(fixtureResult.data||[]);
+   setCompetition(competitionResult.data||null);setStandings(standingResult.data||[]);
    setBusy(false);
   }
   load();return()=>{active=false;};
@@ -498,6 +505,8 @@ function PublicTeamProfile() {
  if(!team)return <><Header title="Team profile" back/><main className="page"><Empty title="Team not found" body={error||"This team may be inactive or the link may be incorrect."}/><Link className="btn secondary" to="/teams">Back to teams & staff</Link></main></>;
  const upcoming=fixtures.filter(f=>f.status==="scheduled"||f.status==="live").sort((x,y)=>new Date(x.starts_at||0)-new Date(y.starts_at||0));
  const results=fixtures.filter(f=>f.status==="completed").sort((x,y)=>new Date(y.starts_at||0)-new Date(x.starts_at||0));
+ const standingGroups=[...new Set(standings.map(row=>row.group_name||"Overall"))];
+ const ownStanding=standings.find(row=>{const label=String(row.team_name||"").trim().toLowerCase();const teamLabel=String(team.name||"").trim().toLowerCase();return label===teamLabel||(label==="cut"&&teamLabel.startsWith("cut "));});
  return <><Header title={team.name} back/><main className="page">
   <section className="team-card" style={{padding:0,overflow:"hidden",marginBottom:24}}>
    {team.image_url?<img src={team.image_url} alt={team.name+" team"} style={{width:"100%",maxHeight:280,objectFit:"cover"}}/>:<div style={{minHeight:150,background:"linear-gradient(120deg,#164A98,#1F5FBF 65%,#2E73D2)",color:"#fff",display:"grid",alignContent:"end",padding:24}}><span style={{fontWeight:800,letterSpacing:2}}>CUT SPORT · THE BLUES</span></div>}
@@ -506,6 +515,24 @@ function PublicTeamProfile() {
   {error&&<p className="muted">{error}</p>}
   <Section title={"Technical staff · "+staff.length}>{staff.length?<div className="team-grid">{staff.map(person=><Link className="team-card" to={"/staff/"+person.id} key={person.id}>{staffPhoto(person)&&<img src={staffPhoto(person)} alt={person.display_name}/>}<div><b>{person.display_name}</b><small>{person.role_title}</small>{person.bio&&<p className="muted">{person.bio}</p>}</div></Link>)}</div>:<Empty title="Staff profiles coming soon" body="Published coaches and technical staff assigned to this team will appear here."/></Section>
   <Section title={"Public player squad · "+players.length}>{players.length?<div className="team-grid">{players.map(player=><Link className="team-card" to={"/players/"+player.id} key={player.id}>{player.photo_url&&<img src={player.photo_url} alt={player.preferred_name||player.full_name}/>}<div><b>{player.squad_number!=null?"#"+player.squad_number+" · ":""}{player.preferred_name||player.full_name}</b><small>{player.position||"Squad member"}</small><small>View player profile <ChevronRight size={13}/></small></div></Link>)}</div>:<Empty title="Public squad list coming soon" body="Only approved player profiles marked public are listed here."/></Section>
+  {(competition||standings.length>0)&&<Section title={competition?(competition.name+" · "+(competition.season||team.season||"Season")):"Competition standings"}>
+   {competition&&<p className="muted" style={{marginTop:0}}>{[competition.status,competition.start_date&&date(competition.start_date).split(",")[0],competition.end_date&&date(competition.end_date).split(",")[0]].filter(Boolean).join(" · ")}</p>}
+   {ownStanding&&<div className="team-grid" style={{marginBottom:16}}>
+    {[["Position",ownStanding.position!=null?"#"+ownStanding.position:"Not ranked"],["Played",ownStanding.played],["Won",ownStanding.won],["Drawn",ownStanding.drawn],["Lost",ownStanding.lost],["Points",ownStanding.points]].map(([label,value])=><div className="team-card" key={label}><small>{label}</small><strong style={{display:"block",fontSize:22,marginTop:5}}>{value??"—"}</strong></div>)}
+   </div>}
+   {standings.length?standingGroups.map(group=><div className="competition-log" key={group}>
+    <h3>{group}</h3>
+    <div className="competition-log-head"><span>Team</span><span>P</span><span>W</span><span>D</span><span>L</span><span>For</span><span>Against</span><span>Pts</span></div>
+    {standings.filter(row=>(row.group_name||"Overall")===group).map(row=>{
+     const label=String(row.team_name||"").trim().toLowerCase(),teamLabel=String(team.name||"").trim().toLowerCase();
+     const isCutTeam=label===teamLabel||(label==="cut"&&teamLabel.startsWith("cut "));
+     return <div className="competition-log-row competition-log-row-wide" key={row.id} style={isCutTeam?{background:"rgba(245,196,0,.16)",borderRadius:8}:undefined}>
+      <span className="competition-log-team"><b>{row.position!=null?row.position+". ":""}{row.team_name}</b></span><span>{row.played??"—"}</span><span>{row.won??"—"}</span><span>{row.drawn??"—"}</span><span>{row.lost??"—"}</span><span>{row.scored??"—"}</span><span>{row.conceded??"—"}</span><b>{row.points??"—"}</b>
+     </div>;
+    })}
+   </div>):<p className="muted">No official standings have been published for this competition yet.</p>}
+   {ownStanding?.source_checked_at&&<small className="muted">Standings last checked {date(ownStanding.source_checked_at)}.</small>}
+  </Section>}
   <Section title={"Upcoming fixtures · "+upcoming.length}>{upcoming.length?<div className="team-grid">{upcoming.map(f=><article className="team-card" key={f.id}><div><small>{date(f.starts_at)} · {statusLabel(f.status)}</small><b style={{display:"block",margin:"8px 0"}}>CUT {team.name} vs {f.opponent||"Opponent to be confirmed"}</b>{f.venue&&<small>{f.venue}</small>}</div></article>)}</div>:<p className="muted">No upcoming fixtures have been published for this team.</p>}</Section>
   <Section title={"Recent results · "+results.length}>{results.length?<div className="team-grid">{results.slice(0,8).map(f=><article className="team-card" key={f.id}><div><small>{date(f.starts_at)} · Completed</small><b style={{display:"block",margin:"8px 0"}}>CUT {team.name} vs {f.opponent||"Opponent"}</b><strong>{f.home_score??"–"} : {f.away_score??"–"}</strong>{f.result_summary&&<p className="muted">{f.result_summary}</p>}</div></article>)}</div>:<p className="muted">Completed results will appear here when available.</p>}</Section>
   <div style={{display:"flex",gap:10,flexWrap:"wrap"}}><Link className="btn secondary" to="/teams">All teams</Link><Link className="btn secondary" to="/players">Player directory</Link></div>
