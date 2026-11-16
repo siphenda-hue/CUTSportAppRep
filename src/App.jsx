@@ -401,6 +401,15 @@ function PublicCompetitionsDirectory() {
     <p className="muted">Explore Varsity Netball, Varsity Football, Varsity Cup and older seasons with recorded wins and standings.</p>
     {heritage.length?<div className="competition-directory-list">{heritage.map(card)}</div>:<Empty title="Heritage records are being prepared" body="Published historical competition records will appear here."/>}
    </Section>
+   <Section title={"International representation · "+internationalRecords.length}>
+    <p className="muted">Approved CUT athlete appearances for national teams are shown here. Only verified records linked to public athlete profiles are visible without signing in.</p>
+    {internationalRecords.length?<div className="competition-directory-list">{internationalRecords.map(r=><article className="competition-card competition-directory-card" key={r.id}>
+     <div className="competition-directory-card-head"><div><small className="eyebrow">{r.sports?.name||"CUT SPORT"}{r.season?" · "+r.season:""}</small><b>{r.player_profiles?.display_name||r.player_profiles?.full_name||r.player_name}</b></div><span className="competition-directory-status">{r.country}</span></div>
+     <p>{[r.national_team,r.event_name,r.opponent?"vs "+r.opponent:null,r.caps?r.caps+" cap(s)":null].filter(Boolean).join(" · ")||"International appearance"}</p>
+     <small>{r.appearance_date||"Date not recorded"}</small>{r.source_url&&/^https?:\/\//i.test(r.source_url)&&<a className="competition-source-link" href={r.source_url} target="_blank" rel="noreferrer">Verified source ↗</a>}
+     {r.player_profile_id&&<Link className="competition-directory-open" to={"/players/"+r.player_profile_id}>View athlete profile <ChevronRight size={15}/></Link>}
+    </article>)}</div>:<Empty title="International records are being verified" body="Approved national-team appearances will appear here once the source and public athlete profile have been verified."/>}
+   </Section>
    <Section title={"Other publicly available records · "+filtered.filter(c=>!recent.some(r=>r.id===c.id)&&!heritage.some(h=>h.id===c.id)).length}>
     {filtered.filter(c=>!recent.some(r=>r.id===c.id)&&!heritage.some(h=>h.id===c.id)).length?<div className="competition-directory-list">{filtered.filter(c=>!recent.some(r=>r.id===c.id)&&!heritage.some(h=>h.id===c.id)).map(card)}</div>:<p className="muted">No additional records match these filters.</p>}
    </Section>
