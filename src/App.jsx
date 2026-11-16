@@ -862,6 +862,20 @@ function PlayerProfilePage({user,roles=[]}) {
  let statisticRecords=0,squadSelections=0,internationalAppearances=0;
  const awardRecords=records.filter(row=>row.record_type==="player_award").length;
  const aggregateCompetitions=new Set(records.filter(r=>r.record_type==="competition_statistics"&&r.competition_id).map(r=>r.competition_id));
+ const metricPayloadKey=(row,payload)=>{
+  const stable=value=>{
+   if(Array.isArray(value))return value.map(stable);
+   if(value&&typeof value==="object")return Object.keys(value).sort().reduce((out,key)=>{out[key]=stable(value[key]);return out;},{});
+   return value;
+  };
+  return [row.record_type,row.competition_id||"",row.season||"",row.team_name||"",JSON.stringify(stable(payload||{}))].join("|");
+ };
+ const seenMetricPayloads=new Set(),seenSquadRecords=new Set(),seenInternationalRecords=new Set();
+ const isNewMetricPayload=(row,payload)=>{
+  const key=metricPayloadKey(row,payload);
+  if(seenMetricPayloads.has(key))return false;
+  seenMetricPayloads.add(key);return true;
+ };
  const addMetrics=(obj)=>{
   if(!obj||typeof obj!=="object"||Array.isArray(obj))return false;
   let found=false;
@@ -872,35 +886,39 @@ function PlayerProfilePage({user,roles=[]}) {
  };
  records.forEach(row=>{
   const d=row.details||{},stats=d.statistics&&typeof d.statistics==="object"?d.statistics:{};
-  if(row.record_type==="squad_appearance")squadSelections++;
+  if(row.record_type==="squad_appearance"&&!seenSquadRecords.has(row.record_id)){seenSquadRecords.add(row.record_id);squadSelections++;}
   if(row.record_type==="competition_statistics"){
+   const metricPayload={statistics:stats,total_goals:d.total_goals,field_goals:d.field_goals,penalty_corner_goals:d.penalty_corner_goals,penalty_stroke_goals:d.penalty_stroke_goals};
+   const uniquePayload=isNewMetricPayload(row,metricPayload);
    const hasNumeric=Object.values(stats).some(v=>typeof v==="number"&&Number.isFinite(v))||[d.total_goals,d.field_goals,d.penalty_corner_goals,d.penalty_stroke_goals].some(v=>typeof v==="number");
-   if(hasNumeric)statisticRecords++;
-   addMetrics(stats);
-   addMetrics({total_goals:d.total_goals,field_goals:d.field_goals,penalty_corner_goals:d.penalty_corner_goals,penalty_stroke_goals:d.penalty_stroke_goals});
+   if(uniquePayload&&hasNumeric)statisticRecords++;
+   if(uniquePayload){addMetrics(stats);addMetrics({total_goals:d.total_goals,field_goals:d.field_goals,penalty_corner_goals:d.penalty_corner_goals,penalty_stroke_goals:d.penalty_stroke_goals});}
    if(stats.match_date&&stats.match_opponent)appearances.add([row.competition_id,stats.match_date,stats.match_opponent].join("|"));
    (Array.isArray(stats.matches)?stats.matches:[]).forEach(m=>{if(m?.date&&m?.opponent)appearances.add([row.competition_id,m.date,m.opponent].join("|"));});
   }
   if(row.record_type==="athlete_statistics"){
    const metrics=d.metrics||{};
-   if(Object.values(metrics).some(v=>typeof v==="number"&&Number.isFinite(v)))statisticRecords++;
-   addMetrics(metrics);
+   const uniquePayload=isNewMetricPayload(row,metrics);
+   if(uniquePayload&&Object.values(metrics).some(v=>typeof v==="number"&&Number.isFinite(v)))statisticRecords++;
+   if(uniquePayload)addMetrics(metrics);
    if(d.fixture_id)appearances.add("fixture:"+d.fixture_id);
   }
   if(row.record_type==="international_appearance"){
-   internationalAppearances++;
+   if(!seenInternationalRecords.has(row.record_id)){seenInternationalRecords.add(row.record_id);internationalAppearances++;}
    appearances.add("international:"+row.record_id);
    const metrics=d.metrics||{};
-   if(Object.values(metrics).some(v=>typeof v==="number"&&Number.isFinite(v)))statisticRecords++;
-   addMetrics(metrics);
+   const uniquePayload=isNewMetricPayload(row,metrics);
+   if(uniquePayload&&Object.values(metrics).some(v=>typeof v==="number"&&Number.isFinite(v)))statisticRecords++;
+   if(uniquePayload)addMetrics(metrics);
   }
   if(row.record_type==="match_appearance"){
    appearances.add(d.fixture_id?"fixture:"+d.fixture_id:[row.competition_id,d.match_date||row.record_date,d.opponent||""].join("|"));
    const metrics=d.metrics||{};
-   if(Object.values(metrics).some(v=>typeof v==="number"&&Number.isFinite(v)))statisticRecords++;
+   const uniquePayload=isNewMetricPayload(row,metrics);
+   if(uniquePayload&&Object.values(metrics).some(v=>typeof v==="number"&&Number.isFinite(v)))statisticRecords++;
    // Competition-level totals take precedence where available, preventing double-counting
    // when individual match records are later added for the same competition.
-   if(!row.competition_id||!aggregateCompetitions.has(row.competition_id))addMetrics(metrics);
+   if(uniquePayload&&(!row.competition_id||!aggregateCompetitions.has(row.competition_id)))addMetrics(metrics);
   }
  });
  const competitions=new Set(records.map(x=>x.competition_id).filter(Boolean)).size;
@@ -910,11 +928,18 @@ function PlayerProfilePage({user,roles=[]}) {
   const d=row.details||{},stats=d.statistics&&typeof d.statistics==="object"?d.statistics:{};
   const key=[row.season||"Season not recorded",row.competition_name||"Competition",row.sport_name||"Sport"].join("|");
   const group=performanceGroups[key]||(performanceGroups[key]={season:row.season||"Season not recorded",competition:row.competition_name||"Competition",competitionId:row.competition_id||null,sport:row.sport_name||"Sport",team:row.team_name||"CUT",entries:0,metrics:{},rounds:[],partial:false});
-  group.entries++;
+  const payload={statistics:stats,total_goals:d.total_goals,field_goals:d.field_goals,penalty_corner_goals:d.penalty_corner_goals,penalty_stroke_goals:d.penalty_stroke_goals};
+  const normalizedPayload=JSON.stringify((value)=>{
+   const stable=v=>Array.isArray(v)?v.map(stable):v&&typeof v==="object"?Object.keys(v).sort().reduce((out,key)=>{out[key]=stable(v[key]);return out;},{}):v;
+   return stable(value);
+  })(payload);
+  const seenGroupPayloads=group.seenPayloads||(group.seenPayloads=new Set());
+  const uniqueGroupPayload=!seenGroupPayloads.has(normalizedPayload);
+  if(uniqueGroupPayload){seenGroupPayloads.add(normalizedPayload);group.entries++;}
   const placeholderGoals=stats.goal_total_zero_is_placeholder===true||stats.goal_scoring_data_status==="not_published_in_available_sources";
   if(stats.season_total_complete===false||placeholderGoals)group.partial=true;
   if(stats.award_round&&!group.rounds.includes(stats.award_round))group.rounds.push(stats.award_round);
-  Object.entries({...stats,total_goals:d.total_goals,field_goals:d.field_goals,penalty_corner_goals:d.penalty_corner_goals,penalty_stroke_goals:d.penalty_stroke_goals}).forEach(([metric,value])=>{
+  if(uniqueGroupPayload)Object.entries({...stats,total_goals:d.total_goals,field_goals:d.field_goals,penalty_corner_goals:d.penalty_corner_goals,penalty_stroke_goals:d.penalty_stroke_goals}).forEach(([metric,value])=>{
    if(metric==="player_of_match_awards"&&typeof value==="number"&&Number.isFinite(value)){
     group.metrics.player_of_match_awards=(group.metrics.player_of_match_awards||0)+value;
    }else if(additive.has(metric)&&typeof value==="number"&&Number.isFinite(value)&&!(placeholderGoals&&placeholderGoalMetrics.has(metric))){
