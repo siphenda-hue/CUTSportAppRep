@@ -1739,7 +1739,7 @@ function Profile({user,profile,roles}) {
    if(year!==null&&(!Number.isInteger(year)||year<1||year>12)){setReviewError("Year of study must be a whole number between 1 and 12.");return;}
    if(years!==null&&(!Number.isInteger(years)||years<0||years>100)){setReviewError("Years representing CUT must be a whole number from 0 to 100.");return;}
    if(number!==null&&(!Number.isInteger(number)||number<0||number>999)){setReviewError("Squad number must be a whole number from 0 to 999.");return;}
-   if(changes.photo_url&&!/^https?:\\/\\//i.test(changes.photo_url)){setReviewError("Photo URL must begin with http:// or https://.");return;}
+   if(changes.photo_url&&!/^https?:\/\//i.test(changes.photo_url)){setReviewError("Photo URL must begin with http:// or https://.");return;}
   }else if(type==="statistics"){
    if(!changes.metrics||typeof changes.metrics!=="object"||Array.isArray(changes.metrics)){setReviewError("Statistics metrics must be a JSON object.");return;}
   }else if(type==="achievement"){
