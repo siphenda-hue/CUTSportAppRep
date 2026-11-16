@@ -372,3 +372,21 @@ body{background:var(--cut-cream);color:var(--ink)}
 .player-history-type{width:max-content;padding:3px 7px;border-radius:999px;background:#edf3fc;color:#31577f;font-size:9px!important;font-weight:800;text-transform:uppercase;letter-spacing:.04em}
 .player-history-competition{display:inline-block;width:max-content;margin-top:4px;color:#174f8b;font-size:11px;font-weight:800;text-decoration:none}
 .player-performance-link:hover,.player-history-competition:hover{text-decoration:underline}
+
+
+/* Public player career timeline */
+.player-career-timeline{position:relative;display:grid;gap:0;margin:8px 0 4px}
+.player-career-timeline:before{content:"";position:absolute;left:7px;top:10px;bottom:12px;width:2px;background:linear-gradient(180deg,var(--cut-blue),#dbe5f2)}
+.player-timeline-item{position:relative;display:grid;grid-template-columns:16px minmax(0,1fr);gap:12px;padding:0 0 17px}
+.player-timeline-marker{position:relative;z-index:1;width:14px;height:14px;margin-top:3px;border:3px solid var(--cut-blue);border-radius:50%;background:var(--cut-cream);box-shadow:0 0 0 3px rgba(31,95,191,.09)}
+.player-timeline-content{min-width:0;padding:12px;border:1px solid #e2eaf4;border-radius:13px;background:#fff}
+.player-timeline-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.player-timeline-heading b{font-size:13px;color:var(--cut-deep-navy);text-transform:capitalize}
+.player-timeline-heading time{flex:none;color:#64748b;font-size:10px;font-variant-numeric:tabular-nums}
+.player-timeline-content>small{display:block;margin-top:5px;color:#64748b;font-size:10px;line-height:1.4}
+.player-timeline-content .player-timeline-competition{color:var(--cut-blue);font-weight:800}
+.player-timeline-content p{margin:8px 0 0;color:#52627a;font-size:11px;line-height:1.5;overflow-wrap:anywhere}
+.player-timeline-links{display:flex;gap:12px;flex-wrap:wrap;margin-top:8px}
+.player-timeline-links a{color:var(--cut-blue);font-size:10px;font-weight:800;text-decoration:none}
+.player-timeline-links a:hover{text-decoration:underline}
+@media(max-width:420px){.player-timeline-heading{flex-direction:column;gap:4px}}
