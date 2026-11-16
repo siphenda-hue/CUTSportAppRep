@@ -348,14 +348,17 @@ function PublicCompetitionsDirectory() {
  const [competitions,setCompetitions]=useState([]);
  const [busy,setBusy]=useState(true),[error,setError]=useState("");
  const [search,setSearch]=useState(""),[sportFilter,setSportFilter]=useState("all"),[seasonFilter,setSeasonFilter]=useState("all");
+ const currentYear=new Date().getFullYear(),previousYear=currentYear-1;
  useEffect(()=>{
   let active=true;
   async function load(){
    setBusy(true);setError("");
    if(!supabase){setError("Competition information is temporarily unavailable.");setBusy(false);return;}
-   const {data,error:queryError}=await supabase.from("competitions").select("id,name,season,status,start_date,end_date,venue,description,sport_id,sports(name,slug)").order("start_date",{ascending:false,nullsFirst:false}).order("name");
+   const {data,error:queryError}=await supabase.from("competitions")
+    .select("id,name,season,status,start_date,end_date,venue,description,sport_id,sports(name,slug),competition_standings(won,points,position)")
+    .order("start_date",{ascending:false,nullsFirst:false}).order("name");
    if(!active)return;
-   if(queryError)setError("The competition directory could not be loaded. Please try again later.");
+   if(queryError)setError("The season archive could not be loaded. Please try again later.");
    setCompetitions(data||[]);setBusy(false);
   }
   load();return()=>{active=false;};
@@ -364,25 +367,46 @@ function PublicCompetitionsDirectory() {
  const seasons=[...new Set(competitions.map(c=>c.season).filter(Boolean))].sort((a,b)=>String(b).localeCompare(String(a),undefined,{numeric:true}));
  const term=search.trim().toLowerCase();
  const filtered=competitions.filter(c=>(sportFilter==="all"||c.sport_id===sportFilter)&&(seasonFilter==="all"||c.season===seasonFilter)&&(!term||[c.name,c.season,c.status,c.sports?.name,c.venue].some(v=>String(v||"").toLowerCase().includes(term))));
+ const yearOf=c=>{const match=String(c.season||"").match(/^(\\d{4})/);return match?Number(match[1]):(c.start_date?new Date(c.start_date).getFullYear():null);};
+ const isHeritage=c=>/varsity\\s*(netball|football|cup)/i.test(c.name||"");
+ const hasRecordedWin=c=>(c.competition_standings||[]).some(row=>Number(row.won||0)>0);
+ const recent=filtered.filter(c=>{const year=yearOf(c);return year===currentYear||year===previousYear;}).sort((a,b)=>(yearOf(b)||0)-(yearOf(a)||0)||String(a.name).localeCompare(String(b.name)));
+ const heritage=filtered.filter(c=>isHeritage(c)||hasRecordedWin(c)).sort((a,b)=>(yearOf(b)||0)-(yearOf(a)||0)||String(a.name).localeCompare(String(b.name)));
+ const heritageOnly=heritage.filter(c=>!recent.some(r=>r.id===c.id));
  const date=value=>value?new Intl.DateTimeFormat("en-ZA",{day:"numeric",month:"short",year:"numeric",timeZone:"Africa/Johannesburg"}).format(new Date(value)):"Date TBC";
- return <><Header title="Competitions" back/><main className="page">
-  <div className="page-intro"><span className="eyebrow">THE BLUES · COMPETITION CENTRE</span><h1>Every competition. One place.</h1><p>Explore CUT Sport competitions across codes and seasons. Open a competition for its published teams, squads, fixtures, results and standings.</p></div>
+ const card=c=><article className="competition-card competition-directory-card" key={c.id}>
+  <div className="competition-directory-card-head"><div><small className="eyebrow">{c.sports?.name||"CUT SPORT"}{c.season?" · "+c.season:""}</small><b><Link to={"/competitions/"+c.id}>{c.name}</Link></b></div><span className="competition-directory-status">{c.status||"Listed"}</span></div>
+  <p>{c.description||"Explore published competition teams, match results, statistics and standings."}</p>
+  <small>{[c.start_date&&date(c.start_date),c.end_date&&date(c.end_date),c.venue].filter(Boolean).join(" – ")||"Dates and venue to be confirmed"}</small>
+  {(isHeritage(c)||hasRecordedWin(c))&&<small className="competition-heritage-tag">{isHeritage(c)?"Varsity heritage": "Recorded season wins"}</small>}
+  <Link className="competition-directory-open" to={"/competitions/"+c.id}>View season & records <ChevronRight size={15}/></Link>
+ </article>;
+ return <><Header title="Seasons & heritage" back/><main className="page">
+  <div className="page-intro"><span className="eyebrow">THE BLUES · SEASON ARCHIVE</span><h1>Our seasons. Our history.</h1><p>Browse the current season and previous year, then explore CUT Sport heritage records, international achievements, season wins and Varsity Netball, Varsity Football and Varsity Cup history. Public browsing is open to everyone — no sign-in required.</p></div>
   <div className="competition-directory-tools">
-   <label className="competition-search-label" htmlFor="competition-search">Search competitions</label>
-   <input id="competition-search" className="competition-directory-input" type="search" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search by competition, sport or venue"/>
+   <label className="competition-search-label" htmlFor="competition-search">Search seasons & competitions</label>
+   <input id="competition-search" className="competition-directory-input" type="search" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search by competition, sport, season or venue"/>
    <div className="competition-filter-grid">
     <label>Sport<select value={sportFilter} onChange={e=>setSportFilter(e.target.value)}><option value="all">All sports</option>{sports.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select></label>
-    <label>Season<select value={seasonFilter} onChange={e=>setSeasonFilter(e.target.value)}><option value="all">All seasons</option>{seasons.map(s=><option key={s} value={s}>{s}</option>)}</select></label>
+    <label>Season<select value={seasonFilter} onChange={e=>setSeasonFilter(e.target.value)}><option value="all">All visible seasons</option>{seasons.map(s=><option key={s} value={s}>{s}</option>)}</select></label>
    </div>
-   <div className="competition-directory-summary"><b>{filtered.length}</b> {filtered.length===1?"competition":"competitions"}{search||sportFilter!=="all"||seasonFilter!=="all"?" found":" listed"}</div>
+   <div className="competition-directory-summary"><b>{filtered.length}</b> {filtered.length===1?"record":"records"} available to public visitors</div>
   </div>
-  {busy?<p className="muted">Loading published competitions…</p>:error?<div><p className="muted">{error}</p><button className="btn secondary" type="button" onClick={()=>window.location.reload()}>Reload directory</button></div>:filtered.length?<div className="competition-directory-list">{filtered.map(c=><article className="competition-card competition-directory-card" key={c.id}>
-   <div className="competition-directory-card-head"><div><small className="eyebrow">{c.sports?.name||"CUT SPORT"}{c.season?" · "+c.season:""}</small><b><Link to={"/competitions/"+c.id}>{c.name}</Link></b></div><span className="competition-directory-status">{c.status||"Listed"}</span></div>
-   <p>{c.description||"View published competition information, participating CUT teams and match records."}</p>
-   <small>{[c.start_date&&date(c.start_date),c.end_date&&date(c.end_date),c.venue].filter(Boolean).join(" – ")||"Dates and venue to be confirmed"}</small>
-   <Link className="competition-directory-open" to={"/competitions/"+c.id}>View competition <ChevronRight size={15}/></Link>
-  </article>)}</div>:<Empty title={competitions.length?"No matching competitions":"No competitions published yet"} body={competitions.length?"Try changing the search term or filters to see more competitions.":"Published CUT Sport competitions will appear here when available."}/>}
+  {busy?<p className="muted">Loading current seasons and heritage archive…</p>:error?<div><p className="muted">{error}</p><button className="btn secondary" type="button" onClick={()=>window.location.reload()}>Reload archive</button></div>:<>
+   <Section title={"Current & previous seasons · "+recent.length}>
+    <p className="muted">Showing {currentYear} and {previousYear} season records.</p>
+    {recent.length?<div className="competition-directory-list">{recent.map(card)}</div>:<Empty title="No recent seasons published" body="Current and previous-year competition records will appear here when published by CUT Sport."/>}
+   </Section>
+   <Section title={"Heritage & historic season wins · "+heritage.length}>
+    <p className="muted">Explore Varsity Netball, Varsity Football, Varsity Cup and older seasons with recorded wins and standings.</p>
+    {heritage.length?<div className="competition-directory-list">{heritage.map(card)}</div>:<Empty title="Heritage records are being prepared" body="Published historical competition records will appear here."/>}
+   </Section>
+   <Section title={"Other publicly available records · "+filtered.filter(c=>!recent.some(r=>r.id===c.id)&&!heritage.some(h=>h.id===c.id)).length}>
+    {filtered.filter(c=>!recent.some(r=>r.id===c.id)&&!heritage.some(h=>h.id===c.id)).length?<div className="competition-directory-list">{filtered.filter(c=>!recent.some(r=>r.id===c.id)&&!heritage.some(h=>h.id===c.id)).map(card)}</div>:<p className="muted">No additional records match these filters.</p>}
+   </Section>
+  </>}
   <div className="review-actions"><Link className="btn secondary" to="/sport">Explore sport codes</Link></div>
+  <small className="muted">Only published competition data and approved public records are displayed. Private athlete information and unapproved submissions remain protected.</small>
  </main></>;
 }
 
