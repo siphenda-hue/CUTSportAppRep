@@ -364,6 +364,7 @@ function PublicCompetitionsDirectory() {
    if(queryError||awardError||standingsError)setError("Some archive information could not be loaded. Available published records are shown below.");
    const totals=new Map();
    (standingsData||[]).forEach(row=>{
+    if(!/(\\bCUT\\b|Central University of Technology|Central University of FS|Ixias)/i.test(String(row.team_name||"")))return;
     const sport=row.competitions?.sports?.name||"Sport not specified";
     const key=sport+"::"+String(row.team_name||"").trim();
     if(!row.team_name)return;
@@ -417,8 +418,8 @@ function PublicCompetitionsDirectory() {
     <p className="muted">Explore Varsity Netball, Varsity Football, Varsity Cup and older seasons with published standings. Recorded wins are match wins, not automatically competition titles.</p>
     {heritageOnly.length?<div className="competition-directory-list">{heritageOnly.map(card)}</div>:<Empty title="Heritage records are being prepared" body="Older Varsity seasons and historic seasons with recorded wins will appear here."/>}
    </Section>
-   <Section title={"All-time recorded match wins · "+teamWinTotals.length}>
-    <p className="muted">Team wins are summed from published competition standings across the seasons available in this public archive. These are match wins, not confirmed tournament titles or championship victories.</p>
+   <Section title={"All-time CUT team match wins · "+teamWinTotals.length}>
+    <p className="muted">CUT team totals include published team names containing CUT, Central University or Ixias identifiers. Totals are summed from visible competition standings; these are match wins, not confirmed tournament titles. Historical aliases still require institutional verification.</p>
     {teamWinTotals.length?<div className="competition-directory-list">{teamWinTotals.slice(0,30).map((item,index)=><article className="competition-card competition-directory-card" key={item.sport+"-"+item.team_name}>
      <div className="competition-directory-card-head"><div><small className="eyebrow">{item.sport}</small><b>{index+1}. {item.team_name}</b></div><span className="competition-directory-status">{item.wins} wins</span></div>
      <small>{item.competitions} competition records · {item.seasons} seasons represented</small>
