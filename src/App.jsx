@@ -4339,6 +4339,39 @@ function AdminPerformance({roles}) {
  const seasonOptions=[...new Set(records.map(r=>r.season).filter(Boolean))].sort((a,b)=>b.localeCompare(a));
  const teamOptions=[...new Set(records.map(r=>r.team_name).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
  const filtered=records.filter(r=>(!sportId||r.sport_name===sportId)&&(!season||r.season===season)&&(!teamName||r.team_name===teamName));
+ const normaliseReviewValue=value=>String(value??"").trim().toLocaleLowerCase().replace(/\\s+/g," ");
+ const qualityIssues=filtered.flatMap(r=>{
+  const issues=[];
+  if(!r.player_profile_id)issues.push("Missing canonical player profile");
+  if(!r.record_date)issues.push("Missing record date");
+  if(["squad_appearance","competition_statistics","athlete_statistics","athlete_achievement","match_appearance","international_appearance","player_award"].includes(r.record_type)&&!r.season)issues.push("Season not recorded");
+  if(["squad_appearance","competition_statistics"].includes(r.record_type)&&!r.competition_id&&!r.competition_name)issues.push("Competition not linked");
+  if(["squad_appearance","competition_statistics","athlete_statistics","athlete_achievement","match_appearance"].includes(r.record_type)&&!r.team_name)issues.push("Team not recorded");
+  if(["competition_statistics","athlete_statistics","match_appearance","international_appearance"].includes(r.record_type)){
+   const metrics=r.details?.statistics&&typeof r.details.statistics==="object"?r.details.statistics:r.details?.metrics;
+   if(!metrics||typeof metrics!=="object"||!Object.keys(metrics).length)issues.push("No metric values recorded");
+  }
+  if(r.record_type==="match_appearance"&&!r.details?.opponent)issues.push("Opponent not recorded");
+  return issues.length?[{record:r,issues}]:[];
+ });
+ const duplicateBuckets=new Map();
+ filtered.forEach(r=>{
+  const profile=r.player_profile_id, type=r.record_type;
+  if(!profile||!["squad_appearance","competition_statistics","athlete_statistics","match_appearance","athlete_achievement","player_award"].includes(type))return;
+  const event=type==="match_appearance"
+   ?[r.details?.fixture_id||"",r.record_date||r.details?.match_date||"",normaliseReviewValue(r.details?.opponent)]
+   :type==="athlete_statistics"
+    ?[r.details?.fixture_id||"",r.record_date||"",normaliseReviewValue(r.record_label)]
+    :type==="athlete_achievement"||type==="player_award"
+     ?[r.record_date||"",normaliseReviewValue(r.record_label)]
+     :[r.competition_id||normaliseReviewValue(r.competition_name),normaliseReviewValue(r.season),normaliseReviewValue(r.team_name),normaliseReviewValue(r.record_label)];
+  if(!event.some(Boolean))return;
+  const key=[profile,type,...event].join("::");
+  if(!duplicateBuckets.has(key))duplicateBuckets.set(key,[]);
+  duplicateBuckets.get(key).push(r);
+ });
+ const possibleDuplicates=[...duplicateBuckets.values()].filter(group=>group.length>1).flatMap(group=>group.slice(1).map(record=>({record,groupSize:group.length,original:group[0]})));
+ const reviewFlags=qualityIssues.length+possibleDuplicates.length;
  const squadRows=filtered.filter(r=>r.record_type==="squad_appearance");
  const matchRows=filtered.filter(r=>r.record_type==="match_appearance");
  const competitionStats=filtered.filter(r=>r.record_type==="competition_statistics");
@@ -4389,6 +4422,15 @@ function AdminPerformance({roles}) {
    <div><b>{competitionStats.length}</b><small>Published competition stat records</small></div>
    <div><b>{metricKeys.length}</b><small>Approved match metrics</small></div>
   </div>
+  <Section title="Data quality review · ${reviewFlags} flags">
+   <p className="muted">Review indicators only. These checks do not change publication status, suppress records or alter performance totals. Similar records may be legitimate; confirm the source before taking action.</p>
+   {qualityIssues.length||possibleDuplicates.length?<div className="metric-trend">
+    {qualityIssues.slice(0,40).map((item,index)=><article className="performance-record" key={"quality-"+item.record.record_id}><div className="performance-record-head"><div><b>{item.record.record_type.replaceAll("_"," ")} · Incomplete details</b><small>{item.record.sport_name||"Sport"} · {item.record.team_name||"Team not recorded"} · {item.record.season||"Season not recorded"}</small></div><span className="status-pill">Check source</span></div><p>{item.issues.join(" · ")}</p><a href={"/players/"+item.record.player_profile_id}>Open player profile</a></article>)}
+    {possibleDuplicates.slice(0,40).map((item,index)=><article className="performance-record" key={"duplicate-"+item.record.record_id}><div className="performance-record-head"><div><b>Possible duplicate · {item.record.record_type.replaceAll("_"," ")}</b><small>{item.record.sport_name||"Sport"} · {item.record.team_name||"Team not recorded"} · {item.record.season||"Season not recorded"}</small></div><span className="status-pill">{item.groupSize} matching rows</span></div><p>{item.record.record_label||"Record"} · {dateLabel(item.record.record_date)} · Same player and event/competition identity as another record in this filtered scope.</p><a href={"/players/"+item.record.player_profile_id}>Compare player history</a></article>)}
+    {(qualityIssues.length>40||possibleDuplicates.length>40)&&<p className="muted">Showing the first 40 incomplete records and first 40 possible duplicate candidates. Refine the filters to narrow the review.</p>}
+   </div>:<Empty title="No review flags in this filtered set" body="The available records passed these basic completeness and exact-identity duplicate checks. This is not a guarantee that source data is fully accurate."/>}
+   <small className="muted">{qualityIssues.length} incomplete-record flags · {possibleDuplicates.length} possible duplicate candidates · {filtered.length} records checked</small>
+  </Section>
   <Section title="CUT team representation">{teamRows.length?<div className="metric-trend">{teamRows.map(t=><div className="metric-trend-row" key={t.sport+"::"+t.team}><span>{t.team}<small>{t.sport} · {t.complete?"Source squad marked complete":"Source squad completeness not confirmed"}</small></span><div className="metric-bar"><i style={{width:Math.max(3,t.players/Math.max(1,...teamRows.map(x=>x.players))*100)+"%"}}/></div><b>{t.players}</b></div>)}</div>:<Empty title={busy?"Loading CUT squad records":"No CUT squad records in this scope"} body="Public canonical player profiles linked to CUT squad records will appear here. Unverified or non-CUT teams are not included."/>}</Section>
   <Section title="Season-by-season squad comparison">{seasonTeamRows.length?<div className="metric-trend">{seasonTeamRows.map(t=><div className="performance-record" key={t.sport+"::"+t.team+"::"+t.season}><div className="performance-record-head"><div><b>{t.team}</b><small>{t.sport} · Season {t.season}</small></div><span className="status-pill">{t.players} profiles</span></div><div className="performance-metric-chips"><span><b>{t.positioned}</b> with recorded positions</span><span><b>{t.unassigned}</b> without position details</span><span><b>{t.positions.length}</b> distinct positions listed</span></div><small className="muted">{t.complete?"Source marks this squad list complete":"Source completeness not confirmed"}{t.positions.length?" · "+t.positions.join(", "):" · No position labels recorded"}</small></div>)}</div>:<Empty title="No season comparison available" body="Season-specific CUT squad records will appear here when source data includes a season label."/>}</Section>
   <Section title="Recruitment planning signals">{seasonTeamRows.length?<><p className="muted">These are data-coverage indicators for coaches and recruitment staff—not proof of vacancies or squad shortages. No approved target squad sizes or position requirements are currently linked to this dashboard.</p><div className="metric-trend">{seasonTeamRows.map(t=><div className="metric-trend-row" key={"planning-"+t.sport+"::"+t.team+"::"+t.season}><span>{t.team}<small>{t.sport} · {t.season} · {t.positions.length?t.positions.length+" positions recorded":"Position coverage not recorded"}</small></span><div className="metric-bar"><i style={{width:(t.players?Math.round(t.positioned/t.players*100):0)+"%"}}/></div><b>{t.players?Math.round(t.positioned/t.players*100):0}%</b></div>)}</div><p className="muted">A low or missing position-coverage figure means staff may need to verify profile details. It must not be interpreted as a need to recruit more athletes.</p></>:<Empty title="No recruitment planning evidence yet" body="Add verified squad records and role/position details before using this section for recruitment planning."/>}</Section>
