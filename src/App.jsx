@@ -4339,7 +4339,7 @@ function AdminPerformance({roles}) {
  const seasonOptions=[...new Set(records.map(r=>r.season).filter(Boolean))].sort((a,b)=>b.localeCompare(a));
  const teamOptions=[...new Set(records.map(r=>r.team_name).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
  const filtered=records.filter(r=>(!sportId||r.sport_name===sportId)&&(!season||r.season===season)&&(!teamName||r.team_name===teamName));
- const normaliseReviewValue=value=>String(value??"").trim().toLocaleLowerCase().replace(/\\s+/g," ");
+ const normaliseReviewValue=value=>String(value??"").trim().toLocaleLowerCase().replace(/\s+/g," ");
  const qualityIssues=filtered.flatMap(r=>{
   const issues=[];
   if(!r.player_profile_id)issues.push("Missing canonical player profile");
@@ -4422,11 +4422,11 @@ function AdminPerformance({roles}) {
    <div><b>{competitionStats.length}</b><small>Published competition stat records</small></div>
    <div><b>{metricKeys.length}</b><small>Approved match metrics</small></div>
   </div>
-  <Section title="Data quality review · ${reviewFlags} flags">
+  <Section title={"Data quality review · "+reviewFlags+" flags"}>
    <p className="muted">Review indicators only. These checks do not change publication status, suppress records or alter performance totals. Similar records may be legitimate; confirm the source before taking action.</p>
    {qualityIssues.length||possibleDuplicates.length?<div className="metric-trend">
-    {qualityIssues.slice(0,40).map((item,index)=><article className="performance-record" key={"quality-"+item.record.record_id}><div className="performance-record-head"><div><b>{item.record.record_type.replaceAll("_"," ")} · Incomplete details</b><small>{item.record.sport_name||"Sport"} · {item.record.team_name||"Team not recorded"} · {item.record.season||"Season not recorded"}</small></div><span className="status-pill">Check source</span></div><p>{item.issues.join(" · ")}</p><a href={"/players/"+item.record.player_profile_id}>Open player profile</a></article>)}
-    {possibleDuplicates.slice(0,40).map((item,index)=><article className="performance-record" key={"duplicate-"+item.record.record_id}><div className="performance-record-head"><div><b>Possible duplicate · {item.record.record_type.replaceAll("_"," ")}</b><small>{item.record.sport_name||"Sport"} · {item.record.team_name||"Team not recorded"} · {item.record.season||"Season not recorded"}</small></div><span className="status-pill">{item.groupSize} matching rows</span></div><p>{item.record.record_label||"Record"} · {dateLabel(item.record.record_date)} · Same player and event/competition identity as another record in this filtered scope.</p><a href={"/players/"+item.record.player_profile_id}>Compare player history</a></article>)}
+    {qualityIssues.slice(0,40).map((item,index)=><article className="performance-record" key={"quality-"+item.record.record_id}><div className="performance-record-head"><div><b>{item.record.record_type.replaceAll("_"," ")} · Incomplete details</b><small>{item.record.sport_name||"Sport"} · {item.record.team_name||"Team not recorded"} · {item.record.season||"Season not recorded"}</small></div><span className="status-pill">Check source</span></div><p>{item.issues.join(" · ")}</p>{item.record.player_profile_id&&<a href={"/players/"+item.record.player_profile_id}>Open player profile</a>}</article>)}
+    {possibleDuplicates.slice(0,40).map((item,index)=><article className="performance-record" key={"duplicate-"+item.record.record_id}><div className="performance-record-head"><div><b>Possible duplicate · {item.record.record_type.replaceAll("_"," ")}</b><small>{item.record.sport_name||"Sport"} · {item.record.team_name||"Team not recorded"} · {item.record.season||"Season not recorded"}</small></div><span className="status-pill">{item.groupSize} matching rows</span></div><p>{item.record.record_label||"Record"} · {dateLabel(item.record.record_date)} · Same player and event/competition identity as another record in this filtered scope.</p>{item.record.player_profile_id&&<a href={"/players/"+item.record.player_profile_id}>Compare player history</a>}</article>)}
     {(qualityIssues.length>40||possibleDuplicates.length>40)&&<p className="muted">Showing the first 40 incomplete records and first 40 possible duplicate candidates. Refine the filters to narrow the review.</p>}
    </div>:<Empty title="No review flags in this filtered set" body="The available records passed these basic completeness and exact-identity duplicate checks. This is not a guarantee that source data is fully accurate."/>}
    <small className="muted">{qualityIssues.length} incomplete-record flags · {possibleDuplicates.length} possible duplicate candidates · {filtered.length} records checked</small>
