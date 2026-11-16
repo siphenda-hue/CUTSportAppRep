@@ -2,7 +2,7 @@
 
 **Status:** Research inventory only; no athlete appearance rows have been inserted or approved.  
 **Purpose:** Identify CUT students and alumni with evidence of representing a country or national/university representative side at international competitions.  
-**Last reviewed:** 16 November 2026.
+**Last reviewed:** 16 November 2026. The user has confirmed that Karla Victor, Keletso Gontho, Jade Muller, Thabang Masihleho and Karabo Morapeli are all CUT-registered students; retain this institutional confirmation when curating their records.
 
 ## Data audit
 
@@ -20,8 +20,8 @@ The international-appearances table supports a player profile link, sport, repre
 - CUT's Sporting Legends page identifies Karla Victor under Netball and says she was selected as a Spar Baby Protea for the 2025 Netball World Youth Cup.
 - SABC Sport (8 September 2025) reports that she was named in the final 12-player South African U21 squad for the Netball World Youth Cup in Gibraltar, scheduled for 19–28 September 2025.
 - SABC Sport (2 November 2025) confirms her World Youth Cup debut and says the Baby Proteas reached the semi-finals.
-- **CUT affiliation caveat:** the 8 September 2025 SABC preview says she represented the University of Cape Town in Varsity Netball at that time, while CUT's Sporting Legends page later lists her as CUT emerging talent and SABC reported her as CUT's 2025 Sportswoman of the Year. Confirm the date she enrolled/represented CUT before categorising the 2025 World Cup as an appearance made *while a CUT student*. The national-team appearance itself is strongly evidenced.
-- Suggested record status: research-confirmed national appearance; CUT-at-time affiliation needs confirmation.
+- CUT registration is confirmed by the user. The 2025 World Cup appearance is independently supported by SABC Sport and CUT's Sporting Legends page. Preserve the distinction between her South African U21 World Cup appearance and Varsity Netball representation for another institution in that season; those are separate records.
+- Suggested record status: confirmed CUT-registered student and South African U21 international appearance.
 
 Sources:
 - https://www.cut.ac.za/sporting-legends
@@ -58,8 +58,8 @@ Sources:
 - CUT's Sporting Legends page says Karabo represented South Africa at the 2024 Paralympic Games in Paris, 28 August–8 September 2024.
 - CUT's 2024 send-off article identifies him as a Boccia athlete and records a special recognition for his Paralympics 2024 participation.
 - CUT's 2025 Sports Awards coverage refers to his national and international podium finishes.
-- **Affiliation caveat:** the sources confirm CUT recognition and representation, but a student-registration record or explicit CUT student description should be checked before labelling him a student rather than a CUT-linked athlete.
-- Suggested record status: international participation evidenced; CUT student status to verify.
+- CUT registration is confirmed by the user. CUT's 2023 article independently identifies Karabo as a final-year Public Management student at Welkom Campus and confirms he represented CUT and South Africa at the 2023 World Boccia Africa Regional Championships in Cairo, then qualified for the Paris 2024 Paralympic pathway. Record the 2023 Africa Regional Championships separately from the 2024 Paralympic Games; qualification is not itself proof of a Paralympic match appearance.
+- Suggested record status: confirmed CUT student and international Boccia representative; verify the exact Paris 2024 event participation/results before recording a Paralympic appearance.
 
 Sources:
 - https://www.cut.ac.za/sporting-legends
@@ -71,10 +71,10 @@ Sources:
 
 ### Keletso Gontho — Netball — Botswana
 - The Gazette (24 July 2024) profiles Gontho as a Botswana international netball player and student-athlete. It records participation in the 2018 AUSC Region 5 Games, CUCSA Games, selection to Botswana's senior national team after the 2018 CUCSA Games, and selection in Botswana's final 12 for the Nations Cup in Singapore in December 2022.
-- The same profile says she was studying at Botswana Accountancy College (BAC) at the time, so these earlier national-team events must not be presented as CUT student achievements without evidence she was already enrolled at CUT.
+- CUT registration is confirmed by the user. The Gazette's profile still places some early Botswana milestones in a period when she was studying at Botswana Accountancy College (BAC); retain the event dates and institution timeline separately rather than imply every Botswana cap occurred during CUT enrolment.
 - The article also identifies playing in the Singapore Super League in 2024 as a memorable achievement; this is overseas club-league participation, not automatically a Botswana national-team cap.
 - 2026 Varsity Netball coverage lists Keletso in the CUT squad, and 2026 Netball South Africa coverage explicitly calls her a Botswana international. This supports a current CUT sporting affiliation alongside a separate Botswana international career.
-- Suggested record status: retain her Botswana international history in her CUT player profile, but mark the event dates as pre-CUT/affiliation-to-verify. Do not attribute 2018 or 2022 national-team appearances to CUT without registration evidence.
+- Suggested record status: confirmed CUT-registered student and Botswana international; preserve her Botswana national-team history as distinct dated appearances, with the BAC/CUT study timeline noted where known.
 
 Sources:
 - https://thegazette.news/sport/from-grade-3-to-national-glory-gonthos-rise-in-botswana-netball
@@ -107,6 +107,55 @@ CUT's official 2024 send-off article confirms CUT representatives/officials conn
 
 Source:
 - https://www.cut.ac.za/news/cut-athletes-cucsa-ussa-game-contenders-send-off-ceremony-held
+
+
+## Focused investigation: 2015 Gwangju FISU Summer Universiade
+
+### Confirmed CUT representative
+
+**Thabang Ambition Masihleho — Athletics — South Africa — 28th Summer Universiade, Gwangju, South Korea (3–14 July 2015)**
+
+- CUT's 29 July 2015 news report explicitly identifies Masihleho as a Marketing student at Welkom Campus and says he represented South Africa at Gwangju after qualifying at the USSA Track & Field Championships in Stellenbosch in April 2015.
+- CUT's December 2015 *Gratia* publication independently identifies him as a National Diploma Marketing student at Welkom Campus and confirms his participation.
+- Event result: men's half-marathon on 12 July 2015; eighth place individually in 1:07:11.
+- Team result: South Africa won bronze in the men's half-marathon team competition. This is a **team bronze**, not an individual bronze. CUT's report and the University of Pretoria/TuksSport report both confirm the team medal; the official athletics results PDF confirms Masihleho's individual time and placing.
+- The name appears with spelling variants in sources: Masihleho, Masihlelo and Mashilelo. Treat these as source spelling variants for the same athlete only when cross-referencing the event, and preserve the canonical CUT profile name **Thabang Ambition Masihleho**.
+- Suggested register entries: one international competition appearance for the men's half-marathon; a separate team-medal achievement linked to that appearance. Do not create five separate personal medals for all team members.
+
+Sources:
+- CUT news, 29 July 2015: https://www.cut.ac.za/news/athlete-brings-bronze-home-from-world-univers
+- CUT *Gratia* December 2015: https://www.cut.ac.za/wp-content/uploads/2013/04/Gratia-December-2015.pdf
+- FISU, 3 July 2015, confirming Team South Africa's contingent: https://www.fisu.net/2015/07/03/114-strong-south-african-team-heading-to-gwangju/
+- Official athletics results PDF: https://online.atletika.cz/upload/gwangju%208-12.7.2015.pdf
+- University of Pretoria/TuksSport, 12 July 2015: https://www.up.ac.za/tukssport/news/post_2115197-team-sa-end-student-games-with-five-medals
+
+### South African 2015 FISU delegation — cross-reference scope
+
+FISU's 3 July 2015 report states that South Africa sent **114 athletes** across seven sports:
+- Athletics: 42
+- Men's and women's football combined: 39
+- Swimming: 19
+- Rowing: 9
+- Golf: 3
+- Gymnastics: 1
+- Shooting: 1
+
+The official FISU article establishes the delegation size and sports, but it does not publish a complete athlete-by-athlete list or university affiliations. FISU's January 2015 team-selection article links a team-sport selection document, but that page is not currently retrievable through the research source. The official swimming entry-list/results PDF is available and identifies South African swimmers, but does not identify their universities.
+
+### Other South African athletes in the 2015 results — not yet confirmed as CUT students
+
+The following names appear in 2015 event reports/results and are **not** being added as CUT representatives unless a separate CUT enrolment or institutional source is found:
+- Men's half-marathon South Africa team: Thabang Masihleho, Sibabalwe Mzazi, Marianio Eesou, Zolani Ngqaqa and Goitsemodimo Bothobutle. CUT's report specifically identifies Thabang; no independent CUT student link has yet been established for the other four.
+- The wider athletics medal report names Rynardt van Rensburg (men's 800m bronze), Roelf Pienaar (men's long jump bronze), and the women's 4x400m team members Anneri Ebersohn, Arlene Gowar, Anuscha Nice and Justine Palframan (sixth place). Their participation is not evidence of CUT enrolment.
+- The 2015 South African swimming entry list names Jessica Ashley-Cooper, Marne Erasmus, Caitlin Kat, Kirsty McLauchlan, Franko Jonker, Tara Nicholas and Kelly Gunnell among others. No CUT affiliation is established by the entry list itself.
+- The men's football team report names Jeremiah Nkwana as a goalscorer; the report identifies him in a University of Pretoria context, not CUT.
+- The FISU delegation included rowing, golf, gymnastics and shooting competitors. A university-by-university roster is still required to determine whether CUT students competed in those sports.
+
+### 2015 investigation conclusion
+
+At this stage, **Thabang Ambition Masihleho is the only 2015 Gwangju FISU athlete directly confirmed in the CUT institutional sources reviewed**. This is not proof that he was the only CUT student in the 114-person South African delegation. A complete determination requires the full Team South Africa roster and a cross-check against CUT's 2015 student registrations, including Bloemfontein and Welkom campuses.
+
+Do not create international appearance records for other 2015 South African competitors based on names alone. Continue searching CUT's 2015 annual reports, student publications, sport department archives and the full USSA/FISU roster before closing the audit.
 
 ## Rules for future records
 
