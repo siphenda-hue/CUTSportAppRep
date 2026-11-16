@@ -606,8 +606,30 @@ function PublicTeamProfile() {
    <div style={{padding:22}}><span className="eyebrow">{team.sports?.name||"CUT Sport"}{team.category?" · "+team.category:""}</span><h1 style={{margin:"8px 0"}}>{team.name}</h1>{team.season&&<p className="muted">Season: {team.season}</p>}{team.coach_name&&<p><b>Head coach:</b> {team.coach_name}</p>}<Link className="btn secondary" to={team.sports?.slug?"/sport/"+team.sports.slug:"/sport"}>Explore sport hub <ChevronRight size={15}/></Link></div>
   </section>
   {error&&<p className="muted">{error}</p>}
-  <Section title={"Technical staff · "+staff.length}>{staff.length?<div className="team-grid">{staff.map(person=><Link className="team-card" to={"/staff/"+person.id} key={person.id}>{staffPhoto(person)&&<img src={staffPhoto(person)} alt={person.display_name}/>}<div><b>{person.display_name}</b><small>{person.role_title}</small>{person.bio&&<p className="muted">{person.bio}</p>}</div></Link>)}</div>:<Empty title="Staff profiles coming soon" body="Published coaches and technical staff assigned to this team will appear here."/></Section>
-  <Section title={"Public player squad · "+players.length}>{players.length?<div className="team-grid">{players.map(player=><Link className="team-card" to={player.player_profile_id?"/players/"+player.player_profile_id:"/players"} key={player.id}>{player.photo_url&&<img src={player.photo_url} alt={player.preferred_name||player.full_name}/>}<div><b>{player.squad_number!=null?"#"+player.squad_number+" · ":""}{player.preferred_name||player.full_name}</b><small>{player.position||"Squad member"}</small><small>{player.player_profile_id?"View player profile":"Browse player archive"} <ChevronRight size={13}/></small></div></Link>)}</div>:<Empty title="Public squad list coming soon" body="Only approved player profiles marked public are listed here."/></Section>
+  <Section title={"Technical staff · "+staff.length}>
+   {staff.length>0 ? (
+    <div className="team-grid">
+     {staff.map(person => (
+      <Link className="team-card" to={"/staff/"+person.id} key={person.id}>
+       {staffPhoto(person) ? <img src={staffPhoto(person)} alt={person.display_name}/> : null}
+       <div><b>{person.display_name}</b><small>{person.role_title}</small>{person.bio ? <p className="muted">{person.bio}</p> : null}</div>
+      </Link>
+     ))}
+    </div>
+   ) : <Empty title="Staff profiles coming soon" body="Published coaches and technical staff assigned to this team will appear here."/>}
+  </Section>
+  <Section title={"Public player squad · "+players.length}>
+   {players.length>0 ? (
+    <div className="team-grid">
+     {players.map(player => (
+      <Link className="team-card" to={player.player_profile_id ? "/players/"+player.player_profile_id : "/players"} key={player.id}>
+       {player.photo_url ? <img src={player.photo_url} alt={player.preferred_name||player.full_name}/> : null}
+       <div><b>{player.squad_number!=null ? "#"+player.squad_number+" · " : ""}{player.preferred_name||player.full_name}</b><small>{player.position||"Squad member"}</small><small>{player.player_profile_id ? "View player profile" : "Browse player archive"} <ChevronRight size={13}/></small></div>
+      </Link>
+     ))}
+    </div>
+   ) : <Empty title="Public squad list coming soon" body="Only approved player profiles marked public are listed here."/>}
+  </Section>
   {(competition||standings.length>0)&&<Section title={competition?(competition.name+" · "+(competition.season||team.season||"Season")):"Competition standings"}>
    {competition&&<p className="muted" style={{marginTop:0}}>{[competition.status,competition.start_date&&date(competition.start_date).split(",")[0],competition.end_date&&date(competition.end_date).split(",")[0]].filter(Boolean).join(" · ")}</p>}
    {competition&&<div className="review-actions" style={{margin:"0 0 16px"}}><Link className="btn primary" to={"/competitions/"+competition.id}>View full competition <ChevronRight size={15}/></Link><Link className="btn secondary" to="/competitions">All competitions</Link></div>}
