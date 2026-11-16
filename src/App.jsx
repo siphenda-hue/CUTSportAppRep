@@ -683,31 +683,66 @@ function PublicStaffProfile() {
 }
 
 function PlayerDirectory({user}) {
- const [players,setPlayers]=useState([]),[search,setSearch]=useState(""),[busy,setBusy]=useState(true),[error,setError]=useState("");
+ const [players,setPlayers]=useState([]),[career,setCareer]=useState({}),[search,setSearch]=useState(""),[busy,setBusy]=useState(true),[error,setError]=useState("");
  useEffect(()=>{
   let active=true;
   async function load(){
    if(!supabase){setBusy(false);return;}
    const {data,error}=await supabase.from("player_profiles").select("id,full_name,display_name,claimed_at,photo_path,photo_approved_at,profile_visibility").eq("profile_visibility","public").order("full_name").limit(500);
    if(!active)return;
-   if(error)setError(error.message);
-   setPlayers(data||[]);
+   if(error){setError(error.message);setPlayers([]);setBusy(false);return;}
+   const publicPlayers=data||[];
+   setPlayers(publicPlayers);
+   if(publicPlayers.length){
+    const {data:records,error:recordsError}=await supabase.from("player_profile_records").select("player_profile_id,sport_name,team_name,season,competition_name,record_type,record_date").in("player_profile_id",publicPlayers.map(p=>p.id)).order("record_date",{ascending:false});
+    if(!active)return;
+    if(recordsError){setError("Player profiles loaded, but career details are temporarily unavailable.");}
+    else{
+     const grouped={};
+     (records||[]).forEach(record=>{
+      if(!grouped[record.player_profile_id])grouped[record.player_profile_id]={sports:[],teams:[],seasons:[],competitions:[],appearances:0,statistics:0};
+      const item=grouped[record.player_profile_id];
+      if(record.sport_name&&!item.sports.includes(record.sport_name))item.sports.push(record.sport_name);
+      if(record.team_name&&!item.teams.includes(record.team_name))item.teams.push(record.team_name);
+      if(record.season&& !item.seasons.includes(String(record.season)))item.seasons.push(String(record.season));
+      if(record.competition_name&&!item.competitions.includes(record.competition_name))item.competitions.push(record.competition_name);
+      if(record.record_type==="squad_appearance")item.appearances+=1;
+      if(record.record_type==="competition_statistics")item.statistics+=1;
+     });
+     setCareer(grouped);
+    }
+   }
    setBusy(false);
   }
   load();return()=>{active=false};
  },[]);
  const term=search.trim().toLocaleLowerCase();
- const visible=players.filter(p=>(p.display_name||p.full_name).toLocaleLowerCase().includes(term));
+ const visible=players.filter(p=>{
+  const details=career[p.id];
+  const searchable=[p.display_name,p.full_name,...(details?.sports||[]),...(details?.teams||[]),...(details?.seasons||[]),...(details?.competitions||[])].filter(Boolean).join(" ").toLocaleLowerCase();
+  return searchable.includes(term);
+ });
  const photoUrl=(path,approvedAt)=>path&&approvedAt&&supabase?.storage.from("player-profile-photos").getPublicUrl(path).data.publicUrl;
  return <><Header title="Player directory" back/><main className="page">
   <div className="page-intro"><span className="eyebrow">THE BLUES · PLAYER ARCHIVE</span><h1>Every player.<br/><em>Every season.</em></h1><p>One player identity across CUT teams, sport codes and competition years. Explore career history, verified statistics and appearances.</p></div>
-  <label className="player-search">Search players<input type="search" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search player name…"/></label>
+  <label className="player-search">Search players, sports, teams or seasons<input type="search" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search name, sport, team or season…"/></label>
   {error&&<p className="form-error">{error}</p>}
   <div className="player-directory-count">{visible.length} of {players.length} player profiles</div>
-  {busy?<p className="muted">Loading the CUT player archive…</p>:visible.length?<div className="player-directory-grid">{visible.map(p=><Link className="player-directory-card" to={"/players/"+p.id} key={p.id}>
-   <span className="player-directory-avatar">{photoUrl(p.photo_path,p.photo_approved_at)?<img src={photoUrl(p.photo_path,p.photo_approved_at)} alt=""/>:(p.display_name||p.full_name).slice(0,1)}</span><span className="player-directory-copy"><b>{p.display_name||p.full_name}</b><small>Public player profile · {p.claimed_at?"Claim verified":"Unclaimed profile"}</small></span><ChevronRight size={18}/>
-  </Link>)}</div>:<Empty title="No players found" body="Try another name or search term."/>}
-  <p className="muted">Profiles are grouped only when recorded names match exactly, including spelling, order and capitalisation. Similar-looking names remain separate until verified.</p>
+  {busy?<p className="muted">Loading the CUT player archive…</p>:visible.length?<div className="player-directory-grid">{visible.map(p=>{
+   const details=career[p.id];
+   const sportLabels=(details?.sports||[]).slice(0,2);
+   const teamLabels=(details?.teams||[]).slice(0,2);
+   const seasonLabels=(details?.seasons||[]).slice(0,3);
+   return <Link className="player-directory-card" to={"/players/"+p.id} key={p.id}>
+    <span className="player-directory-avatar">{photoUrl(p.photo_path,p.photo_approved_at)?<img src={photoUrl(p.photo_path,p.photo_approved_at)} alt=""/>:(p.display_name||p.full_name).slice(0,1)}</span>
+    <span className="player-directory-copy"><b>{p.display_name||p.full_name}</b><small>Public player profile · {p.claimed_at?"Claim verified":"Unclaimed profile"}</small>
+     {(sportLabels.length>0||teamLabels.length>0)&&<span className="player-directory-meta">{[...sportLabels,...teamLabels].join(" · ")}</span>}
+     {seasonLabels.length>0&&<small className="player-directory-seasons">Seasons: {seasonLabels.join(", ")}{(details?.seasons||[]).length>3?"…":""}</small>}
+     {(details?.appearances||details?.statistics)&&<small className="player-directory-records">{details.appearances?details.appearances+" squad appearances":""}{details.appearances&&details.statistics?" · ":""}{details.statistics?details.statistics+" competition-stat records":""}</small>}
+    </span><ChevronRight size={18}/>
+   </Link>;
+  })}</div>:<Empty title="No players found" body="Try another name, sport, team or season."/>}
+  <p className="muted">Career details are drawn from published competition squads and approved competition statistics. Profiles are grouped only when recorded names match exactly, including spelling, order and capitalisation. Similar-looking names remain separate until verified.</p>
   {!user&&<p className="muted">Sign in to request ownership of your player profile.</p>}
  </main></>;
 }
