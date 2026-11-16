@@ -345,7 +345,7 @@ function Sport({sports,fixtures}) {
 }
 
 function PublicCompetitionsDirectory() {
- const [competitions,setCompetitions]=useState([]);
+ const [competitions,setCompetitions]=useState([]),[internationalRecords,setInternationalRecords]=useState([]);
  const [busy,setBusy]=useState(true),[error,setError]=useState("");
  const [search,setSearch]=useState(""),[sportFilter,setSportFilter]=useState("all"),[seasonFilter,setSeasonFilter]=useState("all");
  const currentYear=new Date().getFullYear(),previousYear=currentYear-1;
@@ -354,12 +354,13 @@ function PublicCompetitionsDirectory() {
   async function load(){
    setBusy(true);setError("");
    if(!supabase){setError("Competition information is temporarily unavailable.");setBusy(false);return;}
-   const {data,error:queryError}=await supabase.from("competitions")
-    .select("id,name,season,status,start_date,end_date,venue,description,sport_id,sports(name,slug),competition_standings(won,points,position)")
-    .order("start_date",{ascending:false,nullsFirst:false}).order("name");
+   const [{data,error:queryError},{data:internationalData}]=await Promise.all([
+    supabase.from("competitions").select("id,name,season,status,start_date,end_date,venue,description,sport_id,sports(name,slug),competition_standings(won,points,position)").order("start_date",{ascending:false,nullsFirst:false}).order("name"),
+    supabase.from("player_international_appearances").select("id,player_name,player_profile_id,country,national_team,event_name,season,appearance_date,opponent,caps,source_url,player_profiles(full_name,display_name),sports(name)").eq("approval_status","approved").order("appearance_date",{ascending:false,nullsFirst:false}).limit(100)
+   ]);
    if(!active)return;
    if(queryError)setError("The season archive could not be loaded. Please try again later.");
-   setCompetitions(data||[]);setBusy(false);
+   setCompetitions(data||[]);setInternationalRecords(internationalData||[]);setBusy(false);
   }
   load();return()=>{active=false;};
  },[]);
@@ -367,8 +368,8 @@ function PublicCompetitionsDirectory() {
  const seasons=[...new Set(competitions.map(c=>c.season).filter(Boolean))].sort((a,b)=>String(b).localeCompare(String(a),undefined,{numeric:true}));
  const term=search.trim().toLowerCase();
  const filtered=competitions.filter(c=>(sportFilter==="all"||c.sport_id===sportFilter)&&(seasonFilter==="all"||c.season===seasonFilter)&&(!term||[c.name,c.season,c.status,c.sports?.name,c.venue].some(v=>String(v||"").toLowerCase().includes(term))));
- const yearOf=c=>{const match=String(c.season||"").match(/^(\\d{4})/);return match?Number(match[1]):(c.start_date?new Date(c.start_date).getFullYear():null);};
- const isHeritage=c=>/varsity\\s*(netball|football|cup)/i.test(c.name||"");
+ const yearOf=c=>{const match=String(c.season||"").match(/^(\d{4})/);return match?Number(match[1]):(c.start_date?new Date(c.start_date).getFullYear():null);};
+ const isHeritage=c=>/varsity\s*(netball|football|cup)/i.test(c.name||"");
  const hasRecordedWin=c=>(c.competition_standings||[]).some(row=>Number(row.won||0)>0);
  const recent=filtered.filter(c=>{const year=yearOf(c);return year===currentYear||year===previousYear;}).sort((a,b)=>(yearOf(b)||0)-(yearOf(a)||0)||String(a.name).localeCompare(String(b.name)));
  const heritage=filtered.filter(c=>isHeritage(c)||hasRecordedWin(c)).sort((a,b)=>(yearOf(b)||0)-(yearOf(a)||0)||String(a.name).localeCompare(String(b.name)));
