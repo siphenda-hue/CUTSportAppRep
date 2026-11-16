@@ -175,3 +175,20 @@ Do not create international appearance records for other 2015 South African comp
 - Verify Thabang Masihleho's exact dates and event entries for the 2012 World Cross Country Championships and 2015 Gwangju Universiade using official results.
 - Cross-check the 2025 FISU World University Games South African team list against CUT's student and alumni records, and repeat for earlier FISU editions where team rosters/results are available.
 - Review all remaining sports on CUT's official sporting legends page and the university's annual sport awards/representative send-off notices for additional international athletes.
+
+
+### Additional roster and profile checks — 16 November 2026
+
+- A further search of CUT's 2015 student-life/sport booklet surfaced a Welkom Campus athletics note referring to a bronze medallist at the 2015 World Student Track & Field Championships in Gwangju. This is consistent with the existing Thabang Masihleho record, but the booklet excerpt does not name a second CUT athlete.
+- The University of Pretoria's contemporary 26 June 2015 send-off report says 32 TuksSport student-athletes were travelling to Gwangju, representing South Africa in athletics, football, golf, rowing, shooting and swimming. This confirms that at least part of the delegation can be institutionally attributed, but it is a Tuks-specific contingent, not a complete Team SA list.
+- The Tuks golf reports name Teaghan Gauche, Jason Smith and Andrew van der Knaap as South Africa's three golfers. No CUT affiliation was found for these names in the sources reviewed.
+- A 2015 USSA National Tournament Roster PDF was located, but it is a schedule/host roster for domestic USSA events, not the athlete-by-athlete Gwangju Universiade delegation list. It cannot be used to infer the full international team.
+- Official 2015 athletics results show South Africa in the men's 4x400m relay and identify the team result, but the accessible results summary does not establish CUT affiliations. Do not add relay team members as CUT athletes without matching names to CUT registration records.
+- A direct exact-name lookup in the existing player_profiles table returned no match for “Thabang Masihleho” or the source variant “Thabang Masihlelo”. This is a profile-linking gap, not a reason to create a duplicate profile automatically. Before attaching an appearance, search all 266 profiles using broader spelling/alias variants and compare identifiers; if no existing profile matches, request/verify the athlete's canonical profile details before creating one.
+- No additional 2015 Gwangju competitor has yet been independently linked to CUT by name and institutional evidence. The defensible outcome remains one confirmed CUT athlete, with the wider 114-athlete roster still unresolved.
+
+Additional sources:
+- University of Pretoria/TuksSport send-off, 26 June 2015: https://www.up.ac.za/news/post_2105241-tukssport-athletes-off-to-south-korea
+- University of Pretoria/TuksSport golf squad, 6 July 2015: https://www.up.ac.za/tukssport/news/sa-golf-trio-geared-summer-universiade
+- USSA 2015 National Tournament Roster (domestic event schedule, not Universiade team list): https://www.ussa.org.za/doc/roster2015.pdf
+- Official Gwangju athletics results summary, men's 4x400m: https://slovenska-atletika.si/wp-content/uploads/2016/09/20150708_Gwangju_UNI.pdf
