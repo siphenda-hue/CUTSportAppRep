@@ -384,7 +384,7 @@ function PublicCompetitionsDirectory() {
   <Link className="competition-directory-open" to={"/competitions/"+c.id}>View season & records <ChevronRight size={15}/></Link>
  </article>;
  return <><Header title="Seasons & heritage" back/><main className="page">
-  <div className="page-intro"><span className="eyebrow">THE BLUES · SEASON ARCHIVE</span><h1>Our seasons. Our history.</h1><p>Browse the current season and previous year, then explore CUT Sport heritage records, international achievements, season wins and Varsity Netball, Varsity Football and Varsity Cup history. Public browsing is open to everyone — no sign-in required.</p></div>
+  <div className="page-intro"><span className="eyebrow">THE BLUES · SEASON ARCHIVE</span><h1>Our seasons. Our history.</h1><p>Browse the current season and previous year, then explore CUT Sport heritage records, international representation, player honours, recorded match wins and Varsity Netball, Varsity Football and Varsity Cup history. Public browsing is open to everyone — no sign-in required.</p></div>
   <div className="competition-directory-tools">
    <label className="competition-search-label" htmlFor="competition-search">Search seasons & competitions</label>
    <input id="competition-search" className="competition-directory-input" type="search" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search by competition, sport, season or venue"/>
