@@ -851,6 +851,11 @@ function PlayerProfilePage({user,roles=[]}) {
   if(row.record_type==="team_membership")return [d.joined_at?"Joined "+d.joined_at:null,d.left_at?"Left "+d.left_at:null,d.is_active?"Current membership":"Past membership"].filter(Boolean).join(" · ");
   return [row.position,row.role,row.is_captain?"Captain":null,row.is_vice_captain?"Vice-captain":null,row.squad_number!==null?"#"+row.squad_number:null].filter(Boolean).join(" · ");
  };
+ const timelineRecords=records.slice().sort((a,b)=>{
+  const dateA=a.record_date||a.details?.match_date||a.details?.joined_at||"";
+  const dateB=b.record_date||b.details?.match_date||b.details?.joined_at||"";
+  return String(dateB).localeCompare(String(dateA));
+ });
  const appearances=new Set();
  const totals={};
  const additive=new Set(["total_goals","goals","field_goals","penalty_corner_goals","penalty_stroke_goals","tries","total_tries","wickets","runs","assists","tackles","saves","points","yellow_cards","red_cards","clean_sheets","goals_conceded","shots","shots_on_target","passes","pass_accuracy","interceptions","rebounds","blocks","steals","fouls","minutes_played","aces","double_faults","sets_won","games_won","birdies","pars","eagles","bogeys","penalty_strokes","rounds","overs","maidens","catches","run_outs","stumpings","boundaries","sixes","fours","sprint_time","distance_covered","successful_dribbles","key_passes","crosses","clearances","saves_made","shots_faced"]);
@@ -930,6 +935,20 @@ function PlayerProfilePage({user,roles=[]}) {
     <article><b>{appearances.size}</b><small>Match appearances</small></article><article><b>{statisticRecords}</b><small>Statistics records</small></article><article><b>{competitions}</b><small>Competitions</small></article><article><b>{internationalAppearances}</b><small>International appearances</small></article><article><b>{squadSelections}</b><small>Squad selections</small></article><article><b>{awardRecords}</b><small>Awards & honours</small></article>
    </div>
    {hubSeasons.length>0&&<Section title="Team hubs"><div className="metric-trend">{hubSeasons.map(row=><article className="performance-record" key={row.season_id}><div className="performance-record-head"><div><b>{row.team_hub_seasons?.sports?.name||"CUT Sport"} · {row.team_hub_seasons?.team_name_snapshot||"Team"}</b><small>Season {row.team_hub_seasons?.season_label||"—"}</small></div><span className="status-pill">{row.team_hub_seasons?.status==="in_progress"?"In progress":"Completed"}</span></div><Link className="btn secondary" to={"/team-hub/"+row.season_id}>Open team hub</Link></article>)}</div></Section>}
+   {timelineRecords.length>0&&<Section title="Career timeline"><div className="player-career-timeline">{timelineRecords.slice(0,30).map((row,index)=>{
+    const label=row.record_label||row.record_type.replaceAll("_"," ");
+    const date=row.record_date||row.details?.match_date||row.details?.joined_at||"Date not recorded";
+    return <article className="player-timeline-item" key={row.record_type+"-"+row.record_id+"-"+index}>
+     <span className="player-timeline-marker" aria-hidden="true"/>
+     <div className="player-timeline-content">
+      <div className="player-timeline-heading"><b>{label}</b><time>{date}</time></div>
+      <small>{[row.sport_name,row.team_name,row.season].filter(Boolean).join(" · ")||"CUT Sport record"}</small>
+      {row.competition_name&&<small className="player-timeline-competition">{row.competition_name}</small>}
+      {detailsText(row)&&<p>{detailsText(row)}</p>}
+      <div className="player-timeline-links">{row.competition_id&&<Link to={"/competitions/"+row.competition_id}>Competition details</Link>}{row.source_url&&<a href={row.source_url} target="_blank" rel="noreferrer">Source ↗</a>}</div>
+     </div>
+    </article>;
+   })}</div>{timelineRecords.length>30&&<p className="muted">Showing the 30 most recent records. The complete archive remains available below.</p>}</Section>}
    {competitionPerformance.length>0&&<Section title="Competition performance"><div className="player-performance-grid">{competitionPerformance.map((group,index)=>{
     const metricRows=Object.entries(group.metrics).filter(([,value])=>value!==0);
     return <article className="player-performance-card" key={group.season+"-"+group.competition+"-"+group.sport+"-"+index}>
