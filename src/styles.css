@@ -365,3 +365,10 @@ body{background:var(--cut-cream);color:var(--ink)}
 .player-directory-seasons,.player-directory-records{display:block;color:#64748b;font-size:10px;line-height:1.4}
 .player-directory-card{transition:border-color .18s ease,transform .18s ease}
 .player-directory-card:hover{border-color:rgba(31,95,191,.38);transform:translateY(-1px)}
+
+
+/* Player career timeline navigation */
+.player-performance-link{display:inline-flex;align-items:center;gap:4px;width:max-content;margin-top:12px;color:#174f8b;font-size:12px;font-weight:800;text-decoration:none}
+.player-history-type{width:max-content;padding:3px 7px;border-radius:999px;background:#edf3fc;color:#31577f;font-size:9px!important;font-weight:800;text-transform:uppercase;letter-spacing:.04em}
+.player-history-competition{display:inline-block;width:max-content;margin-top:4px;color:#174f8b;font-size:11px;font-weight:800;text-decoration:none}
+.player-performance-link:hover,.player-history-competition:hover{text-decoration:underline}
