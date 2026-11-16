@@ -345,7 +345,7 @@ function Sport({sports,fixtures}) {
 }
 
 function PublicCompetitionsDirectory() {
- const [competitions,setCompetitions]=useState([]),[internationalRecords,setInternationalRecords]=useState([]);
+ const [competitions,setCompetitions]=useState([]),[internationalRecords,setInternationalRecords]=useState([]),[playerAwards,setPlayerAwards]=useState([]);
  const [busy,setBusy]=useState(true),[error,setError]=useState("");
  const [search,setSearch]=useState(""),[sportFilter,setSportFilter]=useState("all"),[seasonFilter,setSeasonFilter]=useState("all");
  const currentYear=new Date().getFullYear(),previousYear=currentYear-1;
@@ -354,13 +354,14 @@ function PublicCompetitionsDirectory() {
   async function load(){
    setBusy(true);setError("");
    if(!supabase){setError("Competition information is temporarily unavailable.");setBusy(false);return;}
-   const [{data,error:queryError},{data:internationalData}]=await Promise.all([
+   const [{data,error:queryError},{data:internationalData},{data:awardData,error:awardError}]=await Promise.all([
     supabase.from("competitions").select("id,name,season,status,start_date,end_date,venue,description,sport_id,sports(name,slug),competition_standings(won,points,position)").order("start_date",{ascending:false,nullsFirst:false}).order("name"),
-    supabase.from("player_international_appearances").select("id,player_name,player_profile_id,country,national_team,event_name,season,appearance_date,opponent,caps,source_url,player_profiles(full_name,display_name),sports(name)").eq("approval_status","approved").order("appearance_date",{ascending:false,nullsFirst:false}).limit(100)
+    supabase.from("player_international_appearances").select("id,player_name,player_profile_id,country,national_team,event_name,season,appearance_date,opponent,caps,source_url,player_profiles(full_name,display_name),sports(name)").eq("approval_status","approved").order("appearance_date",{ascending:false,nullsFirst:false}).limit(100),
+    supabase.from("player_awards").select("id,player_name,player_profile_id,award_title,award_category,season,team_name,award_date,source_url,player_profiles(full_name,display_name),sports(name),competitions(name)").eq("approval_status","approved").not("player_profile_id","is",null).order("award_date",{ascending:false,nullsFirst:false}).limit(100)
    ]);
    if(!active)return;
-   if(queryError)setError("The season archive could not be loaded. Please try again later.");
-   setCompetitions(data||[]);setInternationalRecords(internationalData||[]);setBusy(false);
+   if(queryError||awardError)setError("Some archive information could not be loaded. Available published records are shown below.");
+   setCompetitions(data||[]);setInternationalRecords(internationalData||[]);setPlayerAwards(awardData||[]);setBusy(false);
   }
   load();return()=>{active=false;};
  },[]);
@@ -379,7 +380,7 @@ function PublicCompetitionsDirectory() {
   <div className="competition-directory-card-head"><div><small className="eyebrow">{c.sports?.name||"CUT SPORT"}{c.season?" · "+c.season:""}</small><b><Link to={"/competitions/"+c.id}>{c.name}</Link></b></div><span className="competition-directory-status">{c.status||"Listed"}</span></div>
   <p>{c.description||"Explore published competition teams, match results, statistics and standings."}</p>
   <small>{[c.start_date&&date(c.start_date),c.end_date&&date(c.end_date),c.venue].filter(Boolean).join(" – ")||"Dates and venue to be confirmed"}</small>
-  {(isHeritage(c)||hasRecordedWin(c))&&<small className="competition-heritage-tag">{isHeritage(c)?"Varsity heritage": "Recorded season wins"}</small>}
+  {(isHeritage(c)||hasRecordedWin(c))&&<small className="competition-heritage-tag">{isHeritage(c)?"Varsity heritage": "Recorded match wins"}</small>}
   <Link className="competition-directory-open" to={"/competitions/"+c.id}>View season & records <ChevronRight size={15}/></Link>
  </article>;
  return <><Header title="Seasons & heritage" back/><main className="page">
@@ -398,8 +399,8 @@ function PublicCompetitionsDirectory() {
     <p className="muted">Showing {currentYear} and {previousYear} season records.</p>
     {recent.length?<div className="competition-directory-list">{recent.map(card)}</div>:<Empty title="No recent seasons published" body="Current and previous-year competition records will appear here when published by CUT Sport."/>}
    </Section>
-   <Section title={"Heritage & historic season wins · "+heritageOnly.length}>
-    <p className="muted">Explore Varsity Netball, Varsity Football, Varsity Cup and older seasons with recorded wins and standings.</p>
+   <Section title={"Heritage & historic seasons · "+heritageOnly.length}>
+    <p className="muted">Explore Varsity Netball, Varsity Football, Varsity Cup and older seasons with published standings. Recorded wins are match wins, not automatically competition titles.</p>
     {heritageOnly.length?<div className="competition-directory-list">{heritageOnly.map(card)}</div>:<Empty title="Heritage records are being prepared" body="Older Varsity seasons and historic seasons with recorded wins will appear here."/>}
    </Section>
    <Section title={"International representation · "+internationalRecords.length}>
@@ -410,6 +411,16 @@ function PublicCompetitionsDirectory() {
      <small>{r.appearance_date||"Date not recorded"}</small>{r.source_url&&/^https?:\/\//i.test(r.source_url)&&<a className="competition-source-link" href={r.source_url} target="_blank" rel="noreferrer">Verified source ↗</a>}
      {r.player_profile_id&&<Link className="competition-directory-open" to={"/players/"+r.player_profile_id}>View athlete profile <ChevronRight size={15}/></Link>}
     </article>)}</div>:<Empty title="International records are being verified" body="Approved national-team appearances will appear here once the source and public athlete profile have been verified."/>}
+   </Section>
+   <Section title={"Player awards & honours · "+playerAwards.length}>
+    <p className="muted">Approved honours linked to public athlete profiles. Each published award includes its recorded season and source where available.</p>
+    {playerAwards.length?<div className="competition-directory-list">{playerAwards.map(a=><article className="competition-card competition-directory-card" key={a.id}>
+     <div className="competition-directory-card-head"><div><small className="eyebrow">{a.sports?.name||"CUT SPORT"}{a.season?" · "+a.season:""}</small><b>{a.player_profiles?.display_name||a.player_profiles?.full_name||a.player_name}</b></div><span className="competition-directory-status">Approved</span></div>
+     <p>{a.award_title}{a.award_category?" · "+a.award_category:""}</p>
+     <small>{[a.team_name,a.competitions?.name,a.award_date].filter(Boolean).join(" · ")||"Award date not recorded"}</small>
+     {a.source_url&&/^https?:\/\//i.test(a.source_url)&&<a className="competition-source-link" href={a.source_url} target="_blank" rel="noreferrer">Award source ↗</a>}
+     {a.player_profile_id&&<Link className="competition-directory-open" to={"/players/"+a.player_profile_id}>View athlete profile <ChevronRight size={15}/></Link>}
+    </article>)}</div>:<Empty title="No approved player awards published yet" body="Player honours will appear here after a sport administrator submits the record, a super administrator approves it, and the athlete profile is public."/>}
    </Section>
    <Section title={"Other publicly available records · "+filtered.filter(c=>!recent.some(r=>r.id===c.id)&&!heritage.some(h=>h.id===c.id)).length}>
     {filtered.filter(c=>!recent.some(r=>r.id===c.id)&&!heritage.some(h=>h.id===c.id)).length?<div className="competition-directory-list">{filtered.filter(c=>!recent.some(r=>r.id===c.id)&&!heritage.some(h=>h.id===c.id)).map(card)}</div>:<p className="muted">No additional records match these filters.</p>}
