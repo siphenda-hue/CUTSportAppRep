@@ -11,10 +11,16 @@
   "theme_color": "#0047B3",
   "icons": [
     {
+      "src": "/icons/cut-sport-crest.png",
+      "sizes": "256x256",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
       "src": "/icons/cut-sport.svg",
       "sizes": "any",
       "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "purpose": "any"
     }
   ]
 }
