@@ -1746,7 +1746,7 @@ function Profile({user,profile,roles}) {
    if(!String(changes.title||"").trim()){setReviewError("Achievement title is required before resubmitting.");return;}
   }else if(type==="media"){
    if(!["photo","video","certificate","document"].includes(changes.media_type)){setReviewError("Choose a valid media type.");return;}
-   if(changes.external_url&&!/^https?:\\/\\//i.test(changes.external_url)){setReviewError("Media URL must begin with http:// or https://.");return;}
+   if(changes.external_url&&!/^https?:\/\//i.test(changes.external_url)){setReviewError("Media URL must begin with http:// or https://.");return;}
   }
   setReviewSaving(key);
   const {data,error}=await supabase.rpc("resubmit_athlete_record",{p_record_type:type,p_record_id:row.id,p_changes:changes});
