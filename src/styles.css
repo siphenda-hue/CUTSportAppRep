@@ -358,3 +358,10 @@ body{background:var(--cut-cream);color:var(--ink)}
 .player-performance-rounds,.player-performance-source{font-size:10px;color:var(--muted);line-height:1.45}
 .player-honour-card>a{font-size:11px;font-weight:800;color:var(--cut-blue)}
 @media(min-width:560px){.player-performance-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+
+/* Public player directory career metadata */
+.player-directory-meta{display:block;color:#174f8b;font-size:11px;font-weight:800;line-height:1.4;overflow-wrap:anywhere}
+.player-directory-seasons,.player-directory-records{display:block;color:#64748b;font-size:10px;line-height:1.4}
+.player-directory-card{transition:border-color .18s ease,transform .18s ease}
+.player-directory-card:hover{border-color:rgba(31,95,191,.38);transform:translateY(-1px)}
