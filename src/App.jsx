@@ -868,7 +868,9 @@ function PlayerProfilePage({user,roles=[]}) {
    if(value&&typeof value==="object")return Object.keys(value).sort().reduce((out,key)=>{out[key]=stable(value[key]);return out;},{});
    return value;
   };
-  return [row.record_type,row.competition_id||"",row.season||"",row.team_name||"",JSON.stringify(stable(payload||{}))].join("|");
+  const d=row.details||{};
+  const eventIdentity=row.record_type==="competition_statistics"?"competition-total":(d.fixture_id||[d.match_date||row.record_date||"",d.opponent||""].join("|")||row.record_id);
+  return [row.record_type,row.competition_id||"",row.season||"",row.team_name||"",eventIdentity,JSON.stringify(stable(payload||{}))].join("|");
  };
  const seenMetricPayloads=new Set(),seenSquadRecords=new Set(),seenInternationalRecords=new Set();
  const isNewMetricPayload=(row,payload)=>{
