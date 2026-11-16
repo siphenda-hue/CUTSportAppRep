@@ -4409,7 +4409,7 @@ function AdminPerformance({roles}) {
  function printDataQualityReview(){
   if(!allowed)return;
   const esc=v=>String(v??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-  const sourceLink=value=>{const url=String(value||"").trim();return /^https?:\\/\\//i.test(url)?'<a href="'+esc(url)+'" target="_blank" rel="noreferrer">Open source</a>':"Not supplied";};
+  const sourceLink=value=>{const url=String(value||"").trim();return /^https?:\/\//i.test(url)?'<a href="'+esc(url)+'" target="_blank" rel="noreferrer">Open source</a>':"Not supplied";};
   const identity=r=>[r.record_type,r.record_label,r.sport_name,r.team_name,r.season,dateLabel(r.record_date)].filter(Boolean).join(" · ");
   const qualityHtml=qualityIssues.map(item=>'<tr><td>'+esc(item.record.record_id)+'</td><td>'+esc(identity(item.record))+'</td><td>'+esc(item.issues.join("; "))+'</td><td>'+sourceLink(item.record.source_url)+'</td></tr>').join("");
   const duplicateHtml=possibleDuplicates.map(item=>'<tr><td>'+esc(item.original.record_id)+'</td><td>'+esc(identity(item.original))+'</td><td>'+sourceLink(item.original.source_url)+'</td><td>'+esc(item.record.record_id)+'</td><td>'+esc(identity(item.record))+'</td><td>'+sourceLink(item.record.source_url)+'</td></tr>').join("");
