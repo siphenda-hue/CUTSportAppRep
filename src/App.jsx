@@ -122,7 +122,7 @@ function App() {
  const common={sports,teams,competitions,products,fixtures,articles,events,ticketTypes,sponsors,athletes,user,profile,roles,cart,setCart,add,dataLoading,dataError,retryPublicData};
  const welcomeName=profile?.full_name||profile?.display_name||user?.user_metadata?.full_name||user?.user_metadata?.name||user?.email?.split("@")[0]||"";
  return <div className="app-shell"><div className="app-frame">{showLaunch&&<div className="cut-launch-screen" role="status" aria-live="polite"><img src="/icons/cut-sport-crest.png" alt="CUT Sport crest"/><p>WELCOME TO CUT SPORT</p><h1>{welcomeName?welcomeName:"Think Beyond"}</h1><span>{welcomeName?"Your sporting home.":"The Blues · Est. 2004"}</span></div>}{dataLoading&&<p className="data-sync-note" role="status">Refreshing the latest CUT Sport information…</p>}{dataError&&<div className="data-sync-error" role="alert"><div><b>Some information is unavailable</b><p>{dataError}</p></div><button type="button" onClick={retryPublicData} className="btn secondary">Try again</button></div>}<Routes>
- <Route path="/" element={<Home {...common}/>}/><Route path="/shop" element={<Shop {...common}/>}/><Route path="/shop/:slug" element={<Product {...common}/>}/><Route path="/cart" element={<Cart {...common}/>}/><Route path="/checkout" element={<Checkout cart={cart} setCart={setCart} user={user}/>}/><Route path="/payment/:result" element={<PaymentReturn user={user} result="success" cart={cart} setCart={setCart}/>}/><Route path="/events/:id" element={<EventTickets events={events} ticketTypes={ticketTypes} user={user}/>}/><Route path="/calendar" element={<CalendarPage {...common}/>}/><Route path="/my-team" element={<MyTeam user={user} roles={roles}/>}/><Route path="/sport" element={<Sport {...common}/>}/><Route path="/sport/:slug" element={<Hub {...common}/>}/><Route path="/competitions" element={<PublicCompetitionsDirectory/>}/><Route path="/competitions/:id" element={<PublicCompetitionProfile/>}/><Route path="/news" element={<News {...common}/>}/><Route path="/news/:slug" element={<Story {...common}/>}/><Route path="/sponsors" element={<Sponsors {...common}/>}/><Route path="/profile" element={<Profile {...common}/>}/><Route path="/teams" element={<PublicTeamDirectory teams={teams}/>}/><Route path="/teams/:id" element={<PublicTeamProfile/>}/><Route path="/staff/:id" element={<PublicStaffProfile/>}/><Route path="/players" element={<PlayerDirectory user={user}/>}/><Route path="/players/:id" element={<PlayerProfilePage user={user} roles={roles}/>}/><Route path="/team-hub/:seasonId" element={<TeamHub user={user} roles={roles}/>}/><Route path="/admin/team-seasons" element={<AdminTeamSeasons roles={roles} user={user}/>}/><Route path="/performance" element={<AthletePerformance user={user}/>}/><Route path="/trials" element={<Trials user={user} profile={profile}/>}/><Route path="/admin/recruitment" element={<AdminRecruitment roles={roles} user={user}/>}/><Route path="/admin" element={<AdminDashboard {...common}/>}/><Route path="/admin/overview" element={<AdminOverview {...common}/>}/><Route path="/admin/content-performance" element={<AdminContentPerformance roles={roles}/>}/><Route path="/admin/media-library" element={<AdminMediaLibrary roles={roles} user={user}/>}/><Route path="/admin/sports" element={<AdminSports roles={roles} user={user} setSports={setSports}/>}/><Route path="/admin/sponsors" element={<AdminSponsors user={user} roles={roles}/>}/><Route path="/admin/products" element={<AdminProducts roles={roles} products={products} setProducts={setProducts}/>}/><Route path="/admin/shop-orders" element={<AdminShopOrders roles={roles}/>}/><Route path="/admin/athletes" element={<AdminAthletes roles={roles} user={user}/>}/><Route path="/admin/verification" element={<AdminVerificationCentre roles={roles}/>}/><Route path="/admin/rosters" element={<AdminRosters roles={roles} user={user}/>}/><Route path="/admin/teams" element={<AdminTeams roles={roles} user={user}/>}/><Route path="/admin/performance" element={<AdminPerformance roles={roles}/>}/><Route path="/admin/reports" element={<AdminReports roles={roles}/>}/><Route path="/admin/planning" element={<AdminPlanningCentre roles={roles} user={user}/>}/><Route path="/admin/match-statistics" element={<AdminMatchStatistics roles={roles} user={user}/>}/><Route path="/admin/international-appearances" element={<AdminInternationalAppearances roles={roles} user={user}/>}/><Route path="/admin/player-awards" element={<AdminPlayerAwards roles={roles} user={user}/>}/><Route path="/admin/competition-honours" element={<AdminCompetitionHonours roles={roles} user={user}/>}/><Route path="/admin/calendar" element={<AdminCalendar roles={roles} sports={sports}/>}/><Route path="/admin/operations" element={<AdminOperations roles={roles} user={user}/>}/><Route path="/admin/approvals" element={<AdminApprovals roles={roles} user={user}/>}/><Route path="/admin/messages" element={<AdminMessages roles={roles} user={user}/>}/><Route path="/messages" element={<AthleteMessages user={user}/>}/><Route path="/admin/ticket-gate" element={<AdminTicketGate roles={roles}/>}/><Route path="/admin/event-reports" element={<AdminEventReports roles={roles}/>}/><Route path="/admin/editorial" element={<AdminEditorial roles={roles} user={user} sports={sports}/>}/><Route path="/notifications" element={<Personal title="Notifications" user={user} kind="notifications"/>}/><Route path="/tickets" element={<Personal title="My tickets" user={user} kind="tickets"/>}/><Route path="/orders" element={<Personal title="My orders" user={user} kind="orders"/>}/><Route path="*" element={<NotFound/>}/>
+ <Route path="/" element={<Home {...common}/>}/><Route path="/shop" element={<Shop {...common}/>}/><Route path="/shop/:slug" element={<Product {...common}/>}/><Route path="/cart" element={<Cart {...common}/>}/><Route path="/checkout" element={<Checkout cart={cart} setCart={setCart} user={user}/>}/><Route path="/payment/:result" element={<PaymentReturn user={user} result="success" cart={cart} setCart={setCart}/>}/><Route path="/events/:id" element={<EventTickets events={events} ticketTypes={ticketTypes} user={user}/>}/><Route path="/calendar" element={<CalendarPage {...common}/>}/><Route path="/my-team" element={<MyTeam user={user} roles={roles}/>}/><Route path="/sport" element={<Sport {...common}/>}/><Route path="/sport/:slug" element={<Hub {...common}/>}/><Route path="/competitions" element={<PublicCompetitionsDirectory/>}/><Route path="/competitions/:id" element={<PublicCompetitionProfile/>}/><Route path="/news" element={<News {...common}/>}/><Route path="/news/:slug" element={<Story {...common}/>}/><Route path="/sponsors" element={<Sponsors {...common}/>}/><Route path="/profile" element={<Profile {...common}/>}/><Route path="/teams" element={<PublicTeamDirectory teams={teams}/>}/><Route path="/teams/:id" element={<PublicTeamProfile/>}/><Route path="/staff/:id" element={<PublicStaffProfile/>}/><Route path="/players" element={<PlayerDirectory user={user}/>}/><Route path="/players/:id" element={<PlayerProfilePage user={user} roles={roles}/>}/><Route path="/team-hub/:seasonId" element={<TeamHub user={user} roles={roles}/>}/><Route path="/admin/team-seasons" element={<AdminTeamSeasons roles={roles} user={user}/>}/><Route path="/performance" element={<AthletePerformance user={user}/>}/><Route path="/trials" element={<Trials user={user} profile={profile}/>}/><Route path="/admin/recruitment" element={<AdminRecruitment roles={roles} user={user}/>}/><Route path="/admin" element={<AdminDashboard {...common}/>}/><Route path="/admin/overview" element={<AdminOverview {...common}/>}/><Route path="/admin/content-performance" element={<AdminContentPerformance roles={roles}/>}/><Route path="/admin/media-library" element={<AdminMediaLibrary roles={roles} user={user}/>}/><Route path="/admin/sports" element={<AdminSports roles={roles} user={user} setSports={setSports}/>}/><Route path="/admin/sponsors" element={<AdminSponsors user={user} roles={roles}/>}/><Route path="/admin/products" element={<AdminProducts roles={roles} products={products} setProducts={setProducts}/>}/><Route path="/admin/shop-orders" element={<AdminShopOrders roles={roles}/>}/><Route path="/admin/athletes" element={<AdminAthletes roles={roles} user={user}/>}/><Route path="/admin/player-profiles" element={<AdminPlayerProfiles roles={roles} user={user}/>}/><Route path="/admin/verification" element={<AdminVerificationCentre roles={roles}/>}/><Route path="/admin/rosters" element={<AdminRosters roles={roles} user={user}/>}/><Route path="/admin/teams" element={<AdminTeams roles={roles} user={user}/>}/><Route path="/admin/performance" element={<AdminPerformance roles={roles}/>}/><Route path="/admin/reports" element={<AdminReports roles={roles}/>}/><Route path="/admin/planning" element={<AdminPlanningCentre roles={roles} user={user}/>}/><Route path="/admin/match-statistics" element={<AdminMatchStatistics roles={roles} user={user}/>}/><Route path="/admin/international-appearances" element={<AdminInternationalAppearances roles={roles} user={user}/>}/><Route path="/admin/player-awards" element={<AdminPlayerAwards roles={roles} user={user}/>}/><Route path="/admin/competition-honours" element={<AdminCompetitionHonours roles={roles} user={user}/>}/><Route path="/admin/calendar" element={<AdminCalendar roles={roles} sports={sports}/>}/><Route path="/admin/operations" element={<AdminOperations roles={roles} user={user}/>}/><Route path="/admin/approvals" element={<AdminApprovals roles={roles} user={user}/>}/><Route path="/admin/messages" element={<AdminMessages roles={roles} user={user}/>}/><Route path="/messages" element={<AthleteMessages user={user}/>}/><Route path="/admin/ticket-gate" element={<AdminTicketGate roles={roles}/>}/><Route path="/admin/event-reports" element={<AdminEventReports roles={roles}/>}/><Route path="/admin/editorial" element={<AdminEditorial roles={roles} user={user} sports={sports}/>}/><Route path="/notifications" element={<Personal title="Notifications" user={user} kind="notifications"/>}/><Route path="/tickets" element={<Personal title="My tickets" user={user} kind="tickets"/>}/><Route path="/orders" element={<Personal title="My orders" user={user} kind="orders"/>}/><Route path="*" element={<NotFound/>}/>
  </Routes><BottomNav/>{cart.reduce((n,x)=>n+x.qty,0)>0&&<Link className="cart-fab" to="/cart" aria-label="Open shopping bag"><ShoppingBag size={18}/><span>{cart.reduce((n,x)=>n+x.qty,0)}</span></Link>}{toast&&<div className="toast">{toast}</div>}</div></div>;
 }
 function localDateKey(value=new Date()) { const d=new Date(value); return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-'); }
@@ -3617,6 +3617,90 @@ function AdminRosters({roles,user}) {
    </article>):<Empty title="No athletes in this roster" body="Add approved athlete profiles to build this team's squad. You will only be able to save changes where your team assignment permits it."/>}
   </Section>
   <p className="muted">Need to create or approve an athlete profile? <Link to="/admin/athletes">Open Athlete Management</Link>.</p>
+ </main></>;
+}
+
+
+function AdminPlayerProfiles({roles=[],user}) {
+ const allowed=roles.includes("super_admin");
+ const [profiles,setProfiles]=useState([]);
+ const [search,setSearch]=useState("");
+ const [name,setName]=useState("");
+ const [file,setFile]=useState(null);
+ const [busy,setBusy]=useState(false);
+ const [error,setError]=useState("");
+ const [notice,setNotice]=useState("");
+ async function load(){
+  if(!allowed||!supabase)return;
+  const {data,error}=await supabase.from("player_profiles").select("id,full_name,display_name,photo_path,photo_approved_at,created_at").order("full_name").limit(500);
+  if(error)setError(error.message);else setProfiles(data||[]);
+ }
+ useEffect(()=>{load()},[allowed]);
+ async function save(e){
+  e.preventDefault();
+  if(!allowed||!user?.id||!supabase||busy)return;
+  const clean=name.trim().replace(/\\s+/g," ");
+  if(clean.length<2){setError("Enter the player's full name.");return;}
+  if(file&&(!["image/jpeg","image/png","image/webp"].includes(file.type)||file.size>5*1024*1024)){
+   setError("Choose a JPG, PNG or WebP image no larger than 5 MB.");return;
+  }
+  setBusy(true);setError("");setNotice("");
+  let profile=null;
+  const found=await supabase.from("player_profiles").select("id,full_name,photo_path").ilike("full_name",clean).limit(2);
+  if(found.error){setError(found.error.message);setBusy(false);return;}
+  if((found.data||[]).length>1){setError("More than one profile already uses this name. Resolve the duplicate before uploading.");setBusy(false);return;}
+  if(found.data?.length){
+   profile=found.data[0];
+   if(file&&profile.photo_path){setError("This profile already has a photo. Existing photos are protected from replacement.");setBusy(false);return;}
+  }else{
+   const created=await supabase.from("player_profiles").insert({full_name:clean,display_name:clean,profile_visibility:"public"}).select("id,full_name,photo_path").single();
+   if(created.error){setError(created.error.message);setBusy(false);return;}
+   profile=created.data;
+  }
+  if(file){
+   const ext=file.type==="image/png"?"png":file.type==="image/webp"?"webp":"jpg";
+   const path="imports/"+profile.id+"/"+crypto.randomUUID()+"."+ext;
+   const uploaded=await supabase.storage.from("player-profile-photos").upload(path,file,{contentType:file.type,cacheControl:"3600",upsert:false});
+   if(uploaded.error){setError("Profile record is saved, but its photo upload failed: "+uploaded.error.message);setBusy(false);await load();return;}
+   const saved=await supabase.from("player_profiles").update({photo_path:path,updated_at:new Date().toISOString()}).eq("id",profile.id).is("photo_path",null).select("id").maybeSingle();
+   if(saved.error||!saved.data){
+    setError("The image was uploaded, but the profile link was not changed. The file remains safely stored at "+path+". "+(saved.error?.message||"A photo may already be linked."));
+    setBusy(false);await load();return;
+   }
+  }
+  setName("");setFile(null);
+  const input=document.getElementById("cut-player-profile-photo");
+  if(input)input.value="";
+  setNotice((found.data?.length?"Existing profile matched: ":"New profile created: ")+profile.full_name+(file?" — photo uploaded. It remains pending photo approval.":" — profile created without a photo.")+" No sport or team has been assigned.");
+  await load();setBusy(false);
+ }
+ const term=search.trim().toLocaleLowerCase();
+ const visible=profiles.filter(p=>(p.full_name||"").toLocaleLowerCase().includes(term)||(p.display_name||"").toLocaleLowerCase().includes(term));
+ if(!allowed)return <><Header title="Player profile imports" back/><main className="page"><Empty title="Super-admin access required" body="Only a CUT Sport super administrator can create player profiles or upload profile photos."/></main></>;
+ return <><Header title="Player profile imports" back/><main className="page">
+  <div className="page-intro"><span className="eyebrow">CUT SPORT · ADMIN</span><h1>Player profiles<br/><em>& photo imports.</em></h1><p>Create a canonical player profile and attach its portrait without assigning a sport or team. Existing photos are protected from replacement.</p></div>
+  <section className="panel" style={{padding:18,marginBottom:20}}>
+   <h2>Create profile / attach photo</h2>
+   <form onSubmit={save} className="form-widget">
+    <label>Player full name<input value={name} onChange={e=>setName(e.target.value)} required maxLength={160} placeholder="Enter the exact roster name"/></label>
+    <label>Portrait (optional)<input id="cut-player-profile-photo" type="file" accept="image/jpeg,image/png,image/webp" onChange={e=>setFile(e.target.files?.[0]||null)}/></label>
+    <small className="muted">JPG, PNG or WebP · maximum 5 MB. Uploads use a unique file path and do not replace existing approved photos.</small>
+    <button className="button primary" type="submit" disabled={busy}>{busy?"Saving…":"Create profile / upload photo"}</button>
+   </form>
+   {error&&<p className="form-error" role="alert">{error}</p>}
+   {notice&&<p className="form-success" role="status">{notice}</p>}
+  </section>
+  <section className="panel" style={{padding:18}}>
+   <h2>Existing player profiles · {profiles.length}</h2>
+   <input type="search" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search player names…"/>
+   <div style={{display:"grid",gap:10,marginTop:14}}>
+    {visible.map(p=><div key={p.id} style={{display:"flex",justifyContent:"space-between",gap:12,alignItems:"center",padding:"10px 0",borderBottom:"1px solid var(--line,#ddd)"}}>
+     <div><b>{p.full_name}</b><small style={{display:"block",opacity:.7}}>{p.photo_path?"Photo linked": "No photo"} · {p.photo_approved_at?"Photo approved":"Photo not yet approved"}</small></div>
+     <small>{p.photo_path?"Protected":"Awaiting photo"}</small>
+    </div>)}
+    {!visible.length&&<p className="muted">No matching profiles.</p>}
+   </div>
+  </section>
  </main></>;
 }
 
