@@ -4392,7 +4392,7 @@ function AdminInternationalAppearances({roles,user}) {
   let metrics;try{metrics=JSON.parse(metricsText||"{}");if(!metrics||Array.isArray(metrics)||typeof metrics!=="object")throw new Error();}catch{setError("Statistics must be a valid JSON object, for example { \"caps\": 1, \"goals\": 2 }.");return;}
   if(!selectedPlayer||!selectedSport||!country.trim()||!appearanceDate||!sourceUrl.trim()){setError("Complete the player, sport, country, date and source fields.");return;}
   setBusy(true);setError("");setMessage("");
-  const {error}=await supabase.from("player_international_appearances").insert({player_name:selectedPlayer.full_name,sport_id:sportId,country:country.trim(),national_team:nationalTeam.trim()||null,event_name:eventName.trim()||null,competition_id:competitionId||null,season:season.trim()||null,appearance_date:appearanceDate,opponent:opponent.trim()||null,source_url:sourceUrl.trim(),metrics,recorded_by:user.id});
+  const {error}=await supabase.from("player_international_appearances").insert({player_profile_id:selectedPlayer.id,player_name:selectedPlayer.full_name,sport_id:sportId,country:country.trim(),national_team:nationalTeam.trim()||null,event_name:eventName.trim()||null,competition_id:competitionId||null,season:season.trim()||null,appearance_date:appearanceDate,opponent:opponent.trim()||null,source_url:sourceUrl.trim(),metrics,recorded_by:user.id});
   if(error)setError(error.message);else{setMessage("International appearance submitted for approval.");setOpponent("");setSourceUrl("");setMetricsText("{}");await load();}
   setBusy(false);
  }
