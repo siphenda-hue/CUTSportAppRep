@@ -3627,75 +3627,104 @@ function AdminPlayerProfiles({roles=[],user}) {
  const [search,setSearch]=useState("");
  const [name,setName]=useState("");
  const [file,setFile]=useState(null);
+ const [batchFiles,setBatchFiles]=useState([]);
  const [busy,setBusy]=useState(false);
  const [error,setError]=useState("");
  const [notice,setNotice]=useState("");
+ const [batchResults,setBatchResults]=useState([]);
  async function load(){
   if(!allowed||!supabase)return;
   const {data,error}=await supabase.from("player_profiles").select("id,full_name,display_name,photo_path,photo_approved_at,created_at").order("full_name").limit(500);
   if(error)setError(error.message);else setProfiles(data||[]);
  }
  useEffect(()=>{load()},[allowed]);
- async function save(e){
+ function validImage(f){return ["image/jpeg","image/png","image/webp"].includes(f.type)&&f.size<=5*1024*1024;}
+ async function findOrCreateProfile(clean){
+  const found=await supabase.from("player_profiles").select("id,full_name,photo_path").ilike("full_name",clean).limit(2);
+  if(found.error)throw new Error(found.error.message);
+  if((found.data||[]).length>1)throw new Error("Duplicate profile names need manual review.");
+  if(found.data?.length)return found.data[0];
+  const created=await supabase.from("player_profiles").insert({full_name:clean,display_name:clean}).select("id,full_name,photo_path").single();
+  if(created.error)throw new Error(created.error.message);
+  return created.data;
+ }
+ async function uploadToProfile(profile,f){
+  if(profile.photo_path)throw new Error("A photo is already linked; existing photos are protected.");
+  const ext=f.type==="image/png"?"png":f.type==="image/webp"?"webp":"jpg";
+  const path="imports/"+profile.id+"/"+crypto.randomUUID()+"."+ext;
+  const uploaded=await supabase.storage.from("player-profile-photos").upload(path,f,{contentType:f.type,cacheControl:"3600",upsert:false});
+  if(uploaded.error)throw new Error(uploaded.error.message);
+  const saved=await supabase.from("player_profiles").update({photo_path:path,updated_at:new Date().toISOString()}).eq("id",profile.id).is("photo_path",null).select("id").maybeSingle();
+  if(saved.error||!saved.data)throw new Error("Photo uploaded but profile linking was not confirmed. Stored file: "+path);
+ }
+ async function saveOne(e){
   e.preventDefault();
   if(!allowed||!user?.id||!supabase||busy)return;
-  const clean=name.trim().replace(/\\s+/g," ");
+  const clean=name.trim().replace(/\s+/g," ");
   if(clean.length<2){setError("Enter the player's full name.");return;}
-  if(file&&(!["image/jpeg","image/png","image/webp"].includes(file.type)||file.size>5*1024*1024)){
-   setError("Choose a JPG, PNG or WebP image no larger than 5 MB.");return;
-  }
+  if(file&&!validImage(file)){setError("Choose a JPG, PNG or WebP image no larger than 5 MB.");return;}
   setBusy(true);setError("");setNotice("");
-  let profile=null;
-  const found=await supabase.from("player_profiles").select("id,full_name,photo_path").ilike("full_name",clean).limit(2);
-  if(found.error){setError(found.error.message);setBusy(false);return;}
-  if((found.data||[]).length>1){setError("More than one profile already uses this name. Resolve the duplicate before uploading.");setBusy(false);return;}
-  if(found.data?.length){
-   profile=found.data[0];
-   if(file&&profile.photo_path){setError("This profile already has a photo. Existing photos are protected from replacement.");setBusy(false);return;}
-  }else{
-   const created=await supabase.from("player_profiles").insert({full_name:clean,display_name:clean,profile_visibility:"public"}).select("id,full_name,photo_path").single();
-   if(created.error){setError(created.error.message);setBusy(false);return;}
-   profile=created.data;
+  try{
+   const profile=await findOrCreateProfile(clean);
+   if(file)await uploadToProfile(profile,file);
+   setName("");setFile(null);
+   const input=document.getElementById("cut-player-profile-photo");if(input)input.value="";
+   setNotice((file?"Profile and photo saved: ":"Profile saved: ")+profile.full_name+". No sport or team has been assigned. "+(file?"Photo approval is still required.":""));
+   await load();
+  }catch(err){setError(err.message||"Could not save this player profile.");}
+  setBusy(false);
+ }
+ async function saveBatch(){
+  if(!allowed||!user?.id||!supabase||busy||!batchFiles.length)return;
+  setBusy(true);setError("");setNotice("");setBatchResults([]);
+  const results=[];
+  for(const f of batchFiles){
+   const base=f.name.replace(/\.[^.]+$/,"").replace(/[_-]+/g," ").replace(/\s+/g," ").trim();
+   try{
+    if(!validImage(f))throw new Error("Unsupported image or file exceeds 5 MB.");
+    if(base.length<2)throw new Error("Filename does not contain a usable player name.");
+    const profile=await findOrCreateProfile(base);
+    await uploadToProfile(profile,f);
+    results.push({file:f.name,ok:true,message:profile.full_name+" — photo uploaded; approval pending."});
+   }catch(err){results.push({file:f.name,ok:false,message:err.message||"Import failed."});}
+   setBatchResults([...results]);
   }
-  if(file){
-   const ext=file.type==="image/png"?"png":file.type==="image/webp"?"webp":"jpg";
-   const path="imports/"+profile.id+"/"+crypto.randomUUID()+"."+ext;
-   const uploaded=await supabase.storage.from("player-profile-photos").upload(path,file,{contentType:file.type,cacheControl:"3600",upsert:false});
-   if(uploaded.error){setError("Profile record is saved, but its photo upload failed: "+uploaded.error.message);setBusy(false);await load();return;}
-   const saved=await supabase.from("player_profiles").update({photo_path:path,updated_at:new Date().toISOString()}).eq("id",profile.id).is("photo_path",null).select("id").maybeSingle();
-   if(saved.error||!saved.data){
-    setError("The image was uploaded, but the profile link was not changed. The file remains safely stored at "+path+". "+(saved.error?.message||"A photo may already be linked."));
-    setBusy(false);await load();return;
-   }
-  }
-  setName("");setFile(null);
-  const input=document.getElementById("cut-player-profile-photo");
-  if(input)input.value="";
-  setNotice((found.data?.length?"Existing profile matched: ":"New profile created: ")+profile.full_name+(file?" — photo uploaded. It remains pending photo approval.":" — profile created without a photo.")+" No sport or team has been assigned.");
+  const success=results.filter(x=>x.ok).length;
+  setNotice("Batch finished: "+success+" of "+results.length+" photos linked. No sport or team assignments were made.");
+  setBatchFiles([]);
+  const input=document.getElementById("cut-player-profile-batch");if(input)input.value="";
   await load();setBusy(false);
  }
  const term=search.trim().toLocaleLowerCase();
  const visible=profiles.filter(p=>(p.full_name||"").toLocaleLowerCase().includes(term)||(p.display_name||"").toLocaleLowerCase().includes(term));
  if(!allowed)return <><Header title="Player profile imports" back/><main className="page"><Empty title="Super-admin access required" body="Only a CUT Sport super administrator can create player profiles or upload profile photos."/></main></>;
  return <><Header title="Player profile imports" back/><main className="page">
-  <div className="page-intro"><span className="eyebrow">CUT SPORT · ADMIN</span><h1>Player profiles<br/><em>& photo imports.</em></h1><p>Create a canonical player profile and attach its portrait without assigning a sport or team. Existing photos are protected from replacement.</p></div>
+  <div className="page-intro"><span className="eyebrow">CUT SPORT · ADMIN</span><h1>Player profiles<br/><em>& photo imports.</em></h1><p>Create profiles and attach portraits without assigning a sport or team. Existing photos are protected from replacement.</p></div>
   <section className="panel" style={{padding:18,marginBottom:20}}>
-   <h2>Create profile / attach photo</h2>
-   <form onSubmit={save} className="form-widget">
+   <h2>Single profile / photo</h2>
+   <form onSubmit={saveOne} className="form-widget">
     <label>Player full name<input value={name} onChange={e=>setName(e.target.value)} required maxLength={160} placeholder="Enter the exact roster name"/></label>
     <label>Portrait (optional)<input id="cut-player-profile-photo" type="file" accept="image/jpeg,image/png,image/webp" onChange={e=>setFile(e.target.files?.[0]||null)}/></label>
-    <small className="muted">JPG, PNG or WebP · maximum 5 MB. Uploads use a unique file path and do not replace existing approved photos.</small>
+    <small className="muted">JPG, PNG or WebP · maximum 5 MB. Existing photos are never overwritten.</small>
     <button className="button primary" type="submit" disabled={busy}>{busy?"Saving…":"Create profile / upload photo"}</button>
    </form>
-   {error&&<p className="form-error" role="alert">{error}</p>}
-   {notice&&<p className="form-success" role="status">{notice}</p>}
   </section>
+  <section className="panel" style={{padding:18,marginBottom:20}}>
+   <h2>Bulk photo import</h2>
+   <p className="muted">Select multiple JPG, PNG or WebP photos. Each filename must be the player's full name, for example <b>Alwande Sibiya.jpg</b>. The importer matches an existing profile or creates one if none exists. No sport or team is assigned.</p>
+   <input id="cut-player-profile-batch" type="file" multiple accept="image/jpeg,image/png,image/webp" onChange={e=>setBatchFiles(Array.from(e.target.files||[]))}/>
+   <small className="muted" style={{display:"block",marginTop:8}}>{batchFiles.length} file(s) selected · maximum 5 MB per photo</small>
+   <button className="button primary" type="button" disabled={busy||!batchFiles.length} onClick={saveBatch}>{busy?"Importing…":"Import selected photos"}</button>
+   {batchResults.length>0&&<div style={{display:"grid",gap:8,marginTop:14}}>{batchResults.map((r,i)=><p key={r.file+i} className={r.ok?"form-success":"form-error"}><b>{r.file}</b> — {r.message}</p>)}</div>}
+  </section>
+  {error&&<p className="form-error" role="alert">{error}</p>}
+  {notice&&<p className="form-success" role="status">{notice}</p>}
   <section className="panel" style={{padding:18}}>
    <h2>Existing player profiles · {profiles.length}</h2>
    <input type="search" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search player names…"/>
    <div style={{display:"grid",gap:10,marginTop:14}}>
     {visible.map(p=><div key={p.id} style={{display:"flex",justifyContent:"space-between",gap:12,alignItems:"center",padding:"10px 0",borderBottom:"1px solid var(--line,#ddd)"}}>
-     <div><b>{p.full_name}</b><small style={{display:"block",opacity:.7}}>{p.photo_path?"Photo linked": "No photo"} · {p.photo_approved_at?"Photo approved":"Photo not yet approved"}</small></div>
+     <div><b>{p.full_name}</b><small style={{display:"block",opacity:.7}}>{p.photo_path?"Photo linked":"No photo"} · {p.photo_approved_at?"Photo approved":"Photo not yet approved"}</small></div>
      <small>{p.photo_path?"Protected":"Awaiting photo"}</small>
     </div>)}
     {!visible.length&&<p className="muted">No matching profiles.</p>}
