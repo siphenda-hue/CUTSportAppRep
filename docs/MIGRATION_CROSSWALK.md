@@ -494,3 +494,20 @@ Five further files were checked. None has a matching migration-ledger entry. The
 | `20261111920000_import_2017_ussa_hockey_team_participation.sql` | Separate 2017 men's and women's USSA Hockey participation records exist, with no unsupported section, placing or match data. | Data present; no direct ledger entry |
 
 No production data, schema, migration history or deployment was changed during this batch.
+
+
+## Follow-on reconciliation batch: 2009 and 2014 hockey, hockey standings backfills and 2025 cricket
+
+Five additional files were reviewed. None has a matching migration-ledger entry by current name; all intended production rows are present.
+
+| Repository file | Live database evidence | Classification |
+|---|---|---|
+| `20261111930000_import_2009_free_state_hockey_third_place.sql` | 2009 Free State men's hockey competition exists; the third-place match is recorded 4–4, with the 4–3 UFS Reds shoot-out win held in the match's JSONB statistics. | Data present; no direct ledger entry |
+| `20261111940000_import_2014_ussa_hockey_team_placements.sql` | 2014 men's and women's USSA Hockey competitions exist, with CUT men's 4th and women's C-Section 2nd standings. | Data present; no direct ledger entry |
+| `20261111950000_backfill_2018_2019_ussa_hockey_standings.sql` | 2018 CUT men's B-Section 6th and 2019 CUT men's C-Section 5th standings exist with the expected played/win/draw/loss and goal totals. | Data present; no direct ledger entry |
+| `20261111960000_add_2014_ussa_hockey_standings.sql` | CUT's 2014 men's 4th and women's 2nd standings are present. Unpublished match totals remain zero/default rather than being invented. | Data present; no direct ledger entry |
+| `20261111970000_add_2025_ussa_cricket_group_b_standing.sql` | CUT's 2025 USSA Cricket Group B fourth-place standing is present (five played, two wins, three losses). It is not represented as an overall tournament placing. | Data present; no direct ledger entry |
+
+The 2009 hockey record correctly distinguishes the regulation-time 4–4 draw from the shoot-out score stored in JSONB (UFS Reds 4, CUT 1 3). The 2018/2019 hockey standings also account for the team-position rows referenced in the earlier competition/match review.
+
+No production data, schema, migration history or deployment was changed during this batch.
