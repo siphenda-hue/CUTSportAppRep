@@ -288,3 +288,38 @@ The current file contains non-idempotent `CREATE POLICY` statements. Because the
 - Four have the expected live data/clarification already present, without a matching current filename identity in the ledger.
 - The standings schema has a strong applied-ledger equivalent under version `20261111095426`.
 - No database or migration-ledger changes were made.
+
+
+## Follow-on reconciliation batch: historical hockey imports and statistics
+
+Five further repository files were matched to live migration-ledger entries. In these cases the ledger `name` preserves the repository file's timestamp-prefixed name, while the applied `version` is an earlier execution timestamp.
+
+| Current repository file | Live ledger identity | Production verification |
+|---|---|---|
+| `20261111154500_seed_cut_hockey_competition_data.sql` | `20261111100512` — `20261111154500_seed_cut_hockey_competition_data` | 2023 men's/women's C-Section and 2026 men's/women's B-Section competitions, standings, matches and player statistics are present. |
+| `20261111160000_add_hockey_team_statistics.sql` | `20261111100542` — `20261111160000_add_hockey_team_statistics` | `competition_team_statistics` exists with its unique key, index, RLS and both public-read and assigned-sport-admin policies. |
+| `20261111160500_seed_hockey_team_statistics.sql` | `20261111100611` — `20261111160500_seed_hockey_team_statistics` | Four expected team summary rows exist for the 2023 and 2026 USSA hockey competitions. |
+| `20261111163000_correct_hockey_match_links_and_statistics.sql` | `20261111101156` — `20261111163000_correct_hockey_match_links_and_statistics` | 2026 men's and women's match rows use official SAHA match IDs (7600–7628) rather than the earlier local aliases. |
+| `20261111170000_import_cut_hockey_2024_2025.sql` | `20261111101547` — `20261111170000_import_cut_hockey_2024_2025` | 2024 and 2025 men's/women's competitions, standings, 15 match rows per competition, player statistics and team summary rows are present. |
+
+These are **confirmed ledger matches under alternate applied versions**, not unapplied migrations. The live data counts observed were:
+
+| Hockey competition | Standings | Matches | Player-stat rows | Team-stat rows |
+|---|---:|---:|---:|---:|
+| 2023 USSA Men C-Section | 14 (Pool A + Final Standing) | 6 | 8 | 1 |
+| 2023 USSA Women C-Section | 8 (Pool A + Final Standing) | 5 | 8 | 1 |
+| 2024 USSA Men B-Section | 12 (Pool A + Final Standing) | 15 | 4 | 1 |
+| 2024 USSA Women C-Section | 8 (Pool A + Final Standing) | 10 | 8 | 1 |
+| 2025 USSA Men B-Section | 12 (Pool A + Final Standing) | 15 | 5 | 1 |
+| 2025 USSA Women B-Section | 12 (Pool A + Final Standing) | 15 | 7 | 1 |
+| 2026 USSA Men B-Section | 6 (Pool A) | 5 | 5 | 1 |
+| 2026 USSA Women B-Section | 16 (Pool A, Pool B + Final Standing) | 5 | 9 | 1 |
+
+### Hockey data-quality observations retained
+
+- The separate `Pool A` and `Final Standing` groups in the single-pool 2023–2025 competitions repeat the same team ranking where the tournament source presents both a pool table and a final placing. They are distinct group labels, not duplicate rows under the unique key.
+- In the 2023 women's C-Section, the official team total is 14 while the published category breakdown (9 field goals + 4 penalty-corner goals + 0 penalty strokes) and named player rows total 13. The existing `statistics` JSONB explicitly records this as a source arithmetic inconsistency with one unreconciled goal. Do not invent a scorer or change the source totals.
+- In the 2026 women's B-Section, team totals are 19 while the nine named player rows total 17. The existing `statistics` JSONB records two unattributed goals. Do not inflate player totals.
+- The `competition_team_statistics` table has an additional `statistics jsonb` column beyond the base hockey-table migration. This is explained by the later applied migration `20261111102901` (`add_multisport_competition_statistics_and_rugby_2026`). RLS is enabled; the table is not FORCE RLS. Its public-read and assigned-sport-admin management policies are present.
+
+No production data or schema was changed during this batch.
