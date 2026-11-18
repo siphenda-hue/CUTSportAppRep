@@ -150,3 +150,70 @@ These are strong lineage proofs because the Git commits explicitly add/remove th
 **Still unresolved:** all remaining unmatched files, every duplicate-version group, the full historical content of the initial schema, and all ledger rows without a current same-name file.
 
 Do not extrapolate these confirmed cases to other files. Each remaining file requires its own Git lineage and ledger evidence.
+
+
+## Duplicate-version group reconciliation
+
+A second pass compared every file in the 21 duplicate-version groups against the live ledger using the normalized migration name (the filename without its timestamp prefix and `.sql` suffix).
+
+- All **21 duplicated timestamp prefixes are absent from the live ledger** as versions.
+- Of the **42 files** in those groups, **23 have a matching normalized migration name** in the ledger, but under a different applied version.
+- The remaining **19 files have no matching normalized migration name** in the live ledger and remain unresolved candidates.
+- None of these 19 is labelled unapplied here: a migration may have been applied under a changed name or represented by a later/superseding SQL migration.
+
+### Duplicate groups with name-matched ledger evidence
+
+| Shared repository timestamp | Files with a normalized ledger-name match | Files without a normalized ledger-name match |
+|---|---:|---:|
+| `20261111110000` | 1 | 1 |
+| `20261111120000` | 1 | 1 |
+| `20261111130000` | 1 | 1 |
+| `20261111170000` | 1 | 1 |
+| `20261111173000` | 1 | 1 |
+| `20261111180000` | 1 | 1 |
+| `20261111190000` | 2 | 1 |
+| `20261111193000` | 2 | 0 |
+| `20261111200000` | 1 | 1 |
+| `20261111210000` | 2 | 2 |
+| `20261111220000` | 2 | 1 |
+| `20261111230000` | 2 | 1 |
+| `20261111240000` | 2 | 2 |
+| `20261111250000` | 2 | 1 |
+| `20261111260000` | 1 | 1 |
+| `20261111270000` | 1 | 1 |
+| `20261111280000` | 2 | 1 |
+| `20261111290000` | 1 | 1 |
+| `20261111300000` | 1 | 1 |
+| `20261111310000` | 1 | 1 |
+| `20261111430000` | 2 | 0 |
+| **Total** | **23** | **19** |
+
+### Unmatched files in duplicate groups
+
+These 19 files have no direct normalized-name counterpart in the current live ledger:
+
+- `20261111110000_import_ussa_basketball_2025_b_section_placements.sql`
+- `20261111120000_import_cut_cheerleading_samca_2025_results.sql`
+- `20261111130000_add_cut_ussa_cricket_2025_participation.sql`
+- `20261111170000_import_cut_2025_free_state_cross_country_championships.sql`
+- `20261111173000_add_2025_asa_cross_country_event_audit.sql`
+- `20261111180000_import_2025_ussa_cross_country_championships_audit.sql`
+- `20261111190000_import_2024_ussa_cross_country_championship_audit.sql`
+- `20261111200000_add_2024_asa_cross_country_championship_audit.sql`
+- `20261111210000_add_2024_free_state_cross_country_championship_audit.sql`
+- `20261111210000_import_2019_ussa_esports_cut_result.sql`
+- `20261111220000_import_2022_cut_red_bull_campus_clutch.sql`
+- `20261111230000_import_2026_varsity_esports_cut_rocket_league_finalist.sql`
+- `20261111240000_add_tennis_and_table_tennis_sport_categories.sql`
+- `20261111240000_import_cut_ussa_golf_2019_2022_2025.sql`
+- `20261111250000_import_2019_cut_varsity_football_derby.sql`
+- `20261111260000_import_cut_ussa_and_provincial_football_2022_2025.sql`
+- `20261111270000_import_cut_abc_motsepe_and_mangaung_cup_2021_2022.sql`
+- `20261111280000_import_2022_sasol_national_womens_football.sql`
+- `20261111290000_reconcile_2024_free_state_sasol_womens_league.sql`
+
+### Interpretation
+
+The duplicate timestamps are a repository-level collision problem even though none of those duplicated prefixes appears as an applied version in the live ledger. The files with normalized-name matches show that some were applied under different versions. The other files require individual Git-history review and live-data comparison before they can be classified.
+
+Do not resolve this by renaming all 42 files or assigning sequential timestamps in bulk. First establish which SQL statements have already affected production and whether the 19 unmatched files have been applied under other names, included in other migrations, or never applied.
