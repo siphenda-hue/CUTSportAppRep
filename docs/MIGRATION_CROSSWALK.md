@@ -479,3 +479,18 @@ This is a **conditional future-object risk**, not evidence of a current table ex
 ### Security reconciliation conclusion
 
 The reviewed live security state matches the expected role model for existing tables. The shop-admin product DML grants are intentional and constrained by RLS. The main portability follow-up is to standardize the migration execution role and decide whether to harden the `supabase_admin` default ACL. This audit did not alter any policy, grant, function, table, row, migration-ledger entry or deployment.
+
+
+## Follow-on reconciliation batch: 2016 cricket fixtures and 2017–2019 hockey history
+
+Five further files were checked. None has a matching migration-ledger entry. Their intended records are present in the live database.
+
+| Repository file | Live database evidence | Classification |
+|---|---|---|
+| `20261111800000_import_2016_national_club_championship_cut_fixtures.sql` | All five 2016 National Club Championship fixtures exist under the correct competition. Four retain null scores because the indexed scorecards were not verified; the Union Stars fixture is enriched separately. | Data present; no direct ledger entry |
+| `20261111810000_enrich_2016_national_club_championship_cut_vs_union_stars.sql` | Union Stars' 261/6 vs CUT's 89 all out, 172-run result and the sourced player batting/bowling figures are present. | Data present; no direct ledger entry |
+| `20261111900000_add_official_cut_source_to_2019_varsity_cricket.sql` | The 2019 Varsity Cricket description now cites the CUT Annual Report as independent confirmation of participation, while retaining the UP-Tuks six-wicket result and no unsupported score/date. | Live description reflects source clarification |
+| `20261111910000_import_2018_2019_ussa_mens_hockey_records.sql` | 2018 USSA Men B-Section and 2019 USSA Men C-Section competitions exist with the five 2018 losses, five 2019 match results, fifth-place finish and Zandre Pretorius' nine-goal total. The file itself notes that equivalent records were applied directly before it was committed. | Data present; no direct ledger entry |
+| `20261111920000_import_2017_ussa_hockey_team_participation.sql` | Separate 2017 men's and women's USSA Hockey participation records exist, with no unsupported section, placing or match data. | Data present; no direct ledger entry |
+
+No production data, schema, migration history or deployment was changed during this batch.
