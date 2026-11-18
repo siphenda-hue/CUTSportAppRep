@@ -13,7 +13,7 @@ This snapshot confirms that migration history is not yet safe for automated repl
 | Check | Result |
 |---|---:|
 | SQL files in `supabase/migrations/` | 198 |
-| Distinct 14-digit versions represented by those files | 177 |
+| Distinct 14-digit versions represented by those files | 168 |
 | Duplicate version groups | 21 |
 | Applied rows in live migration ledger | 143 |
 | Repository files with a direct migration-name match in the ledger | 123 |
@@ -154,10 +154,11 @@ Do not extrapolate these confirmed cases to other files. Each remaining file req
 
 ## Duplicate-version group reconciliation
 
-A second pass compared every file in the 21 duplicate-version groups against the live ledger using the normalized migration name (the filename without its timestamp prefix and `.sql` suffix).
+A second pass compared all 51 files across the 21 duplicate-version groups against the live ledger using the normalized migration name (the filename without its timestamp prefix and `.sql` suffix).
 
 - All **21 duplicated timestamp prefixes are absent from the live ledger** as versions.
-- Of the **42 files** in those groups, **23 have a matching normalized migration name** in the ledger, but under a different applied version.
+- The 21 groups contain **51 files total** (30 duplicate occurrences beyond the first file per group).
+- Of the **51 files** in those groups, **32 have a matching normalized migration name** in the ledger, but under a different applied version.
 - The remaining **19 files have no matching normalized migration name** in the live ledger and remain unresolved candidates.
 - None of these 19 is labelled unapplied here: a migration may have been applied under a changed name or represented by a later/superseding SQL migration.
 
@@ -216,7 +217,7 @@ These 19 files have no direct normalized-name counterpart in the current live le
 
 The duplicate timestamps are a repository-level collision problem even though none of those duplicated prefixes appears as an applied version in the live ledger. The files with normalized-name matches show that some were applied under different versions. The other files require individual Git-history review and live-data comparison before they can be classified.
 
-Do not resolve this by renaming all 42 files or assigning sequential timestamps in bulk. First establish which SQL statements have already affected production and whether the 19 unmatched files have been applied under other names, included in other migrations, or never applied.
+Do not resolve this by renaming all 51 files or assigning sequential timestamps in bulk. First establish which SQL statements have already affected production and whether the 19 unmatched files have been applied under other names, included in other migrations, or never applied.
 
 
 ## Live-data reconciliation of the 19 unmatched duplicate-group files
