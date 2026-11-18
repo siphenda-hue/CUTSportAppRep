@@ -262,3 +262,29 @@ The live database currently has the correct Football competition under UUID `a43
 - This is evidence of **live data presence**, not proof that each of these 19 exact files was applied through Supabase's migration runner.
 - No SQL migration, data mutation, migration-ledger repair, schema change, or deployment was performed during this comparison.
 - The 2022 Football collision is a release-blocking portability issue: the repository source must not be replayed unchanged into a fresh or restored database.
+
+
+## Follow-on reconciliation batch: Volleyball, Athletics, standings schema and cross-country
+
+A second read-only batch reviewed five additional files from the remaining direct-name unmatched set.
+
+| Repository file | Live state / ledger evidence | Classification |
+|---|---|---|
+| `20261111100000_import_ussa_volleyball_2024_2025_verified_placements.sql` | Both 2024 and 2025 USSA Volleyball competitions exist for Volleyball; each has CUT Volleyball Club in 7th place, matching the file's intended scope. | Live data present; exact records, no direct filename-ledger match |
+| `20261111140000_import_ussa_athletics_2025_verified_results.sql` | 2025 USSA Track & Field Championships exists with the expected dates, venue and verified athlete result narrative. | Live data present; exact event and content, no direct filename-ledger match |
+| `20261111143000_add_multi_sport_competition_standings.sql` | `competition_standings` exists with the expected columns, defaults, unique key, RLS, the two named policies and index. The live ledger has version `20261111095426`, name `competition_standings_and_multi_sport_competitions`; the current file's Git commit is dated 09:54:33 UTC, seven seconds after that ledger version, and its schema/policy definition matches the live objects. | Strong equivalent to an applied migration under a different ledger identity; preserve as lineage evidence, do not replay |
+| `20261111144500_clarify_hollywoodbets_cut_participation.sql` | The 2026 record is now named `Hollywoodbets Super League (National Reference)` and explicitly states that CUT Ixias Ladies must not be attributed to that competition. | Live data reflects intended clarification; no direct filename-ledger match |
+| `20261111150000_import_cut_bloemfontein_cross_country_2025_results.sql` | The 2025 Bloemfontein Cross Country League competition exists with the two verified league-result summaries in its description. | Live data present; exact event and content, no direct filename-ledger match |
+
+### Standings-schema lineage note
+
+The `competition_standings` ledger entry demonstrates another kind of mismatch: the live applied version/name (`20261111095426` / `competition_standings_and_multi_sport_competitions`) differs from the current repository filename (`20261111143000_add_multi_sport_competition_standings.sql`). The current file was added in commit `0e8f68912c69266bac61100a7c362d11f25a993d` at 09:54:33 UTC. This is strong evidence of the same schema operation being represented under different identities, but the ledger itself does not store the SQL body, so the evidence is described as a strong equivalent rather than an independently cryptographic body comparison.
+
+The current file contains non-idempotent `CREATE POLICY` statements. Because the live policies already exist, replaying this file against the current project would fail on duplicate policy names. The current table and policies were inspected read-only; no DDL was executed.
+
+### Batch conclusion
+
+- Five more direct-name unmatched files were reviewed.
+- Four have the expected live data/clarification already present, without a matching current filename identity in the ledger.
+- The standings schema has a strong applied-ledger equivalent under version `20261111095426`.
+- No database or migration-ledger changes were made.
