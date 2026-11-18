@@ -118,3 +118,35 @@ These examples establish that the repository has previously used rename-by-repla
 - Resolve the 21 duplicate version groups individually; no current evidence authorizes selecting one file or assuming all files in a group were applied.
 - Compare historical SQL bodies wherever Git history preserves the predecessor content.
 - Keep all production migration operations paused until a reviewer can trace every ledger row and every current migration file.
+
+
+## Expanded Git-history lineage findings
+
+The migration-directory history was paginated in full: **246 commits across three non-empty pages** (page 4 was empty). This includes the 6–17 November 2026 migration activity. Commit-level file metadata confirms the following filename replacement pairs:
+
+| Applied ledger identity | Superseded repository filename | Current repository filename | History finding |
+|---|---|---|---|
+| `20261111084610` — `athlete_recruitment_and_trial_selection` | `20261111090000_athlete_recruitment_and_trial_selection.sql` | `20261111084610_athlete_recruitment_and_trial_selection.sql` | Same SQL body was removed and re-added under the applied version. |
+| `20261111084651` — `separate_recruitment_opportunity_write_policies` | `20261111090100_separate_recruitment_opportunity_write_policies.sql` | `20261111084651_separate_recruitment_opportunity_write_policies.sql` | Same SQL body was removed and re-added under the applied version. |
+| `20261111085030` — `restrict_recruitment_column_permissions` | `20261111090200_restrict_recruitment_column_permissions.sql` | `20261111085030_restrict_recruitment_column_permissions.sql` | Same SQL body was removed and re-added under the applied version. |
+| `20261111085208` — `protect_private_trial_evaluation_notes` | `20261111085130_protect_private_trial_evaluation_notes.sql` | `20261111085208_protect_private_trial_evaluation_notes.sql` | Same SQL body was removed and re-added under the applied version. |
+| `20261111075041` — ledger name retains old prefix `20261111103000_athlete_self_service_review_visibility` | `20261111103000_athlete_self_service_review_visibility.sql` | `20261111075041_athlete_self_service_review_visibility.sql` | Same SQL body was removed and re-added under the applied version. |
+| `20261111080034` — `harden_athlete_resubmission_guard_null_handling` | `20261111121500_harden_athlete_resubmission_guard_null_handling.sql` | `20261111080034_harden_athlete_resubmission_guard_null_handling.sql` | Same SQL body was removed and re-added under the applied version. |
+| `20261111075930` — secure athlete resubmission migration | `20261111120000_secure_athlete_record_resubmission.sql` | `20261111075930_secure_athlete_record_resubmission.sql` | Same SQL body was removed and re-added under the applied version. |
+| `20261106012659` — `release_unlinked_stale_yoco_orders` | `20261106013000_release_unlinked_stale_yoco_orders.sql` | `20261106012659_release_unlinked_stale_yoco_orders.sql` | Same SQL body was removed and re-added under the applied version. |
+
+These are strong lineage proofs because the Git commits explicitly add/remove the exact paths and their patches contain the SQL body. The live ledger provides the matching applied version/name identity. The historical ledger name for the athlete self-service policy remains prefixed with the superseded timestamp, which is a confirmed example of why ledger `name` values cannot be treated as current filenames.
+
+### Additional migration history notes
+
+- The 11 November commit `863225e5e4c2ae518535ee929b26654368391084` modifies the initial schema migration source to align it with the SQL that was actually applied. This is a content correction, not just a filename change. Its exact historical file lineage and content need separate review.
+- The 11 November commit `6136bb5b61ac8e978a2e2f8c76d8913b92c9109d` corrects a Golf seed UUID collision. This is a substantive migration content change and must not be mistaken for a rename.
+- The 16 November migration filename-alignment examples already documented above remain confirmed.
+- These lineage proofs resolve specific mismatches; they do not yet reconcile every current file or every ledger row.
+
+## Current reconciliation status
+
+**Confirmed historical filename replacement cases documented:** 11 (including the three 16 November cases documented above and the eight additional pairs listed here).  
+**Still unresolved:** all remaining unmatched files, every duplicate-version group, the full historical content of the initial schema, and all ledger rows without a current same-name file.
+
+Do not extrapolate these confirmed cases to other files. Each remaining file requires its own Git lineage and ledger evidence.
