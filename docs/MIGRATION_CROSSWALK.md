@@ -528,3 +528,17 @@ Five further files were checked. None has a matching live migration-ledger entry
 The 2019 MCA standings confirm the source positions while preserving the one unexplained CUT 1 result. The 2015/16 name expansion changes display names only; it retains the original runs, wickets and award facts.
 
 No production data, schema, migration history or deployment was changed during this batch.
+
+
+## Follow-on reconciliation batch: 2021–2025/26 cricket source and participation context
+
+Four further files were reviewed. None has a matching live migration-ledger entry by current name; all intended production descriptions or competition records are present.
+
+| Repository file | Live database evidence | Classification |
+|---|---|---|
+| `20261112040000_add_official_source_to_2021_22_mca_cricket_record.sql` | The 2021/22 MCA record includes the official CUT Annual Report 2022 source and the CUT 1 first / CUT 2 fourth final positions. | Live description reflects source clarification |
+| `20261112050000_add_ussa_2021_cricket_timing_context.sql` | The 2021 USSA Cricket description retains both date references: CUT's annual report categorises participation under December 2021, while UFH's later report indicates the event was held in January 2022. No match results are inferred. | Live description reflects timing reconciliation and source discrepancy |
+| `20261112060000_add_2023_free_state_cricket_competitions.sql` | Both distinct 2023 records exist: Free State Cricket League and Free State Cricket Union League — First Round. | Data present; no direct ledger entry |
+| `20261112070000_add_official_source_to_2025_26_mangaung_cricket_league.sql` | The 2025/26 Mangaung Cricket League description includes the direct CUT Annual Report source, with participation and dates only. | Live description reflects source clarification |
+
+No production data, schema, migration history or deployment was changed during this batch.
