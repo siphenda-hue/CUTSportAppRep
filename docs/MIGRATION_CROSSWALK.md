@@ -542,3 +542,10 @@ Four further files were reviewed. None has a matching live migration-ledger entr
 | `20261112070000_add_official_source_to_2025_26_mangaung_cricket_league.sql` | The 2025/26 Mangaung Cricket League description includes the direct CUT Annual Report source, with participation and dates only. | Live description reflects source clarification |
 
 No production data, schema, migration history or deployment was changed during this batch.
+
+
+## Final unmatched-file check: 2018 Varsity Cricket tournament dates
+
+`20261111590000_set_2018_varsity_cricket_tournament_dates.sql` has no matching live migration-ledger entry by current name. The target 2018 Varsity Cricket competition exists with the expected 29 January–3 February 2018 dates, its sourced competition context and one group-stage match row. The date correction is therefore reflected in live data, but the file is not ledger-confirmed.
+
+No production data, schema, migration history or deployment was changed during this check.
