@@ -346,3 +346,20 @@ The historical cricket file deliberately assigns `a43e3a9b-7c4e-4d7e-9f7c-2022f5
 The 2023/24 Free State ABC Motsepe competition is a completed historical season, but its current database status is `upcoming`. The seed SQL omits the status column, so the database default was used. This is a real data-state defect, not evidence that the migration is unapplied. It should be corrected through a separately reviewed, idempotent change after this migration reconciliation is complete.
 
 No production data, schema, migration history or deployment was changed during this batch.
+
+
+## Follow-on reconciliation batch: 2017–2025 cricket match history
+
+Five more historical cricket files were inspected. None has a matching migration-ledger entry by current filename or normalized name, but all intended competition updates and match rows are present in the live database.
+
+| Repository file | Live database evidence | Classification |
+|---|---|---|
+| `20261111530000_reconcile_2025_ussa_cricket_group_b_placing.sql` | The 2025 USSA Cricket description now records the four Group B results and the 186-run loss to Madibaz B, explicitly identifying CUT's fourth place as a Group B placing rather than an overall tournament rank. | Data present; no direct ledger entry |
+| `20261111550000_import_2022_varsity_cricket_cut_semi_final.sql` | The 2022 Varsity Cricket semi-final is present under the Cricket UUID `...2022f5a00001`, with NWU 157/6 defeating CUT 152/6 by five runs and Delano Williams' sourced 26 not out. | Data present; exact match and correct Cricket UUID |
+| `20261111560000_import_2019_varsity_cricket_cut_match.sql` | The 2019 Varsity Cricket group-stage result against UP-Tuks exists as a completed match with no invented score or date. | Data present; no direct ledger entry |
+| `20261111570000_import_2018_varsity_cricket_cut_match.sql` | The 2018 Varsity Cricket group-stage result against UP-Tuks exists as a completed match; score and exact date remain null as the source does not publish them. | Data present; no direct ledger entry |
+| `20261111580000_import_2017_ussa_cricket_qualifier_result.sql` | The 2017 USSA Cricket qualifier against UFS/Kovsies exists as a completed result, with no invented score or exact date. | Data present; no direct ledger entry |
+
+The 2022 semi-final row is correctly attached to the 2022 Varsity Cricket competition using UUID `a43e3a9b-7c4e-4d7e-9f7c-2022f5a00001`. This further confirms that the same UUID in the 2022 USSA Football import is a source-file collision, not a legitimate Football identity.
+
+No production data, schema, migration history or deployment was changed during this batch.
