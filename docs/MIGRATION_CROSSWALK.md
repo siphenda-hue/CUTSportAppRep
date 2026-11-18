@@ -363,3 +363,18 @@ Five more historical cricket files were inspected. None has a matching migration
 The 2022 semi-final row is correctly attached to the 2022 Varsity Cricket competition using UUID `a43e3a9b-7c4e-4d7e-9f7c-2022f5a00001`. This further confirms that the same UUID in the 2022 USSA Football import is a source-file collision, not a legitimate Football identity.
 
 No production data, schema, migration history or deployment was changed during this batch.
+
+
+## Follow-on reconciliation batch: 2012, 2018 and 2023 USSA Cricket results
+
+Five further historical cricket files were checked. None has a direct matching migration-ledger entry. All target competitions, match rows and player-stat rows are present in production.
+
+| Repository file | Live database evidence | Classification |
+|---|---|---|
+| `20261111600000_import_2018_ussa_cricket_cut_uct_result.sql` | 2018 USSA Cricket A Section exists for 3–7 December in Stellenbosch; CUT's 180–76 win over UCT in the 7th-place play-off is present. | Data present; no direct ledger entry |
+| `20261111610000_import_2023_ussa_cricket_cut_results.sql` | 2023 USSA Cricket A Week exists with four verified match rows (three Pool B wins and the 22-run Section B play-off win over UCT). The unverified scheduled final against Varsity College is not recorded as a result. | Data present; no direct ledger entry |
+| `20261111620000_add_2023_ussa_cricket_jason_raubenheimer_bowling_record.sql` | Jason Raubenheimer's eight-wicket tournament record is present for the 2023 USSA competition. | Data present; no direct ledger entry |
+| `20261111630000_add_2018_ussa_cricket_cut_bowling_figures.sql` | The three sourced 2018 UCT play-off bowling rows are present: Nealan van Heerden 3/10, Jason Raubenheimer 3/21 and Devon du Plessis 3/24. | Data present; no direct ledger entry |
+| `20261111640000_import_2012_ussa_cricket_cut_participation.sql` | The 2012 USSA Cricket participation record exists with the three wins, two losses and retention of A Section status; no unsupported match or player rows are present. | Data present; no direct ledger entry |
+
+The 2018 USSA A Section match is a separate competition from the 2018 Varsity Cricket group-stage match already documented above. Both competition records and their distinct match rows are present. No production data, schema, migration history or deployment was changed during this batch.
