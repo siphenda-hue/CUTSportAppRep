@@ -412,3 +412,20 @@ Five more files were reviewed. None has a matching live migration-ledger entry b
 Some historical cricket batting, bowling and award records are stored in `competition_player_statistics.statistics` JSONB. The legacy numeric `field_goals`, `penalty_corner_goals`, `penalty_stroke_goals` and `total_goals` columns are zero placeholders on those cricket rows; they must not be interpreted as a cricket player's runs or wickets. The app's cricket presentation should read the typed values from `statistics` and label them by `stat_category`.
 
 No production data, schema, migration history or deployment was changed during this batch.
+
+
+## Follow-on reconciliation batch: 2012–2023 Mangaung / Free State cricket leagues
+
+Five more historical competition files were reviewed. None has a matching migration-ledger entry by current name. All five competition records are present in production.
+
+| Repository file | Live database evidence | Classification |
+|---|---|---|
+| `20261111750000_import_2019_mca_cricket_cut_team_records.sql` | 2019 MCA League competition exists with CUT 1 and CUT 2 source figures and the documented one-match arithmetic discrepancy. Separate live standings rows place CUT 1 sixth and CUT 2 seventh; their provenance is expected in the later standings-backfill migration and is not attributed to this seed file. | Competition data present; later standings lineage pending review |
+| `20261111760000_import_2021_mca_cricket_cut_participation.sql` | 2021 MCA League participation record exists for October–November 2021; no unsupported standings or results were added. | Data present; no direct ledger entry |
+| `20261111770000_import_2023_mca_cricket_cut_participation.sql` | 2023 MCA League participation record exists; the annual-report description distinguishes MCA participation from the separately mentioned Free State Cricket League and FCSU League. | Data present; no direct ledger entry |
+| `20261111780000_import_2022_mca_first_round_cricket.sql` | Separate 2022/23 MCA first-round record exists with 8 October–26 November 2022 dates. It remains distinct from the 2021/22 MCA season that ended in March 2022. | Data present; no direct ledger entry |
+| `20261111790000_import_2012_free_state_cricket_league_achievements.sql` | 2012 Free State Cricket Leagues record exists with first-team second place and second/third-team league titles; no unsupported fixture or scorecard rows were added. | Data present; no direct ledger entry |
+
+The 2019 MCA source's CUT 1 figures still contain the documented arithmetic gap: 8 played, 3 wins, 4 losses and 0 no-results account for only 7 matches. The source values are preserved and no missing outcome is inferred.
+
+No production data, schema, migration history or deployment was changed during this batch.
