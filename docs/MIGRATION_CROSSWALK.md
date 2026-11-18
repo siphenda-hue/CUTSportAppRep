@@ -429,3 +429,53 @@ Five more historical competition files were reviewed. None has a matching migrat
 The 2019 MCA source's CUT 1 figures still contain the documented arithmetic gap: 8 played, 3 wins, 4 losses and 0 no-results account for only 7 matches. The source values are preserved and no missing outcome is inferred.
 
 No production data, schema, migration history or deployment was changed during this batch.
+
+
+## Security and permissions reconciliation — 19 November 2026
+
+A read-only review was performed against the live Supabase catalog and migration ledger for the core athlete approval, fixture result review, Yoco checkout, shop administration, anonymous access and public-season policies.
+
+### Migration ledger matches
+
+The following repository migrations are present in the live ledger under their exact versions and names:
+
+- `20261106004403_scoped_operations_athlete_approval_and_publishing`
+- `20261106004631_protect_athlete_visibility_and_index_result_submissions`
+- `20261106004647_allow_private_athlete_edits_without_approval`
+- `20261106004922_publish_reviewed_fixture_results_atomically`
+- `20261106010233_add_service_role_policy_for_yoco_webhook_events`
+- `20261106010527_tighten_client_grants_for_checkout_tables`
+- `20261106011716_shop_admin_product_catalog_management`
+- `20261116142045_index_uncovered_foreign_keys`
+- `20261116142716_consolidate_sports_read_policies`
+- `20261116165748_consolidate_teams_read_policies`
+- `20261116165921_consolidate_articles_events_read_policies`
+- `20261116170900_scope_public_seasons_and_preserve_heritage_reads`
+
+### Live security controls verified
+
+- All 19 reviewed core tables (including athletes, athlete statistics/achievements/media, fixture submissions, orders, tickets, products, Yoco webhook events, competitions and competition statistics) have RLS enabled.
+- No RLS-disabled ordinary table was found in the public schema during the broader scan.
+- No public-schema table was found granting `anon` INSERT, UPDATE, DELETE or TRUNCATE.
+- The client privilege hardening is reflected in the live grants: `orders`, `order_items` and `tickets` have authenticated SELECT only; anonymous users have no table privileges on these checkout records; authenticated users have no TRUNCATE on the reviewed tables.
+- `yoco_webhook_events` has no anon/authenticated table grants and has a single explicit `FOR ALL TO service_role` policy.
+- `products` has authenticated DML grants because the later `shop_admin_product_catalog_management` migration intentionally restores them. Its RLS policy limits all product management operations to users with `shop_admin` or `super_admin`; anonymous users retain SELECT only.
+- Athlete profile, statistic, achievement and media tables have publication/ownership/assigned-staff policies. Their write policies are assigned-staff scoped; approval/publishing fields are additionally protected by trigger guards.
+- Fixture result submissions are restricted to authenticated assigned staff; the submit policy enforces the caller as submitter and starts the row in pending status. Official publication is through `public.publish_fixture_result_submission(uuid,text)`, which is SECURITY INVOKER, requires `auth.uid()`, checks `private.can_manage_sport`, updates the fixture and accepts the submission atomically. Execute is revoked from PUBLIC/anon and granted to authenticated.
+- The sports, teams, articles and events public-read policies reflect the intended active/published-only model. Authenticated users additionally read assigned records.
+- The competition read policy is present for anon/authenticated: current and previous year seasons, Varsity Netball/Football/Cup records, and competitions with a positive win value in standings. The match and player/team competition statistics tables retain public SELECT policies and assigned-sport-admin management policies, supporting public historical result browsing.
+- The reviewed trigger functions are SECURITY INVOKER. SECURITY DEFINER helpers in the private schema use a fixed empty search path; management helpers require a non-null authenticated UID. Public SECURITY DEFINER RPCs found in the scan deny anon execution and include authentication/authorization checks in their bodies.
+
+### Conditional default-privilege portability risk
+
+The live database has separate default ACLs for objects created by `postgres` and `supabase_admin`.
+
+- For objects created by `postgres`, the current public-schema default table ACL gives anon SELECT and authenticated SELECT/INSERT/UPDATE/DELETE (but not TRUNCATE/REFERENCES/TRIGGER/MAINTAIN), consistent with the hardening migration.
+- For objects created by `supabase_admin`, the default table ACL still gives anon and authenticated the full table privilege set (`arwdDxtm`). The 16 November hardening migration alters default privileges for `postgres` only, not `supabase_admin`.
+- The inspected core tables (athletes, competitions, orders, products, profiles and Yoco webhook events) are owned by `postgres`, and the current live schema scan found no RLS-disabled ordinary public tables or anon DML grants.
+
+This is a **conditional future-object risk**, not evidence of a current table exposure: if future migrations create exposed public tables as `supabase_admin`, they may inherit broad anon/authenticated grants. Future schema changes should use the established `postgres` migration owner or explicitly harden `supabase_admin` default privileges as a separately reviewed migration. Do not change default ACLs during this portability audit.
+
+### Security reconciliation conclusion
+
+The reviewed live security state matches the expected role model for existing tables. The shop-admin product DML grants are intentional and constrained by RLS. The main portability follow-up is to standardize the migration execution role and decide whether to harden the `supabase_admin` default ACL. This audit did not alter any policy, grant, function, table, row, migration-ledger entry or deployment.
