@@ -393,3 +393,22 @@ Five further cricket history files were compared with production. None has a mat
 | `20261111690000_import_2013_free_state_cricket_league_achievements.sql` | 2013 Free State Super League record exists: CUT first team second, with CUT second and third teams recorded as champions of their respective leagues. | Data present; no direct ledger entry |
 
 No production data, schema, migration history or deployment was changed during this batch.
+
+
+## Follow-on reconciliation batch: 2014–2018 cricket achievements and enrichment
+
+Five more files were reviewed. None has a matching live migration-ledger entry by the current name; the intended competition descriptions, matches and player records are present.
+
+| Repository file | Live database evidence | Classification |
+|---|---|---|
+| `20261111700000_import_2014_cut_cricket_achievements.sql` | Both the 2014 Free State Cricket First Division title and 2014 USSA Cricket participation/SA team selection record exist with the expected metadata. | Data present; no direct ledger entry |
+| `20261111710000_import_2015_cut_welkom_varsity_pro20_cricket_title.sql` | The 2015 Varsity Pro-20 Student Cricket Tournament exists with CUT Welkom Campus recorded as winner. | Data present; no direct ledger entry |
+| `20261111720000_enrich_2015_16_cut_cricket_awards_and_2016_national_campaign.sql` | The 2015/16 MCA title description includes the reported 160-run season highlight, 6/20 bowling figures and provincial awards. The 2016 National Club Championship dates and five-match campaign are present, along with the accessible match/player details. | Data present; no direct ledger entry |
+| `20261111730000_enrich_2018_varsity_cricket_cut_tournament_context.sql` | The 2018 Varsity Cricket description includes the sourced UP-Tuks group-stage win with bonus point and explicitly does not invent CUT's score or final placing. | Data present; no direct ledger entry |
+| `20261111740000_reconcile_2018_ussa_cricket_seventh_place.sql` | The 2018 USSA Cricket A Section description contains the seventh-place finish, 180–76 UCT play-off result and three sourced bowling figures. | Data present; no direct ledger entry |
+
+### Cricket-statistics representation note
+
+Some historical cricket batting, bowling and award records are stored in `competition_player_statistics.statistics` JSONB. The legacy numeric `field_goals`, `penalty_corner_goals`, `penalty_stroke_goals` and `total_goals` columns are zero placeholders on those cricket rows; they must not be interpreted as a cricket player's runs or wickets. The app's cricket presentation should read the typed values from `statistics` and label them by `stat_category`.
+
+No production data, schema, migration history or deployment was changed during this batch.
