@@ -323,3 +323,26 @@ These are **confirmed ledger matches under alternate applied versions**, not una
 - The `competition_team_statistics` table has an additional `statistics jsonb` column beyond the base hockey-table migration. This is explained by the later applied migration `20261111102901` (`add_multisport_competition_statistics_and_rugby_2026`). RLS is enabled; the table is not FORCE RLS. Its public-read and assigned-sport-admin management policies are present.
 
 No production data or schema was changed during this batch.
+
+
+## Follow-on reconciliation batch: ABC Motsepe, Women's Varsity Football and cricket history
+
+Five more files were reviewed against Git history and production data. None has a matching entry in the live migration ledger by its current timestamp or normalized migration name. Their intended records are nevertheless present in production. Git commit timestamps and the database's row timestamps for the 2024–2025 cricket match import are consistent with data being written directly before the migration files were committed; this is not proof of migration-runner execution.
+
+| Repository file | Live database evidence | Classification |
+|---|---|---|
+| `20261111300000_import_2023_24_free_state_abc_motsepe_standings.sql` | Exact UUID exists with both Stream A (Central University of FS, 7th) and Stream B (Ixias FC, 9th) standings. The competition status is currently `upcoming`, because this file omits `status` and the table default was applied. | Data present; status metadata defect to correct in a future reviewed change |
+| `20261111310000_correct_2024_womens_varsity_football_metadata.sql` | The 2024 Women's Varsity Football record ends on 29 July 2024; all four match rows exist, with the three group-stage rows labelled Group B and the playoff left ungrouped. | Live data reflects the intended correction |
+| `20261111500000_import_2024_ussa_cricket_participation.sql` | Exact 2024 USSA Cricket competition UUID exists with the specified 2–6 December 2024 dates and Bloemfontein venue. | Data present; no direct ledger entry |
+| `20261111510000_import_historical_cut_cricket_records.sql` | All nine competition UUIDs in the file exist, covering 2015/16, 2016, 2017, 2018, 2019, 2021, 2021/22, 2022 and 2025/26. Related match/player-stat rows from the later cricket enrichment files are present. | Data present; no direct ledger entry |
+| `20261111520000_import_2024_2025_ussa_cricket_match_results.sql` | Both 2024 USSA Cricket outcome rows and all five 2025 USSA Cricket outcome rows exist. The match outcomes are held in the `statistics` JSONB where scorecard totals were not published; numeric scores remain null as intended. | Data present; no direct ledger entry |
+
+### Cricket / football UUID collision confirmed at source
+
+The historical cricket file deliberately assigns `a43e3a9b-7c4e-4d7e-9f7c-2022f5a00001` to the 2022 Varsity Sport Cricket Tournament. This is the correct live Cricket record and has its own Varsity Cricket semi-final match. The separate 2022 USSA Football import incorrectly reused that same UUID. The corrected Football record is under `a43e3a9b-7c4e-4d7e-9f7c-2022f5b00001`. Preserve the Cricket UUID and the Football UUID separately; never reassign the Cricket record.
+
+### Follow-up data-quality item
+
+The 2023/24 Free State ABC Motsepe competition is a completed historical season, but its current database status is `upcoming`. The seed SQL omits the status column, so the database default was used. This is a real data-state defect, not evidence that the migration is unapplied. It should be corrected through a separately reviewed, idempotent change after this migration reconciliation is complete.
+
+No production data, schema, migration history or deployment was changed during this batch.
