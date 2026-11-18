@@ -3,7 +3,7 @@
 **Repository:** `siphenda-hue/CUTSportAppRep`  
 **Branch:** `App`  
 **Supabase project:** `tnkykdfxzwaqzbichxcl`  
-**Snapshot date:** 18 November 2026  
+**Snapshot date:** 19 November 2026  
 **Scope:** Read-only comparison of repository filenames and the live `supabase_migrations.schema_migrations` ledger.
 
 ## Executive result
@@ -15,10 +15,14 @@ This snapshot confirms that migration history is not yet safe for automated repl
 | SQL files in `supabase/migrations/` | 198 |
 | Distinct 14-digit versions represented by those files | 168 |
 | Duplicate version groups | 21 |
+| Files in duplicate version groups | 51 |
+| Duplicate occurrences beyond first file per group | 30 |
 | Applied rows in live migration ledger | 143 |
 | Repository files with a direct migration-name match in the ledger | 123 |
 | Ledger rows with no direct normalized filename match | 19 |
 | Repository files not positively reconciled by direct name | 75 |
+| Unmatched repository files reviewed against live data/schema | 75 |
+| Ledger-only rows reviewed against live objects/security/indexes | 19 |
 
 The 123 direct matches are name-based matches only. They are not a checksum comparison of the SQL file against the historical SQL that was executed. The 75 unmatched files are **not** classified as unapplied. Some may have been applied under earlier timestamps or names; others may be newer or duplicate-version files.
 
