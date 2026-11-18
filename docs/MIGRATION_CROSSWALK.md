@@ -549,3 +549,41 @@ No production data, schema, migration history or deployment was changed during t
 `20261111590000_set_2018_varsity_cricket_tournament_dates.sql` has no matching live migration-ledger entry by current name. The target 2018 Varsity Cricket competition exists with the expected 29 January–3 February 2018 dates, its sourced competition context and one group-stage match row. The date correction is therefore reflected in live data, but the file is not ledger-confirmed.
 
 No production data, schema, migration history or deployment was changed during this check.
+
+
+## Reconciliation of the 19 live-ledger entries with no current repository filename
+
+The final comparison found 19 rows in `supabase_migrations.schema_migrations` whose normalized names do not match any current migration filename. Exact GitHub path-history checks returned no commit history for the corresponding timestamp-prefixed paths. One entry has a strong equivalent current file; the other 18 are represented in the live schema but their original SQL source is absent from the current repository branch.
+
+| Applied ledger version | Ledger name | Live database evidence | Portability classification |
+|---|---|---|---|
+| `20261101215551` | `initial_cut_sport_schema` | The live public schema contains the core CUT Sport tables, constraints, indexes and RLS policies. No source file or exact path history exists in the current repository. | **Critical source gap:** baseline schema must be recovered or reconstructed before a clean database can be built from Git |
+| `20261105183759` | `add_sponsors_catalog` | `public.sponsors` exists with RLS, public read for active sponsors and sport-admin/super-admin management. Current row count: 0. | Live effect present; original SQL source missing |
+| `20261105225033` | `athlete_and_sport_admin_profiles` | `sport_admin_profiles`, `sport_admin_assignments` and `sport_admin_activity_logs` exist with RLS and expected primary/scope indexes. Current row counts: 0. | Live effect present; original SQL source missing |
+| `20261105225119` | `tighten_profile_rls_and_scoped_admin_access` | RLS is enabled on profiles and sport-admin tables. Current policies scope admin profile/assignment visibility to the owner or super admin and reserve assignment changes for super admins. | Live security state present; original SQL source missing |
+| `20261105225213` | `index_athlete_admin_profile_relations` | Athlete profile/player-profile link indexes and sport-admin assignment sport/team indexes exist. | Live indexes present; original SQL source missing |
+| `20261105225227` | `remove_duplicate_athlete_read_policy` | The current `athletes` table has distinct public-published and athlete-own-profile SELECT policies; no duplicate policy with the same purpose was found in the inspected policy set. | Live policy state present; original SQL source missing |
+| `20261105225306` | `enforce_team_scoped_staff_permissions` | `private.can_manage_athlete` exists as a security-definer function and current athlete/achievement/statistics/membership policies invoke it with sport/team scope. | Live security state present; original SQL source missing |
+| `20261111095426` | `competition_standings_and_multi_sport_competitions` | The current `20261111143000_add_multi_sport_competition_standings.sql` file and live table/policy state are a strong equivalent; see the standings-schema lineage note above. | Strong equivalent current source found |
+| `20261112004826` | `athlete_canonical_profile_link_audit` | `athlete_player_profile_link_audit` exists with RLS, super-admin-only SELECT policy, and the private audit/synchronisation functions. Current row count: 0. | Live effect present; original SQL source missing |
+| `20261112005817` | `persistent_athlete_data_quality_reviews` | `athlete_data_quality_reviews` and `athlete_data_quality_review_history` exist with RLS and assigned-staff review policies. Both currently contain 0 rows. | Live effect present; original SQL source missing |
+| `20261112005906` | `tighten_athlete_data_quality_review_grants` | Data-quality review tables grant authenticated users SELECT only; writes are reserved to service_role. No anon table grant is present. | Live grant state present; original SQL source missing |
+| `20261112171159` | `team_hub_social_content_calendar` | `team_hub_social_content` exists with RLS, season-scoped create/read/update/delete policies and a season/schedule index. Current row count: 0. | Live effect present; original SQL source missing |
+| `20261112171622` | `cut_sport_private_media_library` | `team_hub_media_assets` exists with RLS; the `cut-sport-media` bucket is private and has team/season-scoped storage policies. Current asset row count: 0. | Live effect present; original SQL source missing |
+| `20261112171854` | `cut_sport_media_free_plan_upload_limit` | The private `cut-sport-media` bucket has a 52,428,800-byte (50 MiB) file limit; the media table also constrains `size_bytes` to the same maximum. | Live limit present; original SQL source missing |
+| `20261112203558` | `student_journey_hot_path_indexes` | Relevant profile, athlete, player-profile, team-membership, sport-admin and fixture indexes exist, including athlete/profile and membership lookup indexes. | Live indexes present; original SQL source missing |
+| `20261112203649` | `rls_auth_uid_initplan_optimization` | Inspected athlete, sponsor, admin, Team Hub, media and attendance policy definitions use scalar subqueries such as `(SELECT auth.uid())` rather than repeated per-row `auth.uid()` evaluation. | Live policy state present; original SQL source missing |
+| `20261113152908` | `add_fixture_match_attendance` | `team_hub_fixture_attendance` exists with RLS, fixture/season/member foreign keys, a unique fixture/member index and status/note fields. Current row count: 0. | Live effect present; original SQL source missing |
+| `20261113152922` | `scope_fixture_attendance_policy_rows` | Attendance policies require assigned Team Hub season access, a matching non-cancelled fixture and a selected/retained season member; players can read their own attendance. | Live security state present; original SQL source missing |
+| `20261113153029` | `restrict_fixture_attendance_table_grants` | `team_hub_fixture_attendance` grants authenticated users INSERT/SELECT/UPDATE only; no anon grant and no authenticated DELETE grant. service_role retains backend access. | Live grant state present; original SQL source missing |
+
+### Ledger-only source-gap conclusion
+
+- All 19 ledger-only entries have corresponding live objects or security/index state; the competition-standings entry has a strong equivalent current file.
+- 18 original migration SQL sources are not present in the current repository branch and have no exact-path GitHub commit history.
+- The initial schema migration is the most important gap. Without its source, the current repository cannot be treated as a complete reproducible database baseline.
+- Several Team Hub and audit structures are present but currently empty: sponsors, sport-admin profiles/assignments/activity logs, athlete identity-link audit, athlete data-quality reviews/history, Team Hub seasons/social content/media assets and fixture attendance all have zero rows in the inspected production state.
+- The private `cut-sport-media` bucket is 50 MiB per file and is not public. The database's Team Hub media and fixture-attendance policies are scoped to authorised season access.
+- Do not delete or rename these ledger rows, fabricate historical source SQL, or run migration repair/push/reset operations. The next safe portability step is to recover the original SQL where possible and generate a reviewed schema baseline from the live project for the unrecoverable initial schema; then compare that baseline against the full current Git migration chain in a disposable database.
+
+No production schema, data, grants, migration ledger or deployment was changed during this reconciliation.
