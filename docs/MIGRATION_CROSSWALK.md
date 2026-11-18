@@ -511,3 +511,20 @@ Five additional files were reviewed. None has a matching migration-ledger entry 
 The 2009 hockey record correctly distinguishes the regulation-time 4–4 draw from the shoot-out score stored in JSONB (UFS Reds 4, CUT 1 3). The 2018/2019 hockey standings also account for the team-position rows referenced in the earlier competition/match review.
 
 No production data, schema, migration history or deployment was changed during this batch.
+
+
+## Follow-on reconciliation batch: cricket standings, player-name enrichment and source corrections
+
+Five further files were checked. None has a matching live migration-ledger entry by current name. Their intended production changes are present.
+
+| Repository file | Live database evidence | Classification |
+|---|---|---|
+| `20261111980000_add_2023_ussa_cricket_pool_b_standing.sql` | CUT's 2023 USSA Cricket Pool B, Section 2 first-place standing exists: 3 played, 3 wins, 15 points, 610 runs scored and 427 conceded. | Data present; no direct ledger entry |
+| `20261111990000_add_2014_free_state_cricket_first_division_title.sql` | The 2014 Free State Cricket First Division has the CUT Second Team — First Division champions row at position 1. | Data present; no direct ledger entry |
+| `20261112010000_expand_2015_16_cut_cricket_player_names.sql` | The two MCA League records are expanded to Koot Pienaar (160 runs) and Marlon James (6/20), with the Netwerk24 name-expansion source retained. | Data present; no direct ledger entry |
+| `20261112020000_backfill_2019_mca_cricket_cut_standings.sql` | CUT 1 sixth and CUT 2 seventh standings exist with the published match/points values. CUT 1's one-match arithmetic gap remains explicit; no missing result is inferred. | Data present; no direct ledger entry |
+| `20261112030000_add_official_cut_source_to_2018_cricket_records.sql` | Both 2018 Varsity Cricket and 2018 USSA Cricket descriptions include the CUT Annual Report 2018 as independent participation corroboration. | Live descriptions reflect source clarification |
+
+The 2019 MCA standings confirm the source positions while preserving the one unexplained CUT 1 result. The 2015/16 name expansion changes display names only; it retains the original runs, wickets and award facts.
+
+No production data, schema, migration history or deployment was changed during this batch.
