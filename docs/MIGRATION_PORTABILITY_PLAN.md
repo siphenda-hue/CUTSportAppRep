@@ -10,8 +10,8 @@
 
 The migration audit established:
 
-- `supabase/migrations/` contains 198 SQL files representing 177 unique 14-digit timestamp versions.
-- There are 21 duplicate timestamp groups.
+- `supabase/migrations/` contains 198 SQL files representing 168 unique 14-digit timestamp versions.
+- There are 21 duplicate timestamp groups containing 51 files in total (30 duplicate occurrences beyond the first file per group). Of these, 32 files match ledger names under alternate applied versions and 19 were investigated as unmatched duplicate-group files.
 - The live `supabase_migrations.schema_migrations` ledger contains 143 rows.
 - 123 repository files have normalized-name matches in the live ledger.
 - 75 current repository files have no direct normalized-name match. All 75 have been checked against Git history and relevant live database state. Their intended data or schema effects are present, but this does not prove that each exact file was executed by the migration runner.
