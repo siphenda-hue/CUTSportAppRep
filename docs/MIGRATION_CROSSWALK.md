@@ -378,3 +378,18 @@ Five further historical cricket files were checked. None has a direct matching m
 | `20261111640000_import_2012_ussa_cricket_cut_participation.sql` | The 2012 USSA Cricket participation record exists with the three wins, two losses and retention of A Section status; no unsupported match or player rows are present. | Data present; no direct ledger entry |
 
 The 2018 USSA A Section match is a separate competition from the 2018 Varsity Cricket group-stage match already documented above. Both competition records and their distinct match rows are present. No production data, schema, migration history or deployment was changed during this batch.
+
+
+## Follow-on reconciliation batch: 2010–2013 Free State and national club cricket
+
+Five further cricket history files were compared with production. None has a matching live migration-ledger entry; all intended competition and match records are present.
+
+| Repository file | Live database evidence | Classification |
+|---|---|---|
+| `20261111650000_import_2011_national_cricket_club_championship_cut_third_place.sql` | 2011 National Cricket Club Championship exists as completed, with CUT's third-place finish. Four indexed Section One fixtures are present; scores remain null because accessible source scorecards were not verified. | Data present; no direct ledger entry |
+| `20261111660000_import_2010_2011_free_state_super_league_cricket_titles.sql` | Separate completed 2010 and 2011 Free State Super League title records exist. | Data present; no direct ledger entry |
+| `20261111670000_import_2011_national_club_championship_cut_fixtures.sql` | All four 19–23 September 2011 fixtures exist under the 2011 National Cricket Club Championship, with no invented scores or player figures. | Data present; no direct ledger entry |
+| `20261111680000_import_2012_national_club_championship_cut_campaign.sql` | 2012 National Club Championship Section Two exists with four fixtures; the 23 April UWC match is recorded as CUT 243/7 defeating UWC 188, and Ian O'Neill's 97 is present. Three other indexed fixtures retain null scores. | Data present; no direct ledger entry |
+| `20261111690000_import_2013_free_state_cricket_league_achievements.sql` | 2013 Free State Super League record exists: CUT first team second, with CUT second and third teams recorded as champions of their respective leagues. | Data present; no direct ledger entry |
+
+No production data, schema, migration history or deployment was changed during this batch.
