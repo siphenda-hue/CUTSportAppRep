@@ -217,3 +217,48 @@ These 19 files have no direct normalized-name counterpart in the current live le
 The duplicate timestamps are a repository-level collision problem even though none of those duplicated prefixes appears as an applied version in the live ledger. The files with normalized-name matches show that some were applied under different versions. The other files require individual Git-history review and live-data comparison before they can be classified.
 
 Do not resolve this by renaming all 42 files or assigning sequential timestamps in bulk. First establish which SQL statements have already affected production and whether the 19 unmatched files have been applied under other names, included in other migrations, or never applied.
+
+
+## Live-data reconciliation of the 19 unmatched duplicate-group files
+
+A read-only comparison was made against the connected production database on 19 November 2026. Each file's timestamp prefix was checked against `supabase_migrations.schema_migrations`; none of the 19 prefixes has a matching ledger version. The live records were then compared by the exact competition UUID where the SQL uses one, or by sport/name/season and expected standings for idempotent CTE-based imports.
+
+**Important distinction:** a matching live record proves that the intended data is present; it does not prove that this exact repository file was applied by the migration runner. These entries remain ledger-untracked unless a separate ledger identity or historical execution record proves otherwise.
+
+| Unmatched repository file | Live database evidence | Reconciliation classification |
+|---|---|---|
+| `20261111110000_import_ussa_basketball_2025_b_section_placements.sql` | Both 2025 Basketball B-Section competitions exist; CUT men's 5th and women's 4th standings are present. | Data present — exact expected records |
+| `20261111120000_import_cut_cheerleading_samca_2025_results.sql` | 2025 SAMCA competition exists with CoEd Level 1st, All-Girls Level 5 2nd, and Pom Doubles 2nd standings. | Data present — exact expected records |
+| `20261111130000_add_cut_ussa_cricket_2025_participation.sql` | 2025 USSA Cricket Tournament exists under Cricket with the expected dates and Stellenbosch venue; subsequent match/standing imports also exist. | Data present — exact event record; later enrichment exists |
+| `20261111170000_import_cut_2025_free_state_cross_country_championships.sql` | Exact competition UUID exists with the CUT athlete placings retained in its description. | Data present — exact UUID and content |
+| `20261111173000_add_2025_asa_cross_country_event_audit.sql` | Exact competition UUID exists as the 2025 ASA Cross Country event; no CUT athlete placings were inferred. | Data present — exact UUID and intended audit-only scope |
+| `20261111180000_import_2025_ussa_cross_country_championships_audit.sql` | Exact competition UUID exists for the 2025 USSA Cross Country Championships; no unverified CUT athlete results were added. | Data present — exact UUID and intended audit-only scope |
+| `20261111190000_import_2024_ussa_cross_country_championship_audit.sql` | Exact competition UUID exists; CUT team standing at position 6 is present. | Data present — exact UUID and expected team standing |
+| `20261111200000_add_2024_asa_cross_country_championship_audit.sql` | Exact competition UUID exists for the 2024 ASA Cross Country Championships; no CUT affiliation was inferred from provincial entries. | Data present — exact UUID and intended audit-only scope |
+| `20261111210000_add_2024_free_state_cross_country_championship_audit.sql` | Exact competition UUID exists for the 2024 Free State Cross Country Championships; no individual CUT results were added. | Data present — exact UUID and intended audit-only scope |
+| `20261111210000_import_2019_ussa_esports_cut_result.sql` | Exact competition UUID exists; CUT eTitans second-place standing is present. | Data present — exact UUID and expected standing |
+| `20261111220000_import_2022_cut_red_bull_campus_clutch.sql` | Exact competition UUID exists; CUT's Free State chapter win is represented by the first-place standing. | Data present — exact UUID and expected standing |
+| `20261111230000_import_2026_varsity_esports_cut_rocket_league_finalist.sql` | Exact competition UUID exists; SuperNova (CUT) is recorded without an invented final placing. | Data present — exact UUID and intended finalist-only scope |
+| `20261111240000_add_tennis_and_table_tennis_sport_categories.sql` | Tennis and Table Tennis both exist in `public.sports` with `is_active = false`. | Data present — both categories exist in intended inactive state |
+| `20261111240000_import_cut_ussa_golf_2019_2022_2025.sql` | Exact 2019, 2022 and 2025 Golf competition UUIDs exist; 2022 CUT Golf 3rd and 2025 CUT Golf 2nd standings are present. | Data present — exact UUIDs and expected standings |
+| `20261111250000_import_2019_cut_varsity_football_derby.sql` | Exact competition UUID exists with the CUT–UFS Bloemfontein Derby fixture and 2–0 result. | Data present — exact UUID and expected match |
+| `20261111260000_import_cut_ussa_and_provincial_football_2022_2025.sql` | 2025 USSA Football competition and men's 12th / women's 18th standings exist. The 2022 USSA Football event and both qualification matches exist under corrected UUID suffix `2022f5b00001`. | Partially equivalent — see critical ID-collision finding below |
+| `20261111270000_import_cut_abc_motsepe_and_mangaung_cup_2021_2022.sql` | ABC Motsepe 2021/22 competition exists with Stream B 6th and overall 12th standings; Mangaung Cup 2022 exists with CUT champion standing. The 2022 Sasol League description is also present. | Data present — exact IDs and expected standings/update |
+| `20261111280000_import_2022_sasol_national_womens_football.sql` | Exact competition UUID exists with CUT FC's third-place standing and the two recorded group matches. | Data present — exact UUID and expected records |
+| `20261111290000_reconcile_2024_free_state_sasol_womens_league.sql` | Target UUID exists with the migration's 1 February–8 September 2024 dates and reconciled description; the provincial final and 11–0 league fixture plus eight group standings are present. | Data present — exact target and reconciled state |
+
+### Critical 2022 USSA Football ID collision
+
+The file `20261111260000_import_cut_ussa_and_provincial_football_2022_2025.sql` assigns UUID `a43e3a9b-7c4e-4d7e-9f7c-2022f5a00001` to the 2022 USSA Football competition. In the live database that UUID belongs to the 2022 Varsity Sport Cricket Tournament. The file's `ON CONFLICT (id) DO UPDATE` clause does not update `sport_id`, `name`, or `season`, but it does update the description, dates and venue; its subsequent match insert would therefore attach football qualification matches to the Cricket competition if replayed against that existing row.
+
+The live database currently has the correct Football competition under UUID `a43e3a9b-7c4e-4d7e-9f7c-2022f5b00001`, and both qualification matches are attached to that corrected Football record. The 2022 Cricket competition retains its cricket identity and its Varsity Cricket semi-final. The correction SQL is present in `20261111540000_reassign_2022_ussa_football_qualifier_matches.sql`, committed as `818ae1dfd00bd6551a9568e6cecfa472ff4c7ce7`; its filename prefix has an invalid hour component (`54`) and does not appear in the live migration ledger. The production match rows show an update at 16:41:18 UTC on 11 November 2026, consistent with the correction having been reflected in the live data.
+
+**Do not replay the 2022/2025 Football import file as written.** Before any future migration rebuild, correct the source lineage and timestamp, retain the existing Cricket UUID, and test the repaired SQL against a disposable database. Do not change production as part of this audit.
+
+### Batch conclusion
+
+- All 19 files remain absent from the live migration ledger by their current filename timestamp.
+- The intended records or category states for all 19 files are represented in the live database; the 2022 Football import is represented under its corrected UUID.
+- This is evidence of **live data presence**, not proof that each of these 19 exact files was applied through Supabase's migration runner.
+- No SQL migration, data mutation, migration-ledger repair, schema change, or deployment was performed during this comparison.
+- The 2022 Football collision is a release-blocking portability issue: the repository source must not be replayed unchanged into a fresh or restored database.
