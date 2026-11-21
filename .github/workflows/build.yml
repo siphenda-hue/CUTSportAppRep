@@ -26,5 +26,7 @@ jobs:
             git commit -m "build: add npm lockfile"
             git push
           fi
+      - name: Audit migration filenames
+        run: node scripts/check-migration-filenames.mjs
       - name: Build frontend (deployment credentials are checked by the hosting build)
         run: npx vite build
