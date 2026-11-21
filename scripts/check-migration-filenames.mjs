@@ -10,7 +10,7 @@ const byVersion = new Map();
 const malformed = [];
 
 for (const name of files) {
-  const match = name.match(/^(\\d{14})_(.+)\\.sql$/);
+  const match = name.match(/^(\d{14})_(.+)\.sql$/);
   if (!match) {
     malformed.push({ name, reason: "Expected YYYYMMDDHHMMSS_description.sql" });
     continue;
@@ -18,7 +18,7 @@ for (const name of files) {
 
   const version = match[1];
   const [, year, month, day, hour, minute, second] =
-    version.match(/^(\\d{4})(\\d{2})(\\d{2})(\\d{2})(\\d{2})(\\d{2})$/);
+    version.match(/^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})$/);
   const date = new Date(Date.UTC(+year, +month - 1, +day, +hour, +minute, +second));
   const roundTrip = [
     date.getUTCFullYear(),
@@ -38,17 +38,17 @@ for (const name of files) {
 
 const duplicateGroups = [...byVersion.entries()].filter(([, names]) => names.length > 1);
 
-console.log(`Migration filename audit: ${files.length} SQL files, ${byVersion.size} distinct timestamp prefixes.`);
+console.log(\`Migration filename audit: \${files.length} SQL files, \${byVersion.size} distinct timestamp prefixes.\`);
 
 if (malformed.length) {
-  console.warn(`\\nWARNING: ${malformed.length} malformed migration filename(s):`);
-  for (const item of malformed) console.warn(` - ${item.name}: ${item.reason}`);
+  console.warn(\`\\nWARNING: \${malformed.length} malformed migration filename(s):\`);
+  for (const item of malformed) console.warn(\` - \${item.name}: \${item.reason}\`);
 }
 
 if (duplicateGroups.length) {
-  console.warn(`\\nWARNING: ${duplicateGroups.length} duplicate timestamp group(s):`);
+  console.warn(\`\\nWARNING: \${duplicateGroups.length} duplicate timestamp group(s):\`);
   for (const [version, names] of duplicateGroups) {
-    console.warn(` - ${version}: ${names.join(", ")}`);
+    console.warn(\` - \${version}: \${names.join(", ")}\`);
   }
 }
 
