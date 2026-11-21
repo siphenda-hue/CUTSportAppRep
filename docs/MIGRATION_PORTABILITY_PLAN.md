@@ -39,6 +39,36 @@ The 2022 USSA Football import reuses the UUID belonging to the 2022 Varsity Spor
 
 **Rule:** do not replay the 2022/2025 Football import file unchanged. Preserve the Cricket UUID and the corrected Football UUID as separate identities.
 
+
+## 2.3.1 Detailed 2022 Cricket/Football collision verification (22 November 2026)
+
+The repository SQL and live production rows were rechecked against the exact competition and match UUIDs. This section supersedes any ambiguity in the shorter collision summary above; it does not authorize a production change.
+
+| Item | Repository/live finding |
+|---|---|
+| Cricket competition UUID | `a43e3a9b-7c4e-4d7e-9f7c-2022f5a00001` |
+| Correct Football competition UUID | `a43e3a9b-7c4e-4d7e-9f7c-2022f5b00001` |
+| Live Cricket row | Sport ID is Cricket (`481726ef-be80-4f8e-a0c4-c5f8c41a0f74`); title is Varsity Sport Cricket Tournament; dates 3–5 October 2022; venue UP-Tuks, Pretoria; description records the semi-final run. |
+| Live Football row | Sport ID is Football (`4c1ccd6f-3965-422a-ad25-19aaa2797f23`); title is USSA Football Tournament; dates 5–9 December 2022; venue Secunda. |
+| Football match rows | `cut-men-univen-ussa-2022` (CUT 1–0 University of Venda) and `cut-women-ukzn-ussa-2022` (CUT 3–4 University of KwaZulu-Natal) exist under the corrected Football competition. |
+| Cricket semi-final migration | `20261111550000_import_2022_varsity_cricket_cut_semi_final.sql` inserts the NWU–CUT 157–152 match against the Cricket UUID. |
+
+### Replay-order implication
+
+The unsafe Football import `20261111260000_import_cut_ussa_and_provincial_football_2022_2025.sql` first upserts the Football description into the Cricket UUID and inserts its two qualifier matches there. The later Cricket import `20261111510000_import_historical_cut_cricket_records.sql` restores the Cricket competition metadata on that same UUID. The correction `20261111540000_reassign_2022_ussa_football_qualifier_matches.sql` then creates the separate Football row and moves the two match rows.
+
+Therefore, replaying only part of this sequence can leave the Cricket metadata overwritten or the Football qualifier matches attached to Cricket. The correction file's timestamp is invalid as a Supabase migration version: `20261111540000` encodes hour `54`. It is not present as a matching version in the live migration ledger. The live database currently has the corrected rows, but that live state does not prove the repository sequence is safely replayable.
+
+### Required remediation before any replay
+
+- Keep the existing migration files unchanged while the migration crosswalk is open.
+- Use the Supabase CLI's `supabase migration new <descriptive_name>` workflow to generate a valid, forward-only migration filename when a suitable local CLI workspace is available. Do not invent a timestamp or apply a migration to production to obtain a filename.
+- The forward-only migration must be safe if the correct Football row already exists, must only move the two explicitly identified Football qualifier match rows, and must assert/preserve the Cricket competition's existing metadata. It must not rewrite or delete the Cricket competition or its semi-final.
+- Before testing, inspect the resulting SQL and run it only in a disposable local database after the baseline and migration order have been reconciled. Verify both competition UUIDs, sport IDs, dates, descriptions, the two Football match associations and the Cricket semi-final association.
+- Do not use `migration repair`, edit the live migration ledger, or apply this correction to production during portability work.
+
+**Current disposition:** live data is correct; repository replay remains blocked pending a valid CLI-generated forward-only migration and disposable replay verification. No production database or deployment was changed during this check.
+
 ### 2.4 Historical metadata and statistics issues
 
 Keep these visible during the rebuild; do not silently rewrite source facts:
