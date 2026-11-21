@@ -22,5 +22,7 @@ jobs:
           cache: npm
       - name: Install locked dependencies
         run: npm ci
+      - name: Audit migration filenames
+        run: node scripts/check-migration-filenames.mjs
       - name: Build frontend
         run: npx vite build
