@@ -38,22 +38,22 @@ for (const name of files) {
 
 const duplicateGroups = [...byVersion.entries()].filter(([, names]) => names.length > 1);
 
-console.log(\`Migration filename audit: \${files.length} SQL files, \${byVersion.size} distinct timestamp prefixes.\`);
+console.log("Migration filename audit: " + files.length + " SQL files, " + byVersion.size + " distinct timestamp prefixes.");
 
 if (malformed.length) {
-  console.warn(\`\\nWARNING: \${malformed.length} malformed migration filename(s):\`);
-  for (const item of malformed) console.warn(\` - \${item.name}: \${item.reason}\`);
+  console.warn("\nWARNING: " + malformed.length + " malformed migration filename(s):");
+  for (const item of malformed) console.warn(" - " + item.name + ": " + item.reason);
 }
 
 if (duplicateGroups.length) {
-  console.warn(\`\\nWARNING: \${duplicateGroups.length} duplicate timestamp group(s):\`);
+  console.warn("\nWARNING: " + duplicateGroups.length + " duplicate timestamp group(s):");
   for (const [version, names] of duplicateGroups) {
-    console.warn(\` - \${version}: \${names.join(", ")}\`);
+    console.warn(" - " + version + ": " + names.join(", "));
   }
 }
 
 if (!malformed.length && !duplicateGroups.length) {
   console.log("Migration filename audit passed with no timestamp issues.");
 } else {
-  console.log("\\nAudit is informational only: no migration files were changed or reordered.");
+  console.log("\nAudit is informational only: no migration files were changed or reordered.");
 }
