@@ -354,30 +354,35 @@ function PublicCompetitionsDirectory() {
   async function load(){
    setBusy(true);setError("");
    if(!supabase){setError("Competition information is temporarily unavailable.");setBusy(false);return;}
-   const [{data,error:queryError},{data:internationalData},{data:awardData,error:awardError},{data:standingsData,error:standingsError},{data:honoursData,error:honoursError}]=await Promise.all([
-    supabase.from("competitions").select("id,name,season,status,start_date,end_date,venue,description,sport_id,sports(name,slug),competition_standings(won,points,position)").order("start_date",{ascending:false,nullsFirst:false}).order("name"),
-    supabase.from("player_international_appearances").select("id,player_name,player_profile_id,country,national_team,event_name,season,appearance_date,opponent,caps,source_url,player_profiles(full_name,display_name),sports(name)").eq("approval_status","approved").order("appearance_date",{ascending:false,nullsFirst:false}).limit(100),
-    supabase.from("player_awards").select("id,player_name,player_profile_id,award_title,award_category,season,team_name,award_date,source_url,player_profiles(full_name,display_name),sports(name),competitions(name)").eq("approval_status","approved").not("player_profile_id","is",null).order("award_date",{ascending:false,nullsFirst:false}).limit(100),
-    supabase.from("competition_standings").select("id,team_name,won,competition_id,competitions!inner(id,name,season,sport_id,sports(name))").order("won",{ascending:false}).limit(1000),
-    supabase.from("competition_honours").select("id,competition_id,winning_team,achievement_type,season,source_url,competitions(name,season,sports(name))").eq("approval_status","approved").order("season",{ascending:false}).limit(200)
-   ]);
-   if(!active)return;
-   if(queryError||awardError||standingsError||honoursError)setError("Some archive information could not be loaded. Available published records are shown below.");
-   const totals=new Map();
-   (standingsData||[]).forEach(row=>{
-    if(!/(\\bCUT\\b|Central University of Technology|Central University of FS|Ixias)/i.test(String(row.team_name||"")))return;
-    const sport=row.competitions?.sports?.name||"Sport not specified";
-    const key=sport+"::"+String(row.team_name||"").trim();
-    if(!row.team_name)return;
-    const item=totals.get(key)||{team_name:row.team_name,sport,wins:0,seasons:new Set(),competitions:new Set()};
-    item.wins+=Number(row.won||0);
-    if(row.competitions?.season)item.seasons.add(String(row.competitions.season));
-    if(row.competition_id)item.competitions.add(row.competition_id);
-    totals.set(key,item);
-   });
-   setCompetitions(data||[]);setInternationalRecords(internationalData||[]);setPlayerAwards(awardData||[]);setCompetitionHonours(honoursData||[]);
-   setTeamWinTotals([...totals.values()].map(x=>({...x,seasons:x.seasons.size,competitions:x.competitions.size})).sort((a,b)=>b.wins-a.wins||a.team_name.localeCompare(b.team_name)));
-   setBusy(false);
+   try{
+    const [{data,error:queryError},{data:internationalData,error:internationalError},{data:awardData,error:awardError},{data:standingsData,error:standingsError},{data:honoursData,error:honoursError}]=await Promise.all([
+     supabase.from("competitions").select("id,name,season,status,start_date,end_date,venue,description,sport_id,sports(name,slug),competition_standings(won,points,position)").order("start_date",{ascending:false,nullsFirst:false}).order("name"),
+     supabase.from("player_international_appearances").select("id,player_name,player_profile_id,country,national_team,event_name,season,appearance_date,opponent,caps,source_url,player_profiles(full_name,display_name),sports(name)").eq("approval_status","approved").order("appearance_date",{ascending:false,nullsFirst:false}).limit(100),
+     supabase.from("player_awards").select("id,player_name,player_profile_id,award_title,award_category,season,team_name,award_date,source_url,player_profiles(full_name,display_name),sports(name),competitions(name)").eq("approval_status","approved").not("player_profile_id","is",null).order("award_date",{ascending:false,nullsFirst:false}).limit(100),
+     supabase.from("competition_standings").select("id,team_name,won,competition_id,competitions!inner(id,name,season,sport_id,sports(name))").order("won",{ascending:false}).limit(1000),
+     supabase.from("competition_honours").select("id,competition_id,winning_team,achievement_type,season,source_url,competitions(name,season,sports(name))").eq("approval_status","approved").order("season",{ascending:false}).limit(200)
+    ]);
+    if(!active)return;
+    if(queryError||internationalError||awardError||standingsError||honoursError)setError("Some archive information could not be loaded. Available published records are shown below.");
+    const totals=new Map();
+    (standingsData||[]).forEach(row=>{
+     if(!/(\\bCUT\\b|Central University of Technology|Central University of FS|Ixias)/i.test(String(row.team_name||"")))return;
+     const sport=row.competitions?.sports?.name||"Sport not specified";
+     const key=sport+"::"+String(row.team_name||"").trim();
+     if(!row.team_name)return;
+     const item=totals.get(key)||{team_name:row.team_name,sport,wins:0,seasons:new Set(),competitions:new Set()};
+     item.wins+=Number(row.won||0);
+     if(row.competitions?.season)item.seasons.add(String(row.competitions.season));
+     if(row.competition_id)item.competitions.add(row.competition_id);
+     totals.set(key,item);
+    });
+    setCompetitions(data||[]);setInternationalRecords(internationalData||[]);setPlayerAwards(awardData||[]);setCompetitionHonours(honoursData||[]);
+    setTeamWinTotals([...totals.values()].map(x=>({...x,seasons:x.seasons.size,competitions:x.competitions.size})).sort((a,b)=>b.wins-a.wins||a.team_name.localeCompare(b.team_name)));
+   }catch(err){
+    if(active)setError("Archive information could not be loaded. Please try again.");
+   }finally{
+    if(active)setBusy(false);
+   }
   }
   load();return()=>{active=false;};
  },[]);
@@ -410,7 +415,8 @@ function PublicCompetitionsDirectory() {
    </div>
    <div className="competition-directory-summary"><b>{filtered.length}</b> {filtered.length===1?"record":"records"} available to public visitors</div>
   </div>
-  {busy?<p className="muted">Loading current seasons and heritage archive…</p>:error?<div><p className="muted">{error}</p><button className="btn secondary" type="button" onClick={()=>window.location.reload()}>Reload archive</button></div>:<>
+  {busy?<p className="muted">Loading current seasons and heritage archive…</p>:<>
+   {error&&<div className="data-sync-error" role="alert"><div><b>Some archive information is unavailable</b><p>{error}</p></div><button className="btn secondary" type="button" onClick={()=>window.location.reload()}>Try again</button></div>}
    <Section title={"Current & previous seasons · "+recent.length}>
     <p className="muted">Showing {currentYear} and {previousYear} season records.</p>
     {recent.length?<div className="competition-directory-list">{recent.map(card)}</div>:<Empty title="No recent seasons published" body="Current and previous-year competition records will appear here when published by CUT Sport."/>}
