@@ -366,7 +366,7 @@ function PublicCompetitionsDirectory() {
     if(queryError||internationalError||awardError||standingsError||honoursError)setError("Some archive information could not be loaded. Available published records are shown below.");
     const totals=new Map();
     (standingsData||[]).forEach(row=>{
-     if(!/(\\bCUT\\b|Central University of Technology|Central University of FS|Ixias)/i.test(String(row.team_name||"")))return;
+     if(!/(\bCUT\b|Central University of Technology|Central University of FS|Ixias)/i.test(String(row.team_name||"")))return;
      const sport=row.competitions?.sports?.name||"Sport not specified";
      const key=sport+"::"+String(row.team_name||"").trim();
      if(!row.team_name)return;
