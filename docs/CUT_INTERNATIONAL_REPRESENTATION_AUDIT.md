@@ -2,7 +2,7 @@
 
 **Status:** Research inventory only; no athlete appearance rows have been inserted or approved.  
 **Purpose:** Identify CUT students and alumni with evidence of representing a country or national/university representative side at international competitions.  
-**Last reviewed:** 16 November 2026. The user has confirmed that Karla Victor, Keletso Gontho, Jade Muller, Thabang Masihleho and Karabo Morapeli are all CUT-registered students; retain this institutional confirmation when curating their records.
+**Last reviewed:** 23 November 2026. The user has confirmed that Karla Victor, Keletso Gontho, Jade Muller, Thabang Masihleho and Karabo Morapeli are all CUT-registered students; retain this institutional confirmation when curating their records.
 
 ## Data audit
 
@@ -192,3 +192,24 @@ Additional sources:
 - University of Pretoria/TuksSport golf squad, 6 July 2015: https://www.up.ac.za/tukssport/news/sa-golf-trio-geared-summer-universiade
 - USSA 2015 National Tournament Roster (domestic event schedule, not Universiade team list): https://www.ussa.org.za/doc/roster2015.pdf
 - Official Gwangju athletics results summary, men's 4x400m: https://slovenska-atletika.si/wp-content/uploads/2016/09/20150708_Gwangju_UNI.pdf
+
+
+## Follow-up verification — 23 November 2026
+
+### Live database and public archive check
+
+- The public archive is implemented at `/competitions` and is linked from the sport directory and profile navigation. It contains separate sections for current/previous seasons, heritage seasons, approved competition honours, all-time CUT team match wins, international representation and player awards.
+- An anonymous-role database check returned **54 publicly readable competition records** and **220 standings records**. The public reads succeeded with RLS enabled.
+- The live register still contains **0 international appearances**, **0 player awards** and **0 approved competition honours**. `player_match_statistics` contains 14 rows, but none are approved for public display.
+- The archive therefore correctly shows empty states for international representation and awards rather than inventing athlete records. No database rows were inserted, approved or changed during this verification.
+
+### Thabang Ambition Masihleho — canonical profile link
+
+- A live lookup across `player_profiles.full_name` and `display_name` using the canonical name and source spelling variants (Masihleho/Masihlelo) returned no matching profile.
+- The lookup did return two different public profiles named Thabang (Thabang Litabe and Thabang Mokoena). Neither is evidence of identity with Thabang Ambition Masihleho; do not attach the Gwangju appearance to either profile.
+- The 2015 Gwangju result remains source-supported: Masihleho finished eighth in the men's half-marathon in 1:07:11, and South Africa won the men's team bronze. Keep the individual placing and team medal as separate facts.
+- **No profile or appearance record has been created.** Before entering the appearance, locate/confirm the canonical CUT player profile or follow the authorised profile-creation process, then submit the sourced appearance as pending through the international-appearances admin screen for super-admin review.
+
+### Disposition
+
+The public archive and its anonymous read policies are in place. The remaining 2015 FISU data task is identity/profile linking and the approved record workflow—not a new table or a relaxation of RLS. The full 114-athlete South African delegation still has no complete institution-by-institution roster in the sources reviewed, so no other 2015 participants should be labelled CUT athletes without further evidence.
