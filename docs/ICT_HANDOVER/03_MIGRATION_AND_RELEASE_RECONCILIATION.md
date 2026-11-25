@@ -14,7 +14,7 @@ A comparison of the current GitHub `App` branch with the connected Supabase migr
 | Unique timestamp prefixes in repository migration files | 168 |
 | Timestamp groups used by more than one SQL file | 21 |
 
-There are also migration-name differences between the repository and remote history. Some remote migration names are absent from the branch; some branch files are not represented in remote history. Some historical migration names contain an embedded timestamp, so a simple filename comparison is not enough to determine whether a migration is missing, renamed or superseded.
+There are also migration-name differences between the repository and remote history. After normalising the leading timestamp (including embedded timestamp prefixes in some historical names), **19 applied migration names were not matched to a file in the current branch**, while **75 branch migration file names were not matched to an applied remote history record**. Some of these may be renamed, superseded, data-only or intentionally pending; they must not be treated as safe to apply or safe to discard without SQL-level review.
 
 **This is not proof that 55 migrations are safe to apply.** The mismatch requires a migration-by-migration reconciliation using exact SQL content, schema state and migration history.
 
