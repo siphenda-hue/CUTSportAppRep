@@ -11,6 +11,7 @@
 2. [Security architecture and review](02_SECURITY_ARCHITECTURE_AND_REVIEW.md) — trust boundaries, authentication, authorisation, RLS, edge-function controls, storage, privacy risks and ICT verification checklist.
 3. [Migration and release reconciliation](03_MIGRATION_AND_RELEASE_RECONCILIATION.md) — migration-history mismatch, duplicate migration timestamps and safe remediation requirements.
 4. [ICT review checklist](04_ICT_REVIEW_CHECKLIST.md) — items for ICT, Information Security, Infrastructure and Information Officer review.
+5. [ICT submission memorandum](05_ICT_SUBMISSION_MEMORANDUM.md) — formal cover memorandum requesting institutional review and sign-off.
 
 ## Evidence and status labels
 
